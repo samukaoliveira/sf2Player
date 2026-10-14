@@ -1,0 +1,398 @@
+.keybad {
+  width: 280px;
+  height: 100px;
+  display: flex;
+}
+
+.c {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.csus {
+  width: 13px;
+  height: 70px;
+  margin-left: -5px;
+  background-color: black;
+  position: relative;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.d {
+  width: 20px;
+  height: 100px;
+  margin-left: -5px;
+  border: 1px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.dsus {
+  width: 13px;
+  height: 70px;
+  margin-left: -5px;
+  background-color: black;
+  position: relative;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.e {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  margin-left: -5px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.f {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.fsus {
+  width: 13px;
+  height: 70px;
+  margin-left: -5px;
+  background-color: black;
+  position: relative;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.g {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  margin-left: -5px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.gsus {
+  width: 13px;
+  height: 70px;
+  margin-left: -5px;
+  background-color: black;
+  position: relative;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.a {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  margin-left: -5px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.asus {
+  width: 13px;
+  height: 70px;
+  margin-left: -5px;
+  background-color: black;
+  position: relative;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+.b {
+  width: 20px;
+  height: 100px;
+  border: 1px;
+  margin-left: -5px;
+  border-style: inset;
+
+  &:hover {
+    background-color: aqua;
+  }
+}
+
+
+
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.keyboard-container {
+  padding: 20px;
+  color: #202124;
+  font-family: Arial, sans-serif;
+}
+
+.keyboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.keyboard-header h2 {
+  margin: 0 0 6px;
+}
+
+.keyboard-header p,
+.teclado p {
+  margin: 0;
+  color: #666;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select,
+input[type="number"] {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+select,
+input[type="number"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px;
+  background: #fff;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.botao-iniciar,
+.controles button {
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.botao-iniciar {
+  color: white;
+  background: #303f9f;
+  border: 0;
+}
+
+.status {
+  color: #19733b;
+  font-weight: 600;
+}
+
+.erro {
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #a12622;
+  background: #fff0ef;
+  border-radius: 6px;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.slot {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.slot-header,
+.volume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.slot-header {
+  margin-bottom: 18px;
+}
+
+.slot-header h3 {
+  margin: 0;
+}
+
+.slot-numero {
+  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.slot > label {
+  margin-top: 12px;
+}
+
+.campos-midi {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.volume-header {
+  margin-top: 18px;
+}
+
+.volume-header label {
+  margin: 0;
+}
+
+.volume-slider {
+  width: 100%;
+  margin: 12px 0;
+  cursor: pointer;
+}
+
+.ativo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.ativo input {
+  margin: 0;
+}
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0;
+}
+
+.controles h3 {
+  width: 100%;
+  margin: 0;
+}
+
+.controles button {
+  background: #eee;
+}
+
+.controles button.ativado {
+  color: #fff;
+  background: #303f9f;
+}
+
+.teclado {
+  margin-top: 28px;
+}
+
+.teclas {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 16px;
+  touch-action: none;
+}
+
+.tecla {
+  display: flex;
+  min-width: 0;
+  height: 110px;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 8px;
+  background: white;
+  color: #222;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.tecla.tecla-preta {
+  color: white;
+  background: #303030;
+}
+
+.tecla:active {
+  background: #c5cae9;
+  color: #111;
+}
+
+.tecla:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:disabled,
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .keyboard-container {
+    padding: 12px;
+  }
+
+  .keyboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .slots {
+    grid-template-columns: 1fr;
+  }
+
+  .teclas {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .tecla {
+    height: 85px;
+    font-size: 12px;
+  }
+}

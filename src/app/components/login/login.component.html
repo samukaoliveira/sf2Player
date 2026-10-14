@@ -1,0 +1,24 @@
+<div class="conteudo">
+
+  <<mat-card class="title" appearance="outlined">
+    <mat-card-header>
+      <div mat-card-avatar class="example-header-image"></div>
+      <mat-card-title><h1>Login</h1></mat-card-title>
+      <mat-card-subtitle>
+        <span class="subtitle"><hr></span>
+        <span class="subtitle"><p>Realize o login</p></span>
+        <span class="subtitle"><hr></span>
+      </mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <mat-card class="form-login" appearance="outlined">
+    <form (ngSubmit)="login()">
+      <span>{{message}}</span>
+      <input type="text" [(ngModel)]="email" name="email" placeholder="Email">
+      <input type="password" [(ngModel)]="senha" name="senha" placeholder="Senha">
+      <button type="submit">Entrar</button>
+    </form>
+  </mat-card>>
+
+</div>

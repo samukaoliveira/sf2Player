@@ -1,0 +1,37 @@
+<div class="conversas">
+
+
+  <h2>Conversas</h2>
+
+  <div class="conversa">
+
+    <div class="usuario">
+      <span *ngIf="usuario">{{ usuario.nome }}</span>
+      <a routerLink="/conversas">
+        <mat-icon>close</mat-icon>
+      </a>
+    </div>
+
+    <div class="mensagem"
+    *ngFor="let mensagem of mensagens">
+
+      <div class="conteudo">
+        <span>{{ mensagem.conteudo }}</span>
+      </div>
+      <div class="horaEnvio">
+        <span>{{ formatarHora(mensagem.horaEnvio) }}</span>
+      </div>
+
+    </div>
+
+
+  </div>
+
+  <div class="envio">
+    <input type="text" name="novaMensagem"
+      id="novaMensagem"
+      [(ngModel)]="novaMensagem"/>
+    <button type="button" class="enviar" (click)="enviar()"><mat-icon>send</mat-icon></button>
+  </div>
+
+</div>

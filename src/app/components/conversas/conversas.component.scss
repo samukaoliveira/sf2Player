@@ -1,0 +1,119 @@
+.conversas {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.conversa {
+  align-items: end;
+  justify-items: end;
+  min-width: 200px;
+  max-width: 700px;
+  max-height: 450px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: rgb(253, 249, 243);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #bbb;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+}
+
+.usuario {
+  background-color: rgb(67, 67, 212);
+  width: 100%;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  color: white;
+  font-weight: 500;
+  padding: 4px;
+  margin-left: 30px;
+  margin: 5px;
+  border-radius: 5px;
+
+  span{
+    margin-left: 20px;
+  }
+
+  &:hover {
+    background-color: rgb(86, 86, 216);
+    cursor: pointer;
+  }
+}
+
+.mensagem {
+  display: flex;
+  flex-direction: row;
+  width: 500px;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  gap: 6px;
+  padding: 12px;
+  margin: 3px;
+  cursor: pointer;
+  border-radius: 8px;
+  width: fit-content;
+  min-width: 100px;
+  max-width: 600px;
+  background-color: #f5f5f5;
+
+  &:hover {
+    background-color: #d8d7d7;
+  }
+}
+
+.conteudo{
+  font-size: small;
+  display: flex;
+  width: 90%;
+}
+
+.horaEnvio {
+  font-size: xx-small;
+  align-items: end;
+  justify-content: center;
+  color: rgb(136, 136, 136);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ddd;
+  font-weight: bold;
+}
+
+.informacoes {
+  display: flex;
+  flex-direction: column;
+}
+
+.nome {
+  font-weight: bold;
+}
+
+.email {
+  font-size: 12px;
+  color: #777;
+}

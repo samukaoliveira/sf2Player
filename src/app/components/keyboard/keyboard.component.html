@@ -1,0 +1,320 @@
+
+<div class="keyboard-container"
+    tabindex="0"
+    (keydown)="aoPressionarTecla($event)"
+    (keyup)="aoSoltarTecla($event)"
+    (window:blur)="liberarTeclasFisicas()">
+
+  <header class="keyboard-header">
+    <div>
+      <h2>MIDI SoundFont Mixer</h2>
+      <p>Quatro slots independentes de instrumentos</p>
+    </div>
+
+    <button
+      type="button"
+      class="botao-iniciar"
+      *ngIf="!pronto"
+      [disabled]="inicializando"
+      (click)="iniciarAudio()">
+      {{ inicializando ? 'Carregando...' : 'Iniciar áudio' }}
+    </button>
+
+    <span class="status" *ngIf="pronto">
+      Áudio pronto
+    </span>
+  </header>
+
+  <p class="erro" *ngIf="erro">
+    {{ erro }}
+  </p>
+
+  <!-- Slots de SoundFont -->
+  <section class="slots">
+
+    <article
+      class="slot"
+      *ngFor="let sf of soundfonts; let i = index">
+
+      <div class="slot-header">
+        <h3>{{ sf.nome }}</h3>
+        <span class="slot-numero">SLOT {{ i + 1 }}</span>
+      </div>
+
+      <!-- Seleção do arquivo SF2 -->
+      <label [for]="'sf-' + i">SoundFont</label>
+
+      <select
+        [id]="'sf-' + i"
+        [ngModel]="sf.arquivo"
+        [disabled]="!pronto"
+        (ngModelChange)="trocarSoundFont(sf, $event)">
+
+        <option value="">Selecione um SoundFont</option>
+
+        <option
+          *ngFor="let opcao of soundfontCatalogo"
+          [value]="opcao.arquivo">
+          {{ opcao.nome }}
+        </option>
+      </select>
+
+      <!-- Banco MIDI -->
+      <label [for]="'banco-' + i">Banco MIDI</label>
+
+      <input
+        [id]="'banco-' + i"
+        type="number"
+        min="0"
+        max="16383"
+        [ngModel]="sf.banco"
+        [disabled]="!pronto || !sf.arquivo"
+        (ngModelChange)="alterarBanco(sf, $event)">
+
+      <!-- Programa selecionado pelo nome -->
+      <label [for]="'programa-' + i">Instrumento</label>
+
+      <select
+        [id]="'programa-' + i"
+        [ngModel]="sf.banco + ':' + sf.programa"
+        [disabled]="!pronto || !sf.arquivo || !sf.programas.length"
+        (ngModelChange)="selecionarProgramaPorNome(sf, $event)">
+
+        <option
+          *ngFor="let p of sf.programas"
+          [ngValue]="p.banco + ':' + p.programa">
+
+          {{ p.programa + 1 }} —
+          {{ p.nome }}
+
+        </option>
+      </select>
+
+      <div *ngIf="pronto && sf.arquivo && !sf.programas.length">
+        Nenhum preset encontrado neste SoundFont.
+      </div>
+
+      <!-- Volume individual -->
+      <div class="volume-header">
+        <label [for]="'volume-' + i">Volume</label>
+        <span>{{ sf.volume }}%</span>
+      </div>
+
+      <input
+        class="volume-slider"
+        [id]="'volume-' + i"
+        type="range"
+        min="0"
+        max="100"
+        [ngModel]="sf.volume"
+        [disabled]="!pronto || !sf.arquivo"
+        (ngModelChange)="alterarVolume(sf, $event)">
+
+      <!-- Ativação independente -->
+      <label class="ativo">
+        <input
+          type="checkbox"
+          [ngModel]="sf.ativo"
+          [disabled]="!pronto || !sf.arquivo"
+          (ngModelChange)="alternarSoundFont(sf, $event)">
+        <span>Ativar instrumento</span>
+      </label>
+
+    </article>
+
+  </section>
+
+  <!-- Sustain -->
+  <section class="controles">
+    <h3>Controles de execução</h3>
+
+    <button
+      type="button"
+      [class.ativado]="sustainAtivado"
+      [disabled]="!pronto"
+      (click)="alternarSustain()">
+      Sustain {{ sustainAtivado ? 'ligado' : 'desligado' }}
+    </button>
+
+    <button
+      type="button"
+      class="pedal"
+      [class.ativado]="sustainPressionado"
+      [disabled]="!pronto"
+      (pointerdown)="pressionarSustain()"
+      (pointerup)="soltarSustain()"
+      (pointerleave)="soltarSustain()"
+      (pointercancel)="soltarSustain()">
+      Pedal sustain
+    </button>
+
+    <button
+      type="button"
+      (click)="conectarControladorMidi()"
+      [disabled]="!pronto || controladorMidi.conectado">
+      Conectar controlador MIDI
+    </button>
+
+    <span *ngIf="controladorMidi.conectado">
+      MIDI conectado: {{ controladorMidi.nomeDispositivo }}
+    </span>
+
+    <p *ngIf="erro">
+      {{ erro }}
+    </p>
+  </section>
+
+  <!-- Teclado virtual original -->
+  <section class="teclado-virtual">
+    <h3>Teclado virtual</h3>
+
+    <div class="keybad">
+
+      <div class="c" id="c-2"
+        (pointerdown)="tocarNota(48)"
+        (pointerup)="soltarNota(48)"
+        (pointerleave)="soltarNota(48)"
+        (pointercancel)="soltarNota(48)"></div>
+
+      <div class="csus" id="csus-2"
+        (pointerdown)="tocarNota(49)"
+        (pointerup)="soltarNota(49)"
+        (pointerleave)="soltarNota(49)"
+        (pointercancel)="soltarNota(49)"></div>
+
+      <div class="d" id="d-2"
+        (pointerdown)="tocarNota(50)"
+        (pointerup)="soltarNota(50)"
+        (pointerleave)="soltarNota(50)"
+        (pointercancel)="soltarNota(50)"></div>
+
+      <div class="dsus" id="dsus-2"
+        (pointerdown)="tocarNota(51)"
+        (pointerup)="soltarNota(51)"
+        (pointerleave)="soltarNota(51)"
+        (pointercancel)="soltarNota(51)"></div>
+
+      <div class="e" id="e-2"
+        (pointerdown)="tocarNota(52)"
+        (pointerup)="soltarNota(52)"
+        (pointerleave)="soltarNota(52)"
+        (pointercancel)="soltarNota(52)"></div>
+
+      <div class="f" id="f-2"
+        (pointerdown)="tocarNota(53)"
+        (pointerup)="soltarNota(53)"
+        (pointerleave)="soltarNota(53)"
+        (pointercancel)="soltarNota(53)"></div>
+
+      <div class="fsus" id="fsus-2"
+        (pointerdown)="tocarNota(54)"
+        (pointerup)="soltarNota(54)"
+        (pointerleave)="soltarNota(54)"
+        (pointercancel)="soltarNota(54)"></div>
+
+      <div class="g" id="g-2"
+        (pointerdown)="tocarNota(55)"
+        (pointerup)="soltarNota(55)"
+        (pointerleave)="soltarNota(55)"
+        (pointercancel)="soltarNota(55)"></div>
+
+      <div class="gsus" id="gsus-2"
+        (pointerdown)="tocarNota(56)"
+        (pointerup)="soltarNota(56)"
+        (pointerleave)="soltarNota(56)"
+        (pointercancel)="soltarNota(56)"></div>
+
+      <div class="a" id="a-2"
+        (pointerdown)="tocarNota(57)"
+        (pointerup)="soltarNota(57)"
+        (pointerleave)="soltarNota(57)"
+        (pointercancel)="soltarNota(57)"></div>
+
+      <div class="asus" id="asus-2"
+        (pointerdown)="tocarNota(58)"
+        (pointerup)="soltarNota(58)"
+        (pointerleave)="soltarNota(58)"
+        (pointercancel)="soltarNota(58)"></div>
+
+      <div class="b" id="b-2"
+        (pointerdown)="tocarNota(59)"
+        (pointerup)="soltarNota(59)"
+        (pointerleave)="soltarNota(59)"
+        (pointercancel)="soltarNota(59)"></div>
+
+      <div class="c" id="c-1"
+        (pointerdown)="tocarNota(60)"
+        (pointerup)="soltarNota(60)"
+        (pointerleave)="soltarNota(60)"
+        (pointercancel)="soltarNota(60)"></div>
+
+      <div class="csus" id="csus-1"
+        (pointerdown)="tocarNota(61)"
+        (pointerup)="soltarNota(61)"
+        (pointerleave)="soltarNota(61)"
+        (pointercancel)="soltarNota(61)"></div>
+
+      <div class="d" id="d-1"
+        (pointerdown)="tocarNota(62)"
+        (pointerup)="soltarNota(62)"
+        (pointerleave)="soltarNota(62)"
+        (pointercancel)="soltarNota(62)"></div>
+
+      <div class="dsus" id="dsus-1"
+        (pointerdown)="tocarNota(63)"
+        (pointerup)="soltarNota(63)"
+        (pointerleave)="soltarNota(63)"
+        (pointercancel)="soltarNota(63)"></div>
+
+      <div class="e" id="e-1"
+        (pointerdown)="tocarNota(64)"
+        (pointerup)="soltarNota(64)"
+        (pointerleave)="soltarNota(64)"
+        (pointercancel)="soltarNota(64)"></div>
+
+      <div class="f" id="f-1"
+        (pointerdown)="tocarNota(65)"
+        (pointerup)="soltarNota(65)"
+        (pointerleave)="soltarNota(65)"
+        (pointercancel)="soltarNota(65)"></div>
+
+      <div class="fsus" id="fsus-1"
+        (pointerdown)="tocarNota(66)"
+        (pointerup)="soltarNota(66)"
+        (pointerleave)="soltarNota(66)"
+        (pointercancel)="soltarNota(66)"></div>
+
+      <div class="g" id="g-1"
+        (pointerdown)="tocarNota(67)"
+        (pointerup)="soltarNota(67)"
+        (pointerleave)="soltarNota(67)"
+        (pointercancel)="soltarNota(67)"></div>
+
+      <div class="gsus" id="gsus-1"
+        (pointerdown)="tocarNota(68)"
+        (pointerup)="soltarNota(68)"
+        (pointerleave)="soltarNota(68)"
+        (pointercancel)="soltarNota(68)"></div>
+
+      <div class="a" id="a-1"
+        (pointerdown)="tocarNota(69)"
+        (pointerup)="soltarNota(69)"
+        (pointerleave)="soltarNota(69)"
+        (pointercancel)="soltarNota(69)"></div>
+
+      <div class="asus" id="asus-1"
+        (pointerdown)="tocarNota(70)"
+        (pointerup)="soltarNota(70)"
+        (pointerleave)="soltarNota(70)"
+        (pointercancel)="soltarNota(70)"></div>
+
+      <div class="b" id="b-1"
+        (pointerdown)="tocarNota(71)"
+        (pointerup)="soltarNota(71)"
+        (pointerleave)="soltarNota(71)"
+        (pointercancel)="soltarNota(71)"></div>
+
+    </div>
+  </section>
+
+</div>

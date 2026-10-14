@@ -1,0 +1,45 @@
+@use 'src/styles.scss' as *;
+
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 150px;
+}
+
+.form-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 500px;
+  min-height: 250px;
+
+}
+
+.form-login span{
+  display: fixed;
+  padding: 8px;
+  margin: 24px;
+  align-items: center;
+  text-align: center;
+  color: red;
+}
+
+.form-login input{
+  display: flex;
+  padding: 8px;
+  margin: 24px;
+  min-width: 200px;
+  border-radius: 5px;
+  border-color: mat-color($custom-app-disabled, 100);
+}
+
+.form-login button{
+  display: flex;
+  padding: 8px;
+  margin: 24px;
+  background-color: mat-color($custom-app-primary, 700);
+  color: white;
+  border-radius: 5px;
+  font-weight: 600;
+}

@@ -1,0 +1,24 @@
+<div class="conversas">
+
+
+  <h2>Conversas</h2>
+
+  <div class="conversa">
+
+    <div class="usuario"
+      *ngFor="let usuario of usuarios">
+
+      <div class="conteudo" [routerLink]="['/mensagens', usuario.id]">
+        <span>{{ usuario.nome }}</span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+
+
+  <keyboard></keyboard>

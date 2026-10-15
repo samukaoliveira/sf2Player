@@ -12,23 +12,21 @@ const routes: Routes = [
   },
   {
     path: 'conversas',
-    component: ConversasComponent,
-    canActivate: [AuthGuard]
+    component: ConversasComponent
   },
   {
     path: 'mensagens/:usuarioId',
-    component: MensagensComponent,
-    canActivate: [AuthGuard]
+    component: MensagensComponent
   },
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'conversas',
     pathMatch: 'full'
   }
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forRoot(routes, { useHash: true })],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

@@ -100,6 +100,34 @@
         />
       </label>
     </div>
+
+    <!-- Acesso Rápido às Cenas -->
+
+    <section class="cenas-rapidas">
+      <div class="cenas-rapidas-header">
+        <h2>Cenas rápidas</h2>
+        <span>10 acessos diretos</span>
+      </div>
+
+      <div class="cenas-rapidas-grid">
+        <button
+          *ngFor="let cena of cenasRapidas; let i = index"
+          type="button"
+          class="botao-cena-rapida"
+          [class.cena-selecionada]="cena && cena.nome === cenaSelecionada"
+          [disabled]="!cena"
+          (click)="carregarCenaRapida(cena)"
+          [title]="cena ? 'Carregar cena: ' + cena.nome : 'Nenhuma cena cadastrada'"
+        >
+          <span class="cena-rapida-numero">{{ i + 1 }}</span>
+
+          <span class="cena-rapida-nome">
+            {{ cena ? cena.nome : 'Vazia' }}
+          </span>
+        </button>
+      </div>
+    </section>
+
   </section>
 
 
@@ -111,7 +139,10 @@
       *ngFor="let sf of soundfonts; let i = index">
 
       <div class="slot-header">
-        <h3>{{ sf.nome }}</h3>
+        <h3>
+          {{ !sf.arquivo && i > 0 ? 'Empty' : sf.nome }}
+        </h3>
+
         <span class="slot-numero">SLOT {{ i + 1 }}</span>
       </div>
 

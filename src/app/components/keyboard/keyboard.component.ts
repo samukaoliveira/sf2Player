@@ -30,10 +30,13 @@ export class KeyboardComponent implements OnDestroy {
   soundfontCatalogo = SOUNDFONT_CATALOGO;
 
   soundfonts: MotorSoundFont[] = SOUNDFONTS.map(
-    (sf: SoundFontMixer) => ({
+    (sf: SoundFontMixer, index: number) => ({
       ...sf,
+      arquivo: index === 0 ? sf.arquivo : '',
+      ativo: index === 0 ? sf.ativo : false,
       synth: null,
       audioNode: null,
+      soundFontId: null,
       programas: []
     })
   );
@@ -1260,6 +1263,22 @@ export class KeyboardComponent implements OnDestroy {
 
     this.salvarCenasNoNavegador();
     this.salvarAssociacoesMidi();
+  }
+
+  get cenasRapidas(): (Cena | null)[] {
+    return Array.from(
+      { length: 10 },
+      (_, indice) => this.cenas[indice] || null
+    );
+  }
+
+  carregarCenaRapida(cena: Cena | null): void {
+    if (!cena) {
+      return;
+    }
+
+    this.cenaSelecionada = cena.nome;
+    this.carregarCena();
   }
 
 

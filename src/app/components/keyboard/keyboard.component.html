@@ -29,6 +29,80 @@
     {{ erro }}
   </p>
 
+  <!-- Salvar Senas -->
+
+  <section class="painel-cenas">
+    <h3>Cenas</h3>
+
+    <div class="cenas-salvar">
+      <input
+        type="text"
+        [(ngModel)]="nomeNovaCena"
+        placeholder="Nome da cena"
+        maxlength="60"
+        (keyup.enter)="salvarCena()"
+      />
+
+      <button
+        type="button"
+        (click)="salvarCena()"
+      >
+        Salvar cena
+      </button>
+    </div>
+
+    <div class="cenas-carregar" *ngIf="cenas.length > 0">
+      <select [(ngModel)]="cenaSelecionada">
+        <option value="">Selecione uma cena</option>
+
+        <option
+          *ngFor="let cena of cenas"
+          [value]="cena.nome"
+        >
+          {{ cena.nome }}
+        </option>
+      </select>
+
+      <button
+        type="button"
+        (click)="carregarCena()"
+        [disabled]="!cenaSelecionada"
+      >
+        Carregar
+      </button>
+
+      <button
+        type="button"
+        (click)="excluirCena()"
+        [disabled]="!cenaSelecionada"
+      >
+        Excluir
+      </button>
+    </div>
+
+    <!-- Exportar Cenas -->
+
+    <div class="cenas-backup">
+      <button
+        type="button"
+        (click)="exportarCenas()"
+        [disabled]="cenas.length === 0">
+        Exportar cenas
+      </button>
+
+      <label class="botao-importar-cenas">
+        Importar backup
+        <input
+          type="file"
+          accept=".json,application/json"
+          (change)="importarCenas($event)"
+          hidden
+        />
+      </label>
+    </div>
+  </section>
+
+
   <!-- Slots de SoundFont -->
   <section class="slots">
 
@@ -109,6 +183,39 @@
         [ngModel]="sf.volume"
         [disabled]="!pronto || !sf.arquivo"
         (ngModelChange)="alterarVolume(sf, $event)">
+
+      
+      <div class="midi-learn-volume">
+
+        <button
+          type="button"
+          (click)="iniciarMidiLearn(sf)"
+          [disabled]="!pronto">
+          {{ midiLearnAlvo === sf
+              ? 'Aguardando controle MIDI...'
+              : 'Aprender MIDI' }}
+        </button>
+
+        <span *ngIf="ccAssociado(sf) !== null">
+          CC {{ ccAssociado(sf) }}
+        </span>
+
+        <button
+          *ngIf="midiLearnAlvo === sf"
+          type="button"
+          (click)="cancelarMidiLearn()">
+          Cancelar
+        </button>
+
+        <button
+          *ngIf="ccAssociado(sf) !== null"
+          type="button"
+          (click)="removerAssociacaoMidi(sf)">
+          Remover associação
+        </button>
+
+      </div>
+
 
       <!-- Ativação independente -->
       <label class="ativo">

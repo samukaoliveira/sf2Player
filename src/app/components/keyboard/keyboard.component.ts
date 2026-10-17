@@ -8,6 +8,7 @@ import { SOUNDFONTS } from './soundfont-mixer.config';
 import { SOUNDFONT_CATALOGO } from './soundfont-catalog.config';
 import { TecladoFisicoService } from './teclado-fisico.service';
 import { ControladorMidiService } from './controlador-midi.service';
+import { Cena, CenaSoundFont } from '../../models/cenas';
 
 declare const JSSynth: any;
 
@@ -52,12 +53,32 @@ export class KeyboardComponent implements OnDestroy {
   private motoresPorNota =
     new Map<number, MotorSoundFont[]>();
 
+  // Timbre que está aguardando um controle MIDI.
+  midiLearnAlvo: MotorSoundFont | null = null;
+
+  // Associação entre o nome do timbre e o número do CC.
+  midiCCPorSoundFont: { [nome: string]: number } = {};
+
   dispositivosMidi: string[] = [];
 
+  // Cenas salvas pelo usuário.
+  cenas: Cena[] = [];
+
+  // Nome digitado ao salvar uma cena.
+  nomeNovaCena = '';
+
+  // Cena selecionada na lista.
+  cenaSelecionada = '';
+
+  private readonly chaveCenas = 'sf2Player.cenas';
+
   constructor(
-    private tecladoFisico: TecladoFisicoService,
-    private controladorMidi: ControladorMidiService
-  ) {}
+    public tecladoFisico: TecladoFisicoService,
+    public controladorMidi: ControladorMidiService
+  ) {
+    this.midiCCPorSoundFont = {};
+    this.carregarCenasSalvas();
+  }
 
   aoPressionarTecla(event: KeyboardEvent): void {
     this.tecladoFisico.pressionar(
@@ -603,6 +624,13 @@ export class KeyboardComponent implements OnDestroy {
           ativo => {
             this.sustainPressionado = ativo;
             this.atualizarSustain();
+          },
+          (controle, valor, canal) => {
+            this.aoReceberControlChange(
+              controle,
+              valor,
+              canal
+            );
           }
         );
 
@@ -666,4 +694,573 @@ export class KeyboardComponent implements OnDestroy {
     this.liberarTeclasFisicas();
     void this.fecharRecursos();
   }
+
+
+
+  //MIDI LEARN
+  iniciarMidiLearn(sf: MotorSoundFont): void {
+    if (!this.pronto) {
+      this.erro = 'Inicialize o áudio antes de configurar o MIDI Learn.';
+      return;
+    }
+
+    this.midiLearnAlvo = sf;
+    this.erro = '';
+
+    console.log(
+      `MIDI Learn ativo para: ${sf.nome}`
+    );
+  }
+
+  cancelarMidiLearn(): void {
+    this.midiLearnAlvo = null;
+  }
+
+  ccAssociado(sf: MotorSoundFont): number | null {
+    const cc = this.midiCCPorSoundFont[sf.nome];
+
+    return cc === undefined ? null : cc;
+  }
+
+  removerAssociacaoMidi(sf: MotorSoundFont): void {
+    delete this.midiCCPorSoundFont[sf.nome];
+    this.salvarAssociacoesNaCena();
+
+    if (this.midiLearnAlvo === sf) {
+      this.midiLearnAlvo = null;
+    }
+  }
+
+  private aoReceberControlChange(
+  controle: number,
+  valor: number,
+  canal: number
+): void {
+  if (this.midiLearnAlvo) {
+    const sf = this.midiLearnAlvo;
+
+    this.midiCCPorSoundFont = {
+      ...this.midiCCPorSoundFont,
+      [sf.nome]: controle
+    };
+
+    this.midiLearnAlvo = null;
+
+    // Salva a associação na cena atual.
+    this.salvarAssociacoesNaCena();
+
+    console.log(
+      `MIDI Learn: ${sf.nome} associado ao CC ${controle}, canal MIDI ${canal + 1}`
+    );
+
+    this.alterarVolume(
+      sf,
+      Math.round(valor * 100 / 127)
+    );
+
+    return;
+  }
+
+  for (const sf of this.soundfonts) {
+    if (this.midiCCPorSoundFont[sf.nome] === controle) {
+      this.alterarVolume(
+        sf,
+        Math.round(valor * 100 / 127)
+      );
+    }
+  }
+}
+
+  private salvarAssociacoesMidi(): void {
+    try {
+      localStorage.setItem(
+        'sf2Player.midiLearn.volume',
+        JSON.stringify(this.midiCCPorSoundFont)
+      );
+    } catch (e) {
+      console.warn(
+        'Não foi possível salvar as associações MIDI.',
+        e
+      );
+    }
+  }
+
+  private carregarAssociacoesMidi(): void {
+    try {
+      const dados = localStorage.getItem(
+        'sf2Player.midiLearn.volume'
+      );
+
+      if (!dados) {
+        return;
+      }
+
+      const associacoes = JSON.parse(dados);
+
+      if (
+        associacoes &&
+        typeof associacoes === 'object' &&
+        !Array.isArray(associacoes)
+      ) {
+        this.midiCCPorSoundFont = associacoes;
+      }
+    } catch (e) {
+      console.warn(
+        'Não foi possível carregar as associações MIDI.',
+        e
+      );
+    }
+  }
+
+  // CENAS
+
+
+  salvarCena(): void {
+    const nome = this.nomeNovaCena.trim();
+
+    if (!nome) {
+      this.erro = 'Informe um nome para a cena.';
+      return;
+    }
+
+    const cena: Cena = {
+      nome,
+      soundfonts: this.soundfonts.map(sf => ({
+        arquivo: sf.arquivo,
+        banco: sf.banco,
+        programa: sf.programa,
+        volume: sf.volume,
+        ativo: sf.ativo
+      })),
+      associacoesMidiVolume: {
+        ...this.midiCCPorSoundFont
+      }
+    };
+
+    // Se já existir uma cena com esse nome, atualiza.
+    const indice = this.cenas.findIndex(
+      c => c.nome.toLowerCase() === nome.toLowerCase()
+    );
+
+    if (indice >= 0) {
+      this.cenas[indice] = cena;
+    } else {
+      this.cenas.push(cena);
+    }
+
+    this.salvarCenasNoNavegador();
+    this.cenaSelecionada = nome;
+    this.nomeNovaCena = '';
+    this.erro = '';
+
+    console.log(`Cena "${nome}" salva.`);
+  }
+
+  private salvarCenasNoNavegador(): void {
+    try {
+      localStorage.setItem(
+        this.chaveCenas,
+        JSON.stringify(this.cenas)
+      );
+    } catch (e) {
+      console.error('Erro ao salvar cenas:', e);
+      this.erro = 'Não foi possível salvar as cenas.';
+    }
+  }
+
+  private carregarCenasSalvas(): void {
+    try {
+      const dados = localStorage.getItem(this.chaveCenas);
+
+      if (!dados) {
+        this.cenas = [];
+        return;
+      }
+
+      const cenasSalvas = JSON.parse(dados);
+
+      if (!Array.isArray(cenasSalvas)) {
+        this.cenas = [];
+        return;
+      }
+
+      this.cenas = cenasSalvas
+        .filter(
+          (cena: any) =>
+            cena &&
+            typeof cena.nome === 'string' &&
+            Array.isArray(cena.soundfonts)
+        )
+        .map((cena: any): Cena => {
+          const associacoes: { [nome: string]: number } = {};
+
+          const originais = cena.associacoesMidiVolume;
+
+          if (
+            originais &&
+            typeof originais === 'object' &&
+            !Array.isArray(originais)
+          ) {
+            for (const nome of Object.keys(originais)) {
+              const cc = originais[nome];
+
+              if (
+                Number.isInteger(cc) &&
+                cc >= 0 &&
+                cc <= 127
+              ) {
+                associacoes[nome] = cc;
+              }
+            }
+          }
+
+          return {
+            nome: cena.nome,
+            soundfonts: cena.soundfonts,
+            associacoesMidiVolume: associacoes
+          };
+        });
+
+    } catch (e) {
+      console.error('Erro ao carregar cenas:', e);
+      this.cenas = [];
+    }
+  }
+
+  async carregarCena(): Promise<void> {
+    const cena = this.cenas.find(
+      c => c.nome === this.cenaSelecionada
+    );
+
+    if (!cena) {
+      this.erro = 'Selecione uma cena válida.';
+      return;
+    }
+
+    if (cena.soundfonts.length !== this.soundfonts.length) {
+      this.erro =
+        'Esta cena não corresponde à quantidade atual de timbres.';
+      return;
+    }
+
+    this.erro = '';
+
+    try {
+      for (let i = 0; i < this.soundfonts.length; i++) {
+        const sf = this.soundfonts[i];
+        const configuracao = cena.soundfonts[i];
+
+        if (
+          configuracao.arquivo &&
+          sf.arquivo !== configuracao.arquivo
+        ) {
+          await this.trocarSoundFont(
+            sf,
+            configuracao.arquivo
+          );
+
+          if (sf.arquivo !== configuracao.arquivo) {
+            throw new Error(
+              `Não foi possível carregar o timbre ${sf.nome}.`
+            );
+          }
+        }
+
+        sf.banco = configuracao.banco;
+        sf.programa = configuracao.programa;
+        sf.volume = configuracao.volume;
+        sf.ativo = configuracao.ativo;
+
+        this.selecionarPreset(sf);
+        this.aplicarVolume(sf);
+      }
+
+      // IMPORTANTE:
+      // Substitui as associações anteriores pelas desta cena.
+      // Uma cena sem associações deve permanecer sem associações.
+      this.midiCCPorSoundFont = {
+        ...(cena.associacoesMidiVolume || {})
+      };
+
+      // Atualiza o cache local com a cena recém-carregada.
+      this.salvarAssociacoesMidi();
+
+      for (const sf of this.soundfonts) {
+        if (sf.synth) {
+          sf.synth.midiControl(sf.canal, 64, 0);
+          sf.synth.midiAllNotesOff(sf.canal);
+        }
+      }
+
+      this.motoresPorNota.clear();
+      this.atualizarSustain();
+
+      this.erro = '';
+
+      console.log(
+        `Cena "${cena.nome}" carregada.`,
+        'Associações MIDI:',
+        this.midiCCPorSoundFont
+      );
+
+    } catch (e) {
+      console.error('Erro ao carregar cena:', e);
+
+      this.erro = e instanceof Error
+        ? e.message
+        : 'Não foi possível carregar a cena.';
+    }
+  }
+
+  excluirCena(): void {
+    if (!this.cenaSelecionada) {
+      this.erro = 'Selecione uma cena para excluir.';
+      return;
+    }
+
+    this.cenas = this.cenas.filter(
+      c => c.nome !== this.cenaSelecionada
+    );
+
+    this.salvarCenasNoNavegador();
+    this.cenaSelecionada = '';
+    this.erro = '';
+  }
+
+
+  exportarCenas(): void {
+    if (this.cenas.length === 0) {
+      this.erro = 'Não há cenas para exportar.';
+      return;
+    }
+
+    const backup = {
+      aplicativo: 'sf2Player',
+      versao: 1,
+      dataExportacao: new Date().toISOString(),
+      cenas: this.cenas,
+      associacoesMidiVolume: this.midiCCPorSoundFont
+    };
+
+    const conteudo = JSON.stringify(backup, null, 2);
+    const arquivo = new Blob(
+      [conteudo],
+      { type: 'application/json;charset=utf-8' }
+    );
+
+    const url = URL.createObjectURL(arquivo);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `sf2Player-cenas-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    this.erro = '';
+  }
+
+
+  importarCenas(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const arquivo = input.files && input.files[0];
+
+    if (!arquivo) {
+      return;
+    }
+
+    const leitor = new FileReader();
+
+    leitor.onload = () => {
+      try {
+        const conteudo = JSON.parse(
+          String(leitor.result || '')
+        );
+
+        // Valida o formato do backup.
+        if (
+          !conteudo ||
+          conteudo.aplicativo !== 'sf2Player' ||
+          !Array.isArray(conteudo.cenas)
+        ) {
+          throw new Error(
+            'O arquivo não é um backup válido do sf2Player.'
+          );
+        }
+
+        // Valida associações MIDI legadas, presentes em backups antigos.
+        const associacoesLegadas: { [nome: string]: number } = {};
+        const associacoesAntigas = conteudo.associacoesMidiVolume;
+
+        if (
+          associacoesAntigas &&
+          typeof associacoesAntigas === 'object' &&
+          !Array.isArray(associacoesAntigas)
+        ) {
+          for (const nome of Object.keys(associacoesAntigas)) {
+            const cc = associacoesAntigas[nome];
+
+            if (
+              Number.isInteger(cc) &&
+              cc >= 0 &&
+              cc <= 127
+            ) {
+              associacoesLegadas[nome] = cc;
+            }
+          }
+        }
+
+        // Valida e normaliza cada cena, preservando as associações individuais.
+        const cenasImportadas: Cena[] = conteudo.cenas
+          .filter((cena: any) =>
+            cena &&
+            typeof cena.nome === 'string' &&
+            cena.nome.trim().length > 0 &&
+            Array.isArray(cena.soundfonts) &&
+            cena.soundfonts.length === this.soundfonts.length &&
+            cena.soundfonts.every((sf: any) =>
+              sf &&
+              typeof sf.arquivo === 'string' &&
+              Number.isFinite(sf.banco) &&
+              Number.isFinite(sf.programa) &&
+              Number.isFinite(sf.volume) &&
+              typeof sf.ativo === 'boolean'
+            )
+          )
+          .map((cena: any): Cena => {
+            const associacoesCena: { [nome: string]: number } = {};
+            const associacoesOriginais = cena.associacoesMidiVolume;
+
+            if (
+              associacoesOriginais &&
+              typeof associacoesOriginais === 'object' &&
+              !Array.isArray(associacoesOriginais)
+            ) {
+              for (const nome of Object.keys(associacoesOriginais)) {
+                const cc = associacoesOriginais[nome];
+
+                if (
+                  Number.isInteger(cc) &&
+                  cc >= 0 &&
+                  cc <= 127
+                ) {
+                  associacoesCena[nome] = cc;
+                }
+              }
+            } else {
+              // Compatibilidade com backups antigos:
+              // usa as associações globais antigas como ponto de partida.
+              Object.assign(
+                associacoesCena,
+                associacoesLegadas
+              );
+            }
+
+            return {
+              nome: cena.nome.trim(),
+              soundfonts: cena.soundfonts.map((sf: any) => ({
+                arquivo: sf.arquivo,
+                banco: sf.banco,
+                programa: sf.programa,
+                volume: Math.max(0, Math.min(100, sf.volume)),
+                ativo: sf.ativo
+              })),
+              associacoesMidiVolume: associacoesCena
+            };
+          });
+
+        if (cenasImportadas.length === 0) {
+          throw new Error(
+            'O backup não contém cenas válidas compatíveis com os slots atuais.'
+          );
+        }
+
+        // Mescla por nome: cenas com o mesmo nome são atualizadas.
+        const mapa = new Map<string, Cena>();
+
+        for (const cena of this.cenas) {
+          mapa.set(cena.nome.toLowerCase(), cena);
+        }
+
+        for (const cena of cenasImportadas) {
+          mapa.set(cena.nome.toLowerCase(), cena);
+        }
+
+        this.cenas = Array.from(mapa.values());
+
+        // Persiste todas as cenas importadas.
+        this.salvarCenasNoNavegador();
+
+        // Se a cena atualmente selecionada existir, mantém as
+        // associações correspondentes à configuração ativa.
+        const cenaAtual = this.cenas.find(
+          c => c.nome === this.cenaSelecionada
+        );
+
+        if (cenaAtual) {
+          this.midiCCPorSoundFont = {
+            ...cenaAtual.associacoesMidiVolume
+          };
+
+          this.salvarAssociacoesMidi();
+        }
+
+        this.erro = '';
+
+        console.log(
+          `${cenasImportadas.length} cena(s) importada(s).`
+        );
+
+      } catch (e) {
+        console.error('Erro ao importar cenas:', e);
+
+        this.erro = e instanceof Error
+          ? e.message
+          : 'Não foi possível importar as cenas.';
+      } finally {
+        // Permite importar novamente o mesmo arquivo.
+        input.value = '';
+      }
+    };
+
+    leitor.onerror = () => {
+      this.erro = 'Não foi possível ler o arquivo selecionado.';
+      input.value = '';
+    };
+
+    leitor.readAsText(arquivo);
+  }
+
+  private salvarAssociacoesNaCena(): void {
+    if (!this.cenaSelecionada) {
+      this.salvarAssociacoesMidi();
+      return;
+    }
+
+    const indice = this.cenas.findIndex(
+      c => c.nome === this.cenaSelecionada
+    );
+
+    if (indice < 0) {
+      this.salvarAssociacoesMidi();
+      return;
+    }
+
+    this.cenas[indice] = {
+      ...this.cenas[indice],
+      associacoesMidiVolume: {
+        ...this.midiCCPorSoundFont
+      }
+    };
+
+    this.salvarCenasNoNavegador();
+    this.salvarAssociacoesMidi();
+  }
+
+
 }

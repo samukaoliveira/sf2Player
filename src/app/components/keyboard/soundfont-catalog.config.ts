@@ -24,5 +24,13 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: 'Nord EP',
     arquivo: 'assets/soundfonts/nord_EP.sf2'
+  },
+  {
+    nome: 'Stack Bells',
+    arquivo: 'assets/soundfonts/bells.sf2'
+  },
+  {
+    nome: 'Leads PixiTracker',
+    arquivo: 'assets/soundfonts/leads.sf2'
   }
 ];

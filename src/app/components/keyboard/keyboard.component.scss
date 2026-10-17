@@ -1,5 +1,5 @@
 .keybad {
-  width: 280px;
+  width: 800px;
   height: 100px;
   display: flex;
 }
@@ -156,6 +156,7 @@
 
 .keyboard-container {
   padding: 20px;
+  margin-top: 70px;
   color: #202124;
   font-family: Arial, sans-serif;
 }
@@ -233,7 +234,7 @@ label {
 
 .slots {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -373,6 +374,29 @@ input:disabled {
   cursor: not-allowed;
 }
 
+
+/* Telas pequenas: 1 slot */
+.slots {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* Telas médias: 2 slots */
+@media (min-width: 501px) {
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Telas grandes: 4 slots */
+@media (min-width: 1000px) {
+  .slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Ajustes para telas pequenas */
 @media (max-width: 700px) {
   .keyboard-container {
     padding: 12px;
@@ -382,9 +406,17 @@ input:disabled {
     align-items: flex-start;
     flex-direction: column;
   }
+}
 
-  .slots {
-    grid-template-columns: 1fr;
+
+@media (max-width: 700px) {
+  .keyboard-container {
+    padding: 12px;
+  }
+
+  .keyboard-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .teclas {

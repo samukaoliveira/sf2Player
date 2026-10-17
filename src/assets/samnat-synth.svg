@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">SAMNAT Synth</title>
+  <desc id="desc">Logo de sintetizador MIDI com S em gradiente neon, equalizador, teclado de piano com cinco teclas pretas e texto SAMNAT Synth.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#03172d"/><stop offset=".55" stop-color="#03091c"/><stop offset="1" stop-color="#100326"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00eaff"/><stop offset=".48" stop-color="#124cff"/><stop offset="1" stop-color="#e52cff"/></linearGradient>
+    <linearGradient id="sGrad" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#00f5ee"/><stop offset=".42" stop-color="#087cff"/><stop offset=".72" stop-color="#4938ff"/><stop offset="1" stop-color="#f044ff"/></linearGradient>
+    <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#00eaff"/><stop offset=".5" stop-color="#087bff"/><stop offset="1" stop-color="#bb31ff"/></linearGradient>
+    <linearGradient id="whiteKey" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".72" stop-color="#dbeaff"/><stop offset="1" stop-color="#83baff"/></linearGradient>
+    <linearGradient id="textGrad" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff"/><stop offset=".5" stop-color="#e8f5ff"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1024" height="1024" rx="112" fill="#02040b"/>
+  <rect x="40" y="40" width="944" height="944" rx="94" fill="url(#bg)" stroke="url(#rim)" stroke-width="5" filter="url(#softGlow)"/>
+  <!-- Symmetric audio waveform -->
+  <g fill="url(#barGrad)" filter="url(#softGlow)">
+    <rect x="132" y="414" width="16" height="30" rx="8"/><rect x="164" y="392" width="18" height="74" rx="9"/><rect x="199" y="365" width="19" height="126" rx="9"/><rect x="235" y="337" width="20" height="181" rx="10"/><rect x="274" y="307" width="20" height="232" rx="10"/>
+    <rect x="734" y="307" width="20" height="232" rx="10"/><rect x="773" y="337" width="20" height="181" rx="10"/><rect x="809" y="365" width="19" height="126" rx="9"/><rect x="844" y="392" width="18" height="74" rx="9"/><rect x="876" y="414" width="16" height="30" rx="8"/>
+  </g>
+  <!-- Stylized S ribbon -->
+  <path d="M540 128 C478 153 412 188 382 230 C348 278 380 317 439 343 L576 400 C620 419 634 444 614 468 C594 492 545 514 483 535 L389 567 L477 600 C551 576 625 543 661 503 C706 453 677 405 615 377 L466 310 C432 295 423 275 443 252 C462 230 502 207 559 184 Z" fill="url(#sGrad)" stroke="#30ddff" stroke-opacity=".5" stroke-width="3" filter="url(#glow)"/>
+  <path d="M540 128 C485 159 442 191 420 219 C400 244 406 264 432 282 C466 306 532 329 580 354 C619 375 640 398 642 422 C644 442 631 462 611 479 C645 455 660 435 658 412 C656 381 628 358 585 338 C532 314 476 293 451 272 C428 253 438 232 466 211 C490 192 519 172 540 128Z" fill="#5af9ff" opacity=".22"/>
+  <!-- Keyboard deck -->
+  <path d="M151 604 L251 570 L773 570 L873 604 L873 622 L151 622Z" fill="#07152f" stroke="url(#rim)" stroke-width="4" filter="url(#softGlow)"/>
+  <!-- 12 white keys; black keys are placed in the standard 2+3 pattern (five sharps per octave) -->
+  <g stroke="#7dafff" stroke-width="2" stroke-linejoin="round">
+    <path d="M160 610 H219 V729 H151Z" fill="url(#whiteKey)"/><path d="M220 610 H279 V729 H211Z" fill="url(#whiteKey)"/>
+    <path d="M280 610 H339 V729 H271Z" fill="url(#whiteKey)"/><path d="M340 610 H399 V729 H331Z" fill="url(#whiteKey)"/>
+    <path d="M400 610 H459 V729 H391Z" fill="url(#whiteKey)"/><path d="M460 610 H519 V729 H451Z" fill="url(#whiteKey)"/>
+    <path d="M520 610 H579 V729 H511Z" fill="url(#whiteKey)"/><path d="M580 610 H639 V729 H571Z" fill="url(#whiteKey)"/>
+    <path d="M640 610 H699 V729 H631Z" fill="url(#whiteKey)"/><path d="M700 610 H759 V729 H691Z" fill="url(#whiteKey)"/>
+    <path d="M760 610 H819 V729 H751Z" fill="url(#whiteKey)"/><path d="M820 610 H864 L873 729 H811Z" fill="url(#whiteKey)"/>
+  </g>
+  <!-- Standard piano black-key grouping: 2 + 3, repeated across the visible keyboard -->
+  <g fill="#061329" stroke="#173b75" stroke-width="3" stroke-linejoin="round">
+    <path d="M203 608 H240 V681 Q240 690 231 690 H211 Q203 690 203 681Z"/>
+    <path d="M263 608 H300 V681 Q300 690 291 690 H271 Q263 690 263 681Z"/>
+    <path d="M383 608 H420 V681 Q420 690 411 690 H391 Q383 690 383 681Z"/>
+    <path d="M443 608 H480 V681 Q480 690 471 690 H451 Q443 690 443 681Z"/>
+    <path d="M503 608 H540 V681 Q540 690 531 690 H511 Q503 690 503 681Z"/>
+    <path d="M623 608 H660 V681 Q660 690 651 690 H631 Q623 690 623 681Z"/>
+    <path d="M683 608 H720 V681 Q720 690 711 690 H691 Q683 690 683 681Z"/>
+    <path d="M803 608 H840 V681 Q840 690 831 690 H811 Q803 690 803 681Z"/>
+  </g>
+  <!-- Clean typographic wordmark -->
+  <text x="512" y="836" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="800" letter-spacing="7" fill="url(#textGrad)">SAMNAT</text>
+  <path d="M140 886 H310 M714 886 H884" stroke="url(#rim)" stroke-width="4" stroke-linecap="round"/>
+  <text x="512" y="906" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="300" letter-spacing="18" fill="url(#barGrad)">Synth</text>
+</svg>

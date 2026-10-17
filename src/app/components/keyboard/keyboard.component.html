@@ -294,7 +294,7 @@
     </button>
 
     <span *ngIf="controladorMidi.conectado">
-      MIDI conectado: {{ controladorMidi.nomeDispositivo }}
+      MIDI conectado: {{ nomeControladorMIDI }}
     </span>
 
     <p *ngIf="erro">
@@ -306,153 +306,108 @@
   <section class="teclado-virtual">
     <h3>Teclado virtual</h3>
 
+    
     <div class="keybad">
 
-      <div class="c" id="c-2"
-        (pointerdown)="tocarNota(48)"
-        (pointerup)="soltarNota(48)"
-        (pointerleave)="soltarNota(48)"
-        (pointercancel)="soltarNota(48)"></div>
+      <div class="a" id="a-0" (pointerdown)="tocarNota(21)" (pointerup)="soltarNota(21)" (pointerleave)="soltarNota(21)" (pointercancel)="soltarNota(21)"></div>
+      <div class="asus" id="asus-0" (pointerdown)="tocarNota(22)" (pointerup)="soltarNota(22)" (pointerleave)="soltarNota(22)" (pointercancel)="soltarNota(22)"></div>
+      <div class="b" id="b-0" (pointerdown)="tocarNota(23)" (pointerup)="soltarNota(23)" (pointerleave)="soltarNota(23)" (pointercancel)="soltarNota(23)"></div>
 
-      <div class="csus" id="csus-2"
-        (pointerdown)="tocarNota(49)"
-        (pointerup)="soltarNota(49)"
-        (pointerleave)="soltarNota(49)"
-        (pointercancel)="soltarNota(49)"></div>
+      <div class="c" id="c-1" (pointerdown)="tocarNota(24)" (pointerup)="soltarNota(24)" (pointerleave)="soltarNota(24)" (pointercancel)="soltarNota(24)"></div>
+      <div class="csus" id="csus-1" (pointerdown)="tocarNota(25)" (pointerup)="soltarNota(25)" (pointerleave)="soltarNota(25)" (pointercancel)="soltarNota(25)"></div>
+      <div class="d" id="d-1" (pointerdown)="tocarNota(26)" (pointerup)="soltarNota(26)" (pointerleave)="soltarNota(26)" (pointercancel)="soltarNota(26)"></div>
+      <div class="dsus" id="dsus-1" (pointerdown)="tocarNota(27)" (pointerup)="soltarNota(27)" (pointerleave)="soltarNota(27)" (pointercancel)="soltarNota(27)"></div>
+      <div class="e" id="e-1" (pointerdown)="tocarNota(28)" (pointerup)="soltarNota(28)" (pointerleave)="soltarNota(28)" (pointercancel)="soltarNota(28)"></div>
+      <div class="f" id="f-1" (pointerdown)="tocarNota(29)" (pointerup)="soltarNota(29)" (pointerleave)="soltarNota(29)" (pointercancel)="soltarNota(29)"></div>
+      <div class="fsus" id="fsus-1" (pointerdown)="tocarNota(30)" (pointerup)="soltarNota(30)" (pointerleave)="soltarNota(30)" (pointercancel)="soltarNota(30)"></div>
+      <div class="g" id="g-1" (pointerdown)="tocarNota(31)" (pointerup)="soltarNota(31)" (pointerleave)="soltarNota(31)" (pointercancel)="soltarNota(31)"></div>
+      <div class="gsus" id="gsus-1" (pointerdown)="tocarNota(32)" (pointerup)="soltarNota(32)" (pointerleave)="soltarNota(32)" (pointercancel)="soltarNota(32)"></div>
+      <div class="a" id="a-1" (pointerdown)="tocarNota(33)" (pointerup)="soltarNota(33)" (pointerleave)="soltarNota(33)" (pointercancel)="soltarNota(33)"></div>
+      <div class="asus" id="asus-1" (pointerdown)="tocarNota(34)" (pointerup)="soltarNota(34)" (pointerleave)="soltarNota(34)" (pointercancel)="soltarNota(34)"></div>
+      <div class="b" id="b-1" (pointerdown)="tocarNota(35)" (pointerup)="soltarNota(35)" (pointerleave)="soltarNota(35)" (pointercancel)="soltarNota(35)"></div>
 
-      <div class="d" id="d-2"
-        (pointerdown)="tocarNota(50)"
-        (pointerup)="soltarNota(50)"
-        (pointerleave)="soltarNota(50)"
-        (pointercancel)="soltarNota(50)"></div>
+      <div class="c" id="c-2" (pointerdown)="tocarNota(36)" (pointerup)="soltarNota(36)" (pointerleave)="soltarNota(36)" (pointercancel)="soltarNota(36)"></div>
+      <div class="csus" id="csus-2" (pointerdown)="tocarNota(37)" (pointerup)="soltarNota(37)" (pointerleave)="soltarNota(37)" (pointercancel)="soltarNota(37)"></div>
+      <div class="d" id="d-2" (pointerdown)="tocarNota(38)" (pointerup)="soltarNota(38)" (pointerleave)="soltarNota(38)" (pointercancel)="soltarNota(38)"></div>
+      <div class="dsus" id="dsus-2" (pointerdown)="tocarNota(39)" (pointerup)="soltarNota(39)" (pointerleave)="soltarNota(39)" (pointercancel)="soltarNota(39)"></div>
+      <div class="e" id="e-2" (pointerdown)="tocarNota(40)" (pointerup)="soltarNota(40)" (pointerleave)="soltarNota(40)" (pointercancel)="soltarNota(40)"></div>
+      <div class="f" id="f-2" (pointerdown)="tocarNota(41)" (pointerup)="soltarNota(41)" (pointerleave)="soltarNota(41)" (pointercancel)="soltarNota(41)"></div>
+      <div class="fsus" id="fsus-2" (pointerdown)="tocarNota(42)" (pointerup)="soltarNota(42)" (pointerleave)="soltarNota(42)" (pointercancel)="soltarNota(42)"></div>
+      <div class="g" id="g-2" (pointerdown)="tocarNota(43)" (pointerup)="soltarNota(43)" (pointerleave)="soltarNota(43)" (pointercancel)="soltarNota(43)"></div>
+      <div class="gsus" id="gsus-2" (pointerdown)="tocarNota(44)" (pointerup)="soltarNota(44)" (pointerleave)="soltarNota(44)" (pointercancel)="soltarNota(44)"></div>
+      <div class="a" id="a-2" (pointerdown)="tocarNota(45)" (pointerup)="soltarNota(45)" (pointerleave)="soltarNota(45)" (pointercancel)="soltarNota(45)"></div>
+      <div class="asus" id="asus-2" (pointerdown)="tocarNota(46)" (pointerup)="soltarNota(46)" (pointerleave)="soltarNota(46)" (pointercancel)="soltarNota(46)"></div>
+      <div class="b" id="b-2" (pointerdown)="tocarNota(47)" (pointerup)="soltarNota(47)" (pointerleave)="soltarNota(47)" (pointercancel)="soltarNota(47)"></div>
 
-      <div class="dsus" id="dsus-2"
-        (pointerdown)="tocarNota(51)"
-        (pointerup)="soltarNota(51)"
-        (pointerleave)="soltarNota(51)"
-        (pointercancel)="soltarNota(51)"></div>
+      <div class="c" id="c-3" (pointerdown)="tocarNota(48)" (pointerup)="soltarNota(48)" (pointerleave)="soltarNota(48)" (pointercancel)="soltarNota(48)"></div>
+      <div class="csus" id="csus-3" (pointerdown)="tocarNota(49)" (pointerup)="soltarNota(49)" (pointerleave)="soltarNota(49)" (pointercancel)="soltarNota(49)"></div>
+      <div class="d" id="d-3" (pointerdown)="tocarNota(50)" (pointerup)="soltarNota(50)" (pointerleave)="soltarNota(50)" (pointercancel)="soltarNota(50)"></div>
+      <div class="dsus" id="dsus-3" (pointerdown)="tocarNota(51)" (pointerup)="soltarNota(51)" (pointerleave)="soltarNota(51)" (pointercancel)="soltarNota(51)"></div>
+      <div class="e" id="e-3" (pointerdown)="tocarNota(52)" (pointerup)="soltarNota(52)" (pointerleave)="soltarNota(52)" (pointercancel)="soltarNota(52)"></div>
+      <div class="f" id="f-3" (pointerdown)="tocarNota(53)" (pointerup)="soltarNota(53)" (pointerleave)="soltarNota(53)" (pointercancel)="soltarNota(53)"></div>
+      <div class="fsus" id="fsus-3" (pointerdown)="tocarNota(54)" (pointerup)="soltarNota(54)" (pointerleave)="soltarNota(54)" (pointercancel)="soltarNota(54)"></div>
+      <div class="g" id="g-3" (pointerdown)="tocarNota(55)" (pointerup)="soltarNota(55)" (pointerleave)="soltarNota(55)" (pointercancel)="soltarNota(55)"></div>
+      <div class="gsus" id="gsus-3" (pointerdown)="tocarNota(56)" (pointerup)="soltarNota(56)" (pointerleave)="soltarNota(56)" (pointercancel)="soltarNota(56)"></div>
+      <div class="a" id="a-3" (pointerdown)="tocarNota(57)" (pointerup)="soltarNota(57)" (pointerleave)="soltarNota(57)" (pointercancel)="soltarNota(57)"></div>
+      <div class="asus" id="asus-3" (pointerdown)="tocarNota(58)" (pointerup)="soltarNota(58)" (pointerleave)="soltarNota(58)" (pointercancel)="soltarNota(58)"></div>
+      <div class="b" id="b-3" (pointerdown)="tocarNota(59)" (pointerup)="soltarNota(59)" (pointerleave)="soltarNota(59)" (pointercancel)="soltarNota(59)"></div>
 
-      <div class="e" id="e-2"
-        (pointerdown)="tocarNota(52)"
-        (pointerup)="soltarNota(52)"
-        (pointerleave)="soltarNota(52)"
-        (pointercancel)="soltarNota(52)"></div>
+      <div class="c" id="c-4" (pointerdown)="tocarNota(60)" (pointerup)="soltarNota(60)" (pointerleave)="soltarNota(60)" (pointercancel)="soltarNota(60)"></div>
+      <div class="csus" id="csus-4" (pointerdown)="tocarNota(61)" (pointerup)="soltarNota(61)" (pointerleave)="soltarNota(61)" (pointercancel)="soltarNota(61)"></div>
+      <div class="d" id="d-4" (pointerdown)="tocarNota(62)" (pointerup)="soltarNota(62)" (pointerleave)="soltarNota(62)" (pointercancel)="soltarNota(62)"></div>
+      <div class="dsus" id="dsus-4" (pointerdown)="tocarNota(63)" (pointerup)="soltarNota(63)" (pointerleave)="soltarNota(63)" (pointercancel)="soltarNota(63)"></div>
+      <div class="e" id="e-4" (pointerdown)="tocarNota(64)" (pointerup)="soltarNota(64)" (pointerleave)="soltarNota(64)" (pointercancel)="soltarNota(64)"></div>
+      <div class="f" id="f-4" (pointerdown)="tocarNota(65)" (pointerup)="soltarNota(65)" (pointerleave)="soltarNota(65)" (pointercancel)="soltarNota(65)"></div>
+      <div class="fsus" id="fsus-4" (pointerdown)="tocarNota(66)" (pointerup)="soltarNota(66)" (pointerleave)="soltarNota(66)" (pointercancel)="soltarNota(66)"></div>
+      <div class="g" id="g-4" (pointerdown)="tocarNota(67)" (pointerup)="soltarNota(67)" (pointerleave)="soltarNota(67)" (pointercancel)="soltarNota(67)"></div>
+      <div class="gsus" id="gsus-4" (pointerdown)="tocarNota(68)" (pointerup)="soltarNota(68)" (pointerleave)="soltarNota(68)" (pointercancel)="soltarNota(68)"></div>
+      <div class="a" id="a-4" (pointerdown)="tocarNota(69)" (pointerup)="soltarNota(69)" (pointerleave)="soltarNota(69)" (pointercancel)="soltarNota(69)"></div>
+      <div class="asus" id="asus-4" (pointerdown)="tocarNota(70)" (pointerup)="soltarNota(70)" (pointerleave)="soltarNota(70)" (pointercancel)="soltarNota(70)"></div>
+      <div class="b" id="b-4" (pointerdown)="tocarNota(71)" (pointerup)="soltarNota(71)" (pointerleave)="soltarNota(71)" (pointercancel)="soltarNota(71)"></div>
 
-      <div class="f" id="f-2"
-        (pointerdown)="tocarNota(53)"
-        (pointerup)="soltarNota(53)"
-        (pointerleave)="soltarNota(53)"
-        (pointercancel)="soltarNota(53)"></div>
+      <div class="c" id="c-5" (pointerdown)="tocarNota(72)" (pointerup)="soltarNota(72)" (pointerleave)="soltarNota(72)" (pointercancel)="soltarNota(72)"></div>
+      <div class="csus" id="csus-5" (pointerdown)="tocarNota(73)" (pointerup)="soltarNota(73)" (pointerleave)="soltarNota(73)" (pointercancel)="soltarNota(73)"></div>
+      <div class="d" id="d-5" (pointerdown)="tocarNota(74)" (pointerup)="soltarNota(74)" (pointerleave)="soltarNota(74)" (pointercancel)="soltarNota(74)"></div>
+      <div class="dsus" id="dsus-5" (pointerdown)="tocarNota(75)" (pointerup)="soltarNota(75)" (pointerleave)="soltarNota(75)" (pointercancel)="soltarNota(75)"></div>
+      <div class="e" id="e-5" (pointerdown)="tocarNota(76)" (pointerup)="soltarNota(76)" (pointerleave)="soltarNota(76)" (pointercancel)="soltarNota(76)"></div>
+      <div class="f" id="f-5" (pointerdown)="tocarNota(77)" (pointerup)="soltarNota(77)" (pointerleave)="soltarNota(77)" (pointercancel)="soltarNota(77)"></div>
+      <div class="fsus" id="fsus-5" (pointerdown)="tocarNota(78)" (pointerup)="soltarNota(78)" (pointerleave)="soltarNota(78)" (pointercancel)="soltarNota(78)"></div>
+      <div class="g" id="g-5" (pointerdown)="tocarNota(79)" (pointerup)="soltarNota(79)" (pointerleave)="soltarNota(79)" (pointercancel)="soltarNota(79)"></div>
+      <div class="gsus" id="gsus-5" (pointerdown)="tocarNota(80)" (pointerup)="soltarNota(80)" (pointerleave)="soltarNota(80)" (pointercancel)="soltarNota(80)"></div>
+      <div class="a" id="a-5" (pointerdown)="tocarNota(81)" (pointerup)="soltarNota(81)" (pointerleave)="soltarNota(81)" (pointercancel)="soltarNota(81)"></div>
+      <div class="asus" id="asus-5" (pointerdown)="tocarNota(82)" (pointerup)="soltarNota(82)" (pointerleave)="soltarNota(82)" (pointercancel)="soltarNota(82)"></div>
+      <div class="b" id="b-5" (pointerdown)="tocarNota(83)" (pointerup)="soltarNota(83)" (pointerleave)="soltarNota(83)" (pointercancel)="soltarNota(83)"></div>
 
-      <div class="fsus" id="fsus-2"
-        (pointerdown)="tocarNota(54)"
-        (pointerup)="soltarNota(54)"
-        (pointerleave)="soltarNota(54)"
-        (pointercancel)="soltarNota(54)"></div>
+      <div class="c" id="c-6" (pointerdown)="tocarNota(84)" (pointerup)="soltarNota(84)" (pointerleave)="soltarNota(84)" (pointercancel)="soltarNota(84)"></div>
+      <div class="csus" id="csus-6" (pointerdown)="tocarNota(85)" (pointerup)="soltarNota(85)" (pointerleave)="soltarNota(85)" (pointercancel)="soltarNota(85)"></div>
+      <div class="d" id="d-6" (pointerdown)="tocarNota(86)" (pointerup)="soltarNota(86)" (pointerleave)="soltarNota(86)" (pointercancel)="soltarNota(86)"></div>
+      <div class="dsus" id="dsus-6" (pointerdown)="tocarNota(87)" (pointerup)="soltarNota(87)" (pointerleave)="soltarNota(87)" (pointercancel)="soltarNota(87)"></div>
+      <div class="e" id="e-6" (pointerdown)="tocarNota(88)" (pointerup)="soltarNota(88)" (pointerleave)="soltarNota(88)" (pointercancel)="soltarNota(88)"></div>
+      <div class="f" id="f-6" (pointerdown)="tocarNota(89)" (pointerup)="soltarNota(89)" (pointerleave)="soltarNota(89)" (pointercancel)="soltarNota(89)"></div>
+      <div class="fsus" id="fsus-6" (pointerdown)="tocarNota(90)" (pointerup)="soltarNota(90)" (pointerleave)="soltarNota(90)" (pointercancel)="soltarNota(90)"></div>
+      <div class="g" id="g-6" (pointerdown)="tocarNota(91)" (pointerup)="soltarNota(91)" (pointerleave)="soltarNota(91)" (pointercancel)="soltarNota(91)"></div>
+      <div class="gsus" id="gsus-6" (pointerdown)="tocarNota(92)" (pointerup)="soltarNota(92)" (pointerleave)="soltarNota(92)" (pointercancel)="soltarNota(92)"></div>
+      <div class="a" id="a-6" (pointerdown)="tocarNota(93)" (pointerup)="soltarNota(93)" (pointerleave)="soltarNota(93)" (pointercancel)="soltarNota(93)"></div>
+      <div class="asus" id="asus-6" (pointerdown)="tocarNota(94)" (pointerup)="soltarNota(94)" (pointerleave)="soltarNota(94)" (pointercancel)="soltarNota(94)"></div>
+      <div class="b" id="b-6" (pointerdown)="tocarNota(95)" (pointerup)="soltarNota(95)" (pointerleave)="soltarNota(95)" (pointercancel)="soltarNota(95)"></div>
 
-      <div class="g" id="g-2"
-        (pointerdown)="tocarNota(55)"
-        (pointerup)="soltarNota(55)"
-        (pointerleave)="soltarNota(55)"
-        (pointercancel)="soltarNota(55)"></div>
+      <div class="c" id="c-7" (pointerdown)="tocarNota(96)" (pointerup)="soltarNota(96)" (pointerleave)="soltarNota(96)" (pointercancel)="soltarNota(96)"></div>
+      <div class="csus" id="csus-7" (pointerdown)="tocarNota(97)" (pointerup)="soltarNota(97)" (pointerleave)="soltarNota(97)" (pointercancel)="soltarNota(97)"></div>
+      <div class="d" id="d-7" (pointerdown)="tocarNota(98)" (pointerup)="soltarNota(98)" (pointerleave)="soltarNota(98)" (pointercancel)="soltarNota(98)"></div>
+      <div class="dsus" id="dsus-7" (pointerdown)="tocarNota(99)" (pointerup)="soltarNota(99)" (pointerleave)="soltarNota(99)" (pointercancel)="soltarNota(99)"></div>
+      <div class="e" id="e-7" (pointerdown)="tocarNota(100)" (pointerup)="soltarNota(100)" (pointerleave)="soltarNota(100)" (pointercancel)="soltarNota(100)"></div>
+      <div class="f" id="f-7" (pointerdown)="tocarNota(101)" (pointerup)="soltarNota(101)" (pointerleave)="soltarNota(101)" (pointercancel)="soltarNota(101)"></div>
+      <div class="fsus" id="fsus-7" (pointerdown)="tocarNota(102)" (pointerup)="soltarNota(102)" (pointerleave)="soltarNota(102)" (pointercancel)="soltarNota(102)"></div>
+      <div class="g" id="g-7" (pointerdown)="tocarNota(103)" (pointerup)="soltarNota(103)" (pointerleave)="soltarNota(103)" (pointercancel)="soltarNota(103)"></div>
+      <div class="gsus" id="gsus-7" (pointerdown)="tocarNota(104)" (pointerup)="soltarNota(104)" (pointerleave)="soltarNota(104)" (pointercancel)="soltarNota(104)"></div>
+      <div class="a" id="a-7" (pointerdown)="tocarNota(105)" (pointerup)="soltarNota(105)" (pointerleave)="soltarNota(105)" (pointercancel)="soltarNota(105)"></div>
+      <div class="asus" id="asus-7" (pointerdown)="tocarNota(106)" (pointerup)="soltarNota(106)" (pointerleave)="soltarNota(106)" (pointercancel)="soltarNota(106)"></div>
+      <div class="b" id="b-7" (pointerdown)="tocarNota(107)" (pointerup)="soltarNota(107)" (pointerleave)="soltarNota(107)" (pointercancel)="soltarNota(107)"></div>
 
-      <div class="gsus" id="gsus-2"
-        (pointerdown)="tocarNota(56)"
-        (pointerup)="soltarNota(56)"
-        (pointerleave)="soltarNota(56)"
-        (pointercancel)="soltarNota(56)"></div>
-
-      <div class="a" id="a-2"
-        (pointerdown)="tocarNota(57)"
-        (pointerup)="soltarNota(57)"
-        (pointerleave)="soltarNota(57)"
-        (pointercancel)="soltarNota(57)"></div>
-
-      <div class="asus" id="asus-2"
-        (pointerdown)="tocarNota(58)"
-        (pointerup)="soltarNota(58)"
-        (pointerleave)="soltarNota(58)"
-        (pointercancel)="soltarNota(58)"></div>
-
-      <div class="b" id="b-2"
-        (pointerdown)="tocarNota(59)"
-        (pointerup)="soltarNota(59)"
-        (pointerleave)="soltarNota(59)"
-        (pointercancel)="soltarNota(59)"></div>
-
-      <div class="c" id="c-1"
-        (pointerdown)="tocarNota(60)"
-        (pointerup)="soltarNota(60)"
-        (pointerleave)="soltarNota(60)"
-        (pointercancel)="soltarNota(60)"></div>
-
-      <div class="csus" id="csus-1"
-        (pointerdown)="tocarNota(61)"
-        (pointerup)="soltarNota(61)"
-        (pointerleave)="soltarNota(61)"
-        (pointercancel)="soltarNota(61)"></div>
-
-      <div class="d" id="d-1"
-        (pointerdown)="tocarNota(62)"
-        (pointerup)="soltarNota(62)"
-        (pointerleave)="soltarNota(62)"
-        (pointercancel)="soltarNota(62)"></div>
-
-      <div class="dsus" id="dsus-1"
-        (pointerdown)="tocarNota(63)"
-        (pointerup)="soltarNota(63)"
-        (pointerleave)="soltarNota(63)"
-        (pointercancel)="soltarNota(63)"></div>
-
-      <div class="e" id="e-1"
-        (pointerdown)="tocarNota(64)"
-        (pointerup)="soltarNota(64)"
-        (pointerleave)="soltarNota(64)"
-        (pointercancel)="soltarNota(64)"></div>
-
-      <div class="f" id="f-1"
-        (pointerdown)="tocarNota(65)"
-        (pointerup)="soltarNota(65)"
-        (pointerleave)="soltarNota(65)"
-        (pointercancel)="soltarNota(65)"></div>
-
-      <div class="fsus" id="fsus-1"
-        (pointerdown)="tocarNota(66)"
-        (pointerup)="soltarNota(66)"
-        (pointerleave)="soltarNota(66)"
-        (pointercancel)="soltarNota(66)"></div>
-
-      <div class="g" id="g-1"
-        (pointerdown)="tocarNota(67)"
-        (pointerup)="soltarNota(67)"
-        (pointerleave)="soltarNota(67)"
-        (pointercancel)="soltarNota(67)"></div>
-
-      <div class="gsus" id="gsus-1"
-        (pointerdown)="tocarNota(68)"
-        (pointerup)="soltarNota(68)"
-        (pointerleave)="soltarNota(68)"
-        (pointercancel)="soltarNota(68)"></div>
-
-      <div class="a" id="a-1"
-        (pointerdown)="tocarNota(69)"
-        (pointerup)="soltarNota(69)"
-        (pointerleave)="soltarNota(69)"
-        (pointercancel)="soltarNota(69)"></div>
-
-      <div class="asus" id="asus-1"
-        (pointerdown)="tocarNota(70)"
-        (pointerup)="soltarNota(70)"
-        (pointerleave)="soltarNota(70)"
-        (pointercancel)="soltarNota(70)"></div>
-
-      <div class="b" id="b-1"
-        (pointerdown)="tocarNota(71)"
-        (pointerup)="soltarNota(71)"
-        (pointerleave)="soltarNota(71)"
-        (pointercancel)="soltarNota(71)"></div>
+      <div class="c" id="c-8" (pointerdown)="tocarNota(108)" (pointerup)="soltarNota(108)" (pointerleave)="soltarNota(108)" (pointercancel)="soltarNota(108)"></div>
 
     </div>
+
   </section>
 
 </div>

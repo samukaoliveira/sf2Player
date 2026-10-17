@@ -4,6 +4,7 @@ import { ConversasComponent } from './components/conversas/conversas.component';
 import { LoginComponent } from './components/login/login.component';
 import { AuthGuard } from './auth.guard';
 import { MensagensComponent } from './components/mensagens/mensagens.component';
+import { KeyboardComponent } from './components/keyboard/keyboard.component';
 
 const routes: Routes = [
   {
@@ -11,16 +12,12 @@ const routes: Routes = [
     component: LoginComponent
   },
   {
-    path: 'conversas',
-    component: ConversasComponent
-  },
-  {
-    path: 'mensagens/:usuarioId',
-    component: MensagensComponent
+    path: 'synth',
+    component: KeyboardComponent
   },
   {
     path: '',
-    redirectTo: 'conversas',
+    redirectTo: 'synth',
     pathMatch: 'full'
   }
 ];

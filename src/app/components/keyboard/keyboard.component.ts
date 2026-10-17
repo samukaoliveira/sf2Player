@@ -1281,5 +1281,8 @@ export class KeyboardComponent implements OnDestroy {
     this.carregarCena();
   }
 
+  get nomeControladorMIDI(): string | null {
+    return this.controladorMidi.nomeControladorConectado; 
+  }
 
 }

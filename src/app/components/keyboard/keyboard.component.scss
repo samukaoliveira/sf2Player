@@ -576,6 +576,32 @@ input:disabled {
   white-space: nowrap;
 }
 
+
+.carregamento-timbre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #43a047;
+  font-size: 12px;
+}
+
+.spinner-timbre {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid rgba(67, 160, 71, 0.25);
+  border-top-color: #43a047;
+  border-radius: 50%;
+  animation: girar-timbre 0.7s linear infinite;
+}
+
+@keyframes girar-timbre {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 @media (max-width: 700px) {
   .cenas-rapidas-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

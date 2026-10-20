@@ -1,0 +1,3 @@
+# Ignora arquivos SoundFont em qualquer pasta
+*.sf2
+*.SF2

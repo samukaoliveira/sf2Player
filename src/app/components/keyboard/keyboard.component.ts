@@ -5,7 +5,9 @@ import {
   ProgramaSoundFont
 } from './motor-soundfont.model';
 import { SOUNDFONTS } from './soundfont-mixer.config';
-import { SOUNDFONT_CATALOGO } from './soundfont-catalog.config';
+import { SOUNDFONT_CATALOGO,
+  SoundFontGrupo,
+  SoundFontOpcao } from './soundfont-catalog.config';
 import { TecladoFisicoService } from './teclado-fisico.service';
 import { ControladorMidiService } from './controlador-midi.service';
 import { Cena, CenaSoundFont } from '../../models/cenas';
@@ -28,6 +30,7 @@ export class KeyboardComponent implements OnDestroy {
   sustainPressionado = false;
 
   soundfontCatalogo = SOUNDFONT_CATALOGO;
+  soundfontGrupos: SoundFontGrupo[] = [];
 
   soundfonts: MotorSoundFont[] = SOUNDFONTS.map(
     (sf: SoundFontMixer, index: number) => ({
@@ -37,7 +40,25 @@ export class KeyboardComponent implements OnDestroy {
       synth: null,
       audioNode: null,
       soundFontId: null,
-      programas: []
+      programas: [],
+      brilho: 100,
+      reverb: 0,
+      chorus: 0,
+      cutoff: 12000,
+      ressonancia: 0.7,
+      pitchBendAtivado: true,
+      modulacaoAtivada: true,
+      carregando: false,
+      efeitos: {
+        filtro: null,
+        ganhoSeco: null,
+        ganhoReverb: null,
+        convolver: null,
+        ganhoChorus: null,
+        atrasoChorus: null,
+        osciladorChorus: null,
+        profundidadeChorus: null
+      }
     })
   );
 
@@ -81,6 +102,7 @@ export class KeyboardComponent implements OnDestroy {
   ) {
     this.midiCCPorSoundFont = {};
     this.carregarCenasSalvas();
+    this.agruparSoundFonts();
   }
 
   aoPressionarTecla(event: KeyboardEvent): void {
@@ -118,14 +140,33 @@ export class KeyboardComponent implements OnDestroy {
 
       for (const sf of this.soundfonts) {
         sf.synth = new JSSynth.Synthesizer();
-        sf.synth.init(this.context.sampleRate);
+        sf.synth.init(this.context.sampleRate, {
+          reverbActive: false,
+          chorusActive: false,
+
+          // Mantém os parâmetros explícitos para facilitar
+          // futuros testes de configuração.
+          reverbRoomSize: 0.2,
+          reverbDamp: 0,
+          reverbWidth: 0.5,
+          reverbLevel: 0,
+
+          chorusNr: 3,
+          chorusLevel: 0,
+          chorusSpeed: 0.3,
+          chorusDepth: 8
+        });
+
+        sf.synth.setReverbOn(false);
+        sf.synth.setChorusOn(false);
 
         sf.audioNode = sf.synth.createAudioNode(
           this.context,
           this.BUFFER_SIZE
         );
 
-        sf.audioNode.connect(this.context.destination);
+        //sf.audioNode.connect(this.context.destination);
+        this.criarEfeitosDoSlot(sf);
         sf.soundFontId = null;
         sf.programas = [];
 
@@ -155,6 +196,7 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
+  
   private async carregarSoundFontInicial(
     sf: MotorSoundFont
   ): Promise<void> {
@@ -162,34 +204,48 @@ export class KeyboardComponent implements OnDestroy {
       return;
     }
 
-    const resposta = await fetch(sf.arquivo);
+    sf.carregando = true;
 
-    if (!resposta.ok) {
-      throw new Error(
-        `Erro HTTP ${resposta.status}: ${sf.arquivo}`
+    try {
+      const resposta = await fetch(sf.arquivo);
+
+      if (!resposta.ok) {
+        throw new Error(
+          `Erro HTTP ${resposta.status}: ${sf.arquivo}`
+        );
+      }
+
+      const dados = await resposta.arrayBuffer();
+      const id = await sf.synth.loadSFont(dados);
+
+      if (typeof id !== 'number' || id < 0) {
+        throw new Error(
+          `Falha ao carregar ${sf.arquivo}`
+        );
+      }
+
+      sf.soundFontId = id;
+
+      this.carregarProgramas(sf);
+      this.selecionarPreset(sf);
+
+      console.log(
+        `SoundFont carregado: ${sf.arquivo}`,
+        'ID:', id,
+        'Presets:', sf.programas.length
       );
-    }
-
-    const dados = await resposta.arrayBuffer();
-    const id = await sf.synth.loadSFont(dados);
-
-    if (typeof id !== 'number' || id < 0) {
-      throw new Error(
-        `Falha ao carregar ${sf.arquivo}`
+    } catch (erro) {
+      console.error(
+        `Erro ao carregar o timbre ${sf.arquivo}:`,
+        erro
       );
+
+      throw erro;
+    } finally {
+      sf.carregando = false;
     }
-
-    sf.soundFontId = id;
-
-    this.carregarProgramas(sf);
-    this.selecionarPreset(sf);
-
-    console.log(
-      `SoundFont carregado: ${sf.arquivo}`,
-      'ID:', id,
-      'Presets:', sf.programas.length
-    );
   }
+
 
   /**
    * Lê os presets reais do arquivo SF2.
@@ -253,6 +309,7 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
+  
   async trocarSoundFont(
     sf: MotorSoundFont,
     arquivo: string
@@ -265,6 +322,9 @@ export class KeyboardComponent implements OnDestroy {
     const idAnterior = sf.soundFontId;
 
     this.erro = '';
+
+    // Ativa o spinner antes de iniciar o download.
+    sf.carregando = true;
 
     try {
       const resposta = await fetch(arquivo);
@@ -282,7 +342,7 @@ export class KeyboardComponent implements OnDestroy {
         throw new Error(`Falha ao carregar ${arquivo}`);
       }
 
-      // Atualiza o slot para o novo SoundFont.
+      // Atualiza o slot somente após carregar o novo SF2.
       sf.arquivo = arquivo;
       sf.soundFontId = novoId;
 
@@ -318,10 +378,16 @@ export class KeyboardComponent implements OnDestroy {
       this.erro =
         `Não foi possível carregar o SoundFont ${arquivo}.`;
 
+      // Mantém o timbre anterior em caso de falha.
       sf.arquivo = arquivoAnterior;
       sf.soundFontId = idAnterior;
+
+    } finally {
+      // Desativa o spinner tanto no sucesso quanto no erro.
+      sf.carregando = false;
     }
   }
+
 
   selecionarPreset(sf: MotorSoundFont): void {
     if (!sf.synth || sf.soundFontId == null) {
@@ -833,7 +899,14 @@ export class KeyboardComponent implements OnDestroy {
         banco: sf.banco,
         programa: sf.programa,
         volume: sf.volume,
-        ativo: sf.ativo
+        ativo: sf.ativo,
+        brilho: sf.brilho,
+        reverb: sf.reverb,
+        chorus: sf.chorus,
+        cuttof: sf.cutoff,
+        ressonancia: sf.ressonancia,
+        pitchBendAtivado: sf.pitchBendAtivado,
+        modulacaoAtivada: sf.modulacaoAtivada
       })),
       associacoesMidiVolume: {
         ...this.midiCCPorSoundFont
@@ -973,6 +1046,13 @@ export class KeyboardComponent implements OnDestroy {
         sf.programa = configuracao.programa;
         sf.volume = configuracao.volume;
         sf.ativo = configuracao.ativo;
+        sf.brilho = configuracao.brilho ?? 100;
+        sf.reverb = configuracao.reverb ?? 0;
+        sf.chorus = configuracao.chorus ?? 0;
+        sf.pitchBendAtivado = configuracao.pitchBendAtivado ?? true;
+        sf.modulacaoAtivada = configuracao.modulacaoAtivada ?? true;
+
+        this.aplicarEfeitos(sf);
 
         this.selecionarPreset(sf);
         this.aplicarVolume(sf);
@@ -1171,7 +1251,12 @@ export class KeyboardComponent implements OnDestroy {
                 banco: sf.banco,
                 programa: sf.programa,
                 volume: Math.max(0, Math.min(100, sf.volume)),
-                ativo: sf.ativo
+                ativo: sf.ativo,
+                brilho: Math.max(0, Math.min(100, sf.brilho ?? 100)),
+                reverb: Math.max(0, Math.min(100, sf.reverb ?? 0)),
+                chorus: Math.max(0, Math.min(100, sf.chorus ?? 0)),
+                pitchBendAtivado: sf.pitchBendAtivado ?? true,
+                modulacaoAtivada: sf.modulacaoAtivada ?? true
               })),
               associacoesMidiVolume: associacoesCena
             };
@@ -1284,5 +1369,244 @@ export class KeyboardComponent implements OnDestroy {
   get nomeControladorMIDI(): string | null {
     return this.controladorMidi.nomeControladorConectado; 
   }
+
+
+  private criarEfeitosDoSlot(sf: MotorSoundFont): void {
+    if (!this.context || !sf.audioNode) {
+      return;
+    }
+
+    const ctx = this.context;
+    const filtro = ctx.createBiquadFilter();
+    filtro.type = 'allpass';
+    filtro.frequency.value = sf.cutoff;
+    filtro.Q.value = sf.ressonancia;
+
+    const ganhoSeco = ctx.createGain();
+    const ganhoReverb = ctx.createGain();
+    const convolver = ctx.createConvolver();
+
+    const ganhoChorus = ctx.createGain();
+    const atrasoChorus = ctx.createDelay(0.05);
+    const osciladorChorus = ctx.createOscillator();
+    const profundidadeChorus = ctx.createGain();
+
+    // Impulso de reverberação gerado localmente.
+    // Não depende de arquivos externos.
+    const duracao = 2.5;
+    const tamanho = Math.floor(ctx.sampleRate * duracao);
+    const impulso = ctx.createBuffer(2, tamanho, ctx.sampleRate);
+
+    for (let canal = 0; canal < 2; canal++) {
+      const dados = impulso.getChannelData(canal);
+
+      for (let i = 0; i < tamanho; i++) {
+        const decaimento = Math.pow(1 - i / tamanho, 3);
+        dados[i] = (Math.random() * 2 - 1) * decaimento;
+      }
+    }
+
+    convolver.buffer = impulso;
+
+    ganhoSeco.gain.value = 1;
+    ganhoReverb.gain.value = 0;
+    ganhoChorus.gain.value = 0;
+
+    atrasoChorus.delayTime.value = 0.018;
+    osciladorChorus.frequency.value = 0.8;
+    profundidadeChorus.gain.value = 0.003;
+
+    // Caminho seco.
+    sf.audioNode.connect(filtro);
+    filtro.connect(ganhoSeco);
+    ganhoSeco.connect(ctx.destination);
+
+    // Caminho reverberado.
+    filtro.connect(convolver);
+    convolver.connect(ganhoReverb);
+    ganhoReverb.connect(ctx.destination);
+
+    // Chorus: sinal atrasado com atraso modulado por LFO.
+    filtro.connect(atrasoChorus);
+    atrasoChorus.connect(ganhoChorus);
+    ganhoChorus.connect(ctx.destination);
+
+    osciladorChorus.connect(profundidadeChorus);
+    profundidadeChorus.connect(atrasoChorus.delayTime);
+    osciladorChorus.start();
+
+    sf.efeitos = {
+      filtro,
+      ganhoSeco,
+      ganhoReverb,
+      convolver,
+      ganhoChorus,
+      atrasoChorus,
+      osciladorChorus,
+      profundidadeChorus
+    };
+
+    this.aplicarEfeitos(sf);
+  }
+
+  private aplicarFiltro(sf: MotorSoundFont): void {
+    const filtro = sf.efeitos.filtro;
+
+    if (!filtro) {
+      return;
+    }
+
+    const cutoff = Math.max(
+      100,
+      Math.min(20000, Number(sf.cutoff) || 12000)
+    );
+
+    const ressonancia = Math.max(
+      0.1,
+      Math.min(10, Number(sf.ressonancia) || 0.7)
+    );
+
+    filtro.frequency.setTargetAtTime(
+      cutoff,
+      this.context?.currentTime || 0,
+      0.02
+    );
+
+    filtro.Q.setTargetAtTime(
+      ressonancia,
+      this.context?.currentTime || 0,
+      0.02
+    );
+  }
+
+  alterarCutoff(
+    sf: MotorSoundFont,
+    valor: number | string
+  ): void {
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+      return;
+    }
+
+    sf.cutoff = Math.max(100, Math.min(20000, numero));
+    this.aplicarFiltro(sf);
+  }
+
+  alterarRessonancia(
+    sf: MotorSoundFont,
+    valor: number | string
+  ): void {
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+      return;
+    }
+
+    sf.ressonancia = Math.max(0.1, Math.min(10, numero));
+    this.aplicarFiltro(sf);
+  }
+
+  
+  aplicarEfeitos(sf: MotorSoundFont): void {
+    const efeitos = sf.efeitos;
+
+    if (!efeitos.filtro) {
+      return;
+    }
+
+    this.aplicarFiltro(sf);
+
+    // Reverb: -100 a +100.
+    // Valores negativos reduzem o reverb externo.
+    // Valores positivos aumentam o reverb externo.
+    const valorReverb = Math.max(
+      -100,
+      Math.min(100, Number(sf.reverb) || 0)
+    );
+
+    const reverbPositivo = Math.max(0, valorReverb) / 100;
+    const reverbNegativo = Math.max(0, -valorReverb) / 100;
+
+    // Mantém o sinal direto sem atenuação.
+    if (efeitos.ganhoSeco) {
+      efeitos.ganhoSeco.gain.value = 1;
+    }
+
+    // Reverb externo gerado pela aplicação.
+    if (efeitos.ganhoReverb) {
+      efeitos.ganhoReverb.gain.value =
+        reverbPositivo * 0.65;
+    }
+
+    // Chorus continua independente do reverb.
+    const chorus = Math.max(
+      0,
+      Math.min(100, Number(sf.chorus) || 0)
+    ) / 100;
+
+    if (efeitos.ganhoChorus) {
+      efeitos.ganhoChorus.gain.value = chorus * 0.35;
+    }
+
+    if (efeitos.profundidadeChorus) {
+      efeitos.profundidadeChorus.gain.value = chorus * 0.006;
+    }
+
+    // Reservado para a etapa seguinte:
+    // aplicar uma compensação real do reverb interno,
+    // caso a API do sintetizador permita controlar seu envio.
+    void reverbNegativo;
+  }
+
+
+  alterarBrilho(sf: MotorSoundFont, valor: number | string): void {
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+      return;
+    }
+
+    sf.brilho = Math.max(0, Math.min(100, numero));
+    this.aplicarEfeitos(sf);
+  }
+
+  
+  alterarReverb(sf: MotorSoundFont, valor: number): void {
+    sf.reverb = Math.max(-100, Math.min(100, Number(valor) || 0));
+    this.aplicarEfeitos(sf);
+  }
+
+
+  alterarChorus(sf: MotorSoundFont, valor: number | string): void {
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+      return;
+    }
+
+    sf.chorus = Math.max(0, Math.min(100, numero));
+    this.aplicarEfeitos(sf);
+  }
+
+  private agruparSoundFonts(): void {
+    const grupos = new Map<string, SoundFontOpcao[]>();
+
+    SOUNDFONT_CATALOGO.forEach(sf => {
+      if (!grupos.has(sf.categoria)) {
+        grupos.set(sf.categoria, []);
+      }
+
+      grupos.get(sf.categoria)!.push(sf);
+    });
+
+    this.soundfontGrupos = Array.from(
+      grupos.entries()
+    ).map(([categoria, opcoes]) => ({
+      categoria,
+      opcoes
+    }));
+  }
+
 
 }

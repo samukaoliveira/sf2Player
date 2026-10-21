@@ -16,13 +16,27 @@
       class="botao-iniciar"
       *ngIf="!pronto"
       [disabled]="inicializando"
-      (click)="iniciarAudio()">
+      (click)="iniciarAudio(BUFFER_SIZE)">
       {{ inicializando ? 'Carregando...' : 'Iniciar áudio' }}
     </button>
 
-    <span class="status" *ngIf="pronto">
-      Áudio pronto
-    </span>
+    <div class="audio-buffer">
+      <span class="status" *ngIf="pronto">
+        Áudio pronto
+      </span>
+      <label for="buffer"
+        class="buffer-label">Buffer</label>
+      <select class="buffer" id="buffer"
+        [(ngModel)]="BUFFER_SIZE"
+        (ngModelChange)="alterarBuffer(BUFFER_SIZE)">
+        <option [ngValue]value="0" >0</option>
+        <option [ngValue]value="256" >256</option>
+        <option [ngValue]value="512" >512</option>
+        <option [ngValue]value="1024" >1024</option>
+        <option [ngValue]value="1024" >2048</option>
+        <option [ngValue]value="1024" >4096</option>
+      </select>
+    </div>
   </header>
 
   <p class="erro" *ngIf="erro">
@@ -230,7 +244,7 @@
         [disabled]="!pronto || !sf.arquivo"
         (ngModelChange)="alterarVolume(sf, $event)">
 
-      
+
       <div class="midi-learn-volume">
 
         <button
@@ -289,7 +303,7 @@
         />
       </label>
 
-      
+
       <label>
         Reverb: {{ sf.reverb }}
       </label>
@@ -404,7 +418,7 @@
   <section class="teclado-virtual">
     <h3>Teclado virtual</h3>
 
-    
+
     <div class="keybad">
 
       <div class="a" id="a-0" (pointerdown)="tocarNota(21)" (pointerup)="soltarNota(21)" (pointerleave)="soltarNota(21)" (pointercancel)="soltarNota(21)"></div>

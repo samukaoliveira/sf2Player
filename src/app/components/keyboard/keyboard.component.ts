@@ -62,7 +62,7 @@ export class KeyboardComponent implements OnDestroy {
     })
   );
 
-  readonly BUFFER_SIZE = 512;
+  BUFFER_SIZE = 512;
 
   readonly teclas: number[] = Array.from(
     { length: 25 },
@@ -125,7 +125,7 @@ export class KeyboardComponent implements OnDestroy {
     );
   }
 
-  async iniciarAudio(): Promise<void> {
+  async iniciarAudio(bufferSize: number): Promise<void> {
     if (this.pronto || this.inicializando) {
       return;
     }
@@ -162,8 +162,17 @@ export class KeyboardComponent implements OnDestroy {
 
         sf.audioNode = sf.synth.createAudioNode(
           this.context,
-          this.BUFFER_SIZE
+          bufferSize
         );
+
+        console.log({
+          sampleRate: this.context.sampleRate,
+          baseLatencyMs: this.context.baseLatency * 1000,
+          outputLatencyMs:
+            typeof this.context.outputLatency === 'number'
+              ? this.context.outputLatency * 1000
+              : 'Não disponível'
+        });
 
         //sf.audioNode.connect(this.context.destination);
         this.criarEfeitosDoSlot(sf);
@@ -196,7 +205,7 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
-  
+
   private async carregarSoundFontInicial(
     sf: MotorSoundFont
   ): Promise<void> {
@@ -309,7 +318,7 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
-  
+
   async trocarSoundFont(
     sf: MotorSoundFont,
     arquivo: string
@@ -1367,7 +1376,7 @@ export class KeyboardComponent implements OnDestroy {
   }
 
   get nomeControladorMIDI(): string | null {
-    return this.controladorMidi.nomeControladorConectado; 
+    return this.controladorMidi.nomeControladorConectado;
   }
 
 
@@ -1507,7 +1516,7 @@ export class KeyboardComponent implements OnDestroy {
     this.aplicarFiltro(sf);
   }
 
-  
+
   aplicarEfeitos(sf: MotorSoundFont): void {
     const efeitos = sf.efeitos;
 
@@ -1571,7 +1580,7 @@ export class KeyboardComponent implements OnDestroy {
     this.aplicarEfeitos(sf);
   }
 
-  
+
   alterarReverb(sf: MotorSoundFont, valor: number): void {
     sf.reverb = Math.max(-100, Math.min(100, Number(valor) || 0));
     this.aplicarEfeitos(sf);
@@ -1608,5 +1617,37 @@ export class KeyboardComponent implements OnDestroy {
     }));
   }
 
+
+  async alterarBuffer(bufferSize: number): Promise<void> {
+    this.BUFFER_SIZE = Number(bufferSize);
+
+    // Evita reinicializar durante outra inicialização.
+    if (this.inicializando) {
+      return;
+    }
+
+    // Se o áudio ainda não foi iniciado, apenas guarda o valor.
+    if (!this.pronto) {
+      return;
+    }
+
+    this.inicializando = true;
+    this.pronto = false;
+
+    try {
+      // Encerra os sintetizadores e o AudioContext atuais.
+      await this.fecharRecursos();
+
+      // Inicializa novamente usando o buffer selecionado.
+      await this.iniciarAudio(this.BUFFER_SIZE);
+      console.log("Buffer atual: " + this.BUFFER_SIZE);
+
+    } catch (e) {
+      console.error('Erro ao alterar buffer:', e);
+      this.erro = 'Não foi possível alterar o buffer de áudio.';
+    } finally {
+      this.inicializando = false;
+    }
+  }
 
 }

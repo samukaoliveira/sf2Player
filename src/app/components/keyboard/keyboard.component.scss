@@ -595,6 +595,25 @@ input:disabled {
   animation: girar-timbre 0.7s linear infinite;
 }
 
+.audio-buffer{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.buffer {
+  display: flex;
+  min-width: 80px;
+}
+
+.buffer-label {
+  display: flex;
+  margin: 5px 10px 5px;
+  gap: 5px;
+  color: red;
+}
+
 @keyframes girar-timbre {
   to {
     transform: rotate(360deg);

@@ -734,43 +734,46 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
-  async conectarControladorMidi(): Promise<void> {
-    try {
-      this.dispositivosMidi =
-        await this.controladorMidi.conectar(
-          (nota, velocidade) => {
-            if (!this.pronto) {
-              return;
-            }
 
-            this.tocarNotaComVelocidade(nota, velocidade);
-          },
-          nota => {
-            this.soltarNota(nota);
-          },
-          ativo => {
-            this.sustainPressionado = ativo;
-            this.atualizarSustain();
-          },
-          (controle, valor, canal) => {
-            this.aoReceberControlChange(
-              controle,
-              valor,
-              canal
-            );
-          }
-        );
+async conectarControladorMidi(): Promise<void> {
+  try {
+    this.dispositivosMidi =
+      await this.controladorMidi.conectar(
+        (nota, velocidade) => {
+          if (!this.pronto) return;
 
-      this.erro = '';
+          this.tocarNotaComVelocidade(nota, velocidade);
+        },
+        nota => {
+          this.soltarNota(nota);
+        },
+        ativo => {
+          this.sustainPressionado = ativo;
+          this.atualizarSustain();
+        },
+        (controle, valor, canal) => {
+          this.aoReceberControlChange(
+            controle,
+            valor,
+            canal
+          );
+        },
+        (valor, canal) => {
+          this.aoReceberPitchBend(valor, canal);
+        }
+      );
 
-    } catch (e) {
-      console.error('Erro MIDI:', e);
+    this.erro = '';
 
-      this.erro = e instanceof Error
-        ? e.message
-        : 'Não foi possível conectar o controlador MIDI.';
-    }
+  } catch (e) {
+    console.error('Erro MIDI:', e);
+
+    this.erro = e instanceof Error
+      ? e.message
+      : 'Não foi possível conectar o controlador MIDI.';
   }
+}
+
 
   private tocarNotaComVelocidade(
     nota: number,
@@ -858,45 +861,73 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
+
   private aoReceberControlChange(
-  controle: number,
-  valor: number,
-  canal: number
-): void {
-  if (this.midiLearnAlvo) {
-    const sf = this.midiLearnAlvo;
+    controle: number,
+    valor: number,
+    canal: number
+  ): void {
 
-    this.midiCCPorSoundFont = {
-      ...this.midiCCPorSoundFont,
-      [sf.nome]: controle
-    };
+    // Modulation Wheel: MIDI CC 1
+    if (controle === 1) {
+      if (!this.pronto) return;
 
-    this.midiLearnAlvo = null;
+      for (const sf of this.soundfonts) {
+        if (
+          !sf.ativo ||
+          !sf.synth ||
+          sf.soundFontId == null ||
+          !sf.modulacaoAtivada
+        ) {
+          continue;
+        }
 
-    // Salva a associação na cena atual.
-    this.salvarAssociacoesNaCena();
+        sf.synth.midiControl(
+          sf.canal,
+          1,
+          valor
+        );
+      }
 
-    console.log(
-      `MIDI Learn: ${sf.nome} associado ao CC ${controle}, canal MIDI ${canal + 1}`
-    );
+      return;
+    }
 
-    this.alterarVolume(
-      sf,
-      Math.round(valor * 100 / 127)
-    );
+    // MIDI Learn de volume: mantém o comportamento existente.
+    if (this.midiLearnAlvo) {
+      const sf = this.midiLearnAlvo;
 
-    return;
-  }
+      this.midiCCPorSoundFont = {
+        ...this.midiCCPorSoundFont,
+        [sf.nome]: controle
+      };
 
-  for (const sf of this.soundfonts) {
-    if (this.midiCCPorSoundFont[sf.nome] === controle) {
+      this.midiLearnAlvo = null;
+      this.salvarAssociacoesNaCena();
+
+      console.log(
+        `MIDI Learn: ${sf.nome} associado ao CC ${controle}, canal MIDI ${canal + 1}`
+      );
+
       this.alterarVolume(
         sf,
         Math.round(valor * 100 / 127)
       );
+
+      return;
+    }
+
+    for (const sf of this.soundfonts) {
+      if (
+        this.midiCCPorSoundFont[sf.nome] === controle
+      ) {
+        this.alterarVolume(
+          sf,
+          Math.round(valor * 100 / 127)
+        );
+      }
     }
   }
-}
+
 
   private salvarAssociacoesMidi(): void {
     try {
@@ -1745,5 +1776,29 @@ export class KeyboardComponent implements OnDestroy {
 
     return cache;
   }
+
+
+  private aoReceberPitchBend(
+    valor: number,
+    canalMIDI: number
+  ): void {
+    if (!this.pronto) return;
+
+    for (const sf of this.soundfonts) {
+      if (
+        !sf.ativo ||
+        !sf.synth ||
+        sf.soundFontId == null ||
+        !sf.pitchBendAtivado
+      ) {
+        continue;
+      }
+
+      // O pitch bend usa o canal configurado para cada slot.
+      // O valor MIDI recebido vai de 0 a 16383.
+      sf.synth.midiPitchBend(sf.canal, valor);
+    }
+  }
+
 
 }

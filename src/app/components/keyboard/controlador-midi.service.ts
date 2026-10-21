@@ -20,6 +20,10 @@ export class ControladorMidiService {
       controle: number,
       valor: number,
       canal: number
+    ) => void,
+    aoPitchBend?: (
+      valor: number,
+      canal: number
     ) => void
   ): Promise<string[]> {
 
@@ -50,18 +54,15 @@ export class ControladorMidiService {
         );
       }
 
-      // Prioriza uma entrada que não seja a porta virtual Midi Through.
-      // Nenhum nome específico de controlador fica fixo no código.
       const entrada =
         entradas.find(input =>
           !/midi through/i.test(input.name || '')
         ) || entradas[0];
 
-      //await entrada.open();
-
       this.entradaConectada = entrada;
       this.nomeControladorConectado =
         entrada.name || 'Controlador MIDI sem nome';
+
       this.conectado = true;
 
       entrada.onmidimessage = (event: MIDIMessageEvent) => {
@@ -74,16 +75,17 @@ export class ControladorMidiService {
         const status = dados[0];
         const comando = status & 0xF0;
         const canal = status & 0x0F;
+
         const notaOuControle = dados[1];
         const valor = dados.length > 2 ? dados[2] : 0;
 
-        // Note On: nota pressionada.
+        // Note On
         if (comando === 0x90 && valor > 0) {
           aoPressionar(notaOuControle, valor);
           return;
         }
 
-        // Note Off ou Note On com velocidade zero.
+        // Note Off ou Note On com velocidade zero
         if (
           comando === 0x80 ||
           (comando === 0x90 && valor === 0)
@@ -92,7 +94,17 @@ export class ControladorMidiService {
           return;
         }
 
-        // Control Change: knobs, sliders e pedais.
+        // Pitch Bend: mensagem MIDI própria de 14 bits
+        if (comando === 0xE0 && dados.length >= 3) {
+          const valor14Bits =
+            dados[1] | (dados[2] << 7);
+
+          // Faixa: 0 a 16383; centro: 8192
+          aoPitchBend?.(valor14Bits, canal);
+          return;
+        }
+
+        // Control Change: modulação, sustain e outros controles
         if (comando === 0xB0) {
           const controle = notaOuControle;
 
@@ -100,9 +112,7 @@ export class ControladorMidiService {
             aoSustain(valor >= 64);
           }
 
-          if (aoControlChange) {
-            aoControlChange(controle, valor, canal);
-          }
+          aoControlChange?.(controle, valor, canal);
         }
       };
 
@@ -127,14 +137,10 @@ export class ControladorMidiService {
   desconectar(): void {
     if (this.entradaConectada) {
       this.entradaConectada.onmidimessage = null;
-
-      //this.entradaConectada.close().catch(erro => {
-      //  console.warn('Erro ao fechar entrada MIDI:', erro);
-      //});
-
       this.entradaConectada = null;
     }
 
+    this.midiAccess = null;
     this.conectado = false;
     this.nomeControladorConectado = null;
   }

@@ -63,6 +63,9 @@ export class KeyboardComponent implements OnDestroy {
     })
   );
 
+  private soundFontCache =
+  new WeakMap<object, Map<string, number>>();
+
   BUFFER_SIZE = 512;
 
   controladoresMidi: MIDIInput[] = [];
@@ -332,77 +335,87 @@ export class KeyboardComponent implements OnDestroy {
     }
 
     const arquivoAnterior = sf.arquivo;
-    const idAnterior = sf.soundFontId;
+    const cache = this.obterCacheSoundFonts(sf.synth);
 
     this.erro = '';
     sf.carregando = true;
     sf.progresso = 0;
 
     try {
-      const resposta = await fetch(arquivo);
+      let novoId = cache.get(arquivo);
 
-      if (!resposta.ok) {
-        throw new Error(
-          `Erro HTTP ${resposta.status}: ${arquivo}`
-        );
-      }
+      // Se já estiver carregado, reutiliza o ID.
+      if (novoId == null) {
+        const resposta = await fetch(arquivo);
 
-      const tamanhoTotal = Number(
-        resposta.headers.get('Content-Length')
-      );
-
-      const leitor = resposta.body?.getReader();
-
-      if (!leitor) {
-        throw new Error(
-          'O navegador não disponibilizou a leitura progressiva do arquivo.'
-        );
-      }
-
-      const blocos: Uint8Array[] = [];
-      let totalRecebido = 0;
-
-      while (true) {
-        const { done, value } = await leitor.read();
-
-        if (done) {
-          break;
+        if (!resposta.ok) {
+          throw new Error(
+            `Erro HTTP ${resposta.status}: ${arquivo}`
+          );
         }
 
-        if (value) {
-          blocos.push(value);
-          totalRecebido += value.byteLength;
+        const tamanhoTotal = Number(
+          resposta.headers.get('Content-Length')
+        );
 
-          if (tamanhoTotal > 0) {
-            sf.progresso = Math.min(
-              100,
-              Math.round((totalRecebido / tamanhoTotal) * 100)
-            );
+        const leitor = resposta.body?.getReader();
+
+        if (!leitor) {
+          throw new Error(
+            'Não foi possível ler o arquivo SF2.'
+          );
+        }
+
+        const blocos: Uint8Array[] = [];
+        let totalRecebido = 0;
+
+        while (true) {
+          const { done, value } = await leitor.read();
+
+          if (done) break;
+
+          if (value) {
+            blocos.push(value);
+            totalRecebido += value.byteLength;
+
+            if (tamanhoTotal > 0) {
+              sf.progresso = Math.min(
+                100,
+                Math.round(
+                  (totalRecebido / tamanhoTotal) * 100
+                )
+              );
+            }
           }
         }
+
+        const dados = new Uint8Array(totalRecebido);
+        let deslocamento = 0;
+
+        for (const bloco of blocos) {
+          dados.set(bloco, deslocamento);
+          deslocamento += bloco.byteLength;
+        }
+
+        sf.progresso = 100;
+
+        novoId = await sf.synth.loadSFont(dados.buffer);
+
+        if (typeof novoId !== 'number' || novoId < 0) {
+          throw new Error(`Falha ao carregar ${arquivo}`);
+        }
+
+        // Armazena para reutilizar nas próximas trocas.
+        cache.set(arquivo, novoId);
+
+        console.log('SoundFont carregado e armazenado em cache:', arquivo);
+
+      } else {
+        console.log('SoundFont reutilizado do cache:', arquivo);
+        sf.progresso = 100;
       }
 
-      // Reúne os blocos em um único ArrayBuffer.
-      const dados = new Uint8Array(totalRecebido);
-      let deslocamento = 0;
-
-      for (const bloco of blocos) {
-        dados.set(bloco, deslocamento);
-        deslocamento += bloco.byteLength;
-      }
-
-      // Download concluído; agora começa o processamento do SF2.
-      sf.progresso = 100;
-
-      const novoId = await sf.synth.loadSFont(
-        dados.buffer
-      );
-
-      if (typeof novoId !== 'number' || novoId < 0) {
-        throw new Error(`Falha ao carregar ${arquivo}`);
-      }
-
-      // Atualiza o slot somente após carregar o novo SF2.
+      // Atualiza o slot com o ID novo ou recuperado.
       sf.arquivo = arquivo;
       sf.soundFontId = novoId;
 
@@ -414,24 +427,6 @@ export class KeyboardComponent implements OnDestroy {
       this.selecionarPreset(sf);
       this.aplicarVolume(sf);
 
-      // Descarrega o arquivo anterior depois da troca.
-      if (idAnterior != null) {
-        try {
-          await sf.synth.unloadSFontAsync(idAnterior);
-        } catch (e) {
-          console.warn(
-            'Não foi possível descarregar o SoundFont anterior:',
-            e
-          );
-        }
-      }
-
-      console.log(
-        `SoundFont alterado no ${sf.nome}:`,
-        arquivo,
-        'Presets:', sf.programas.length
-      );
-
     } catch (e) {
       console.error('Erro ao trocar SoundFont:', e);
 
@@ -439,7 +434,11 @@ export class KeyboardComponent implements OnDestroy {
         `Não foi possível carregar o SoundFont ${arquivo}.`;
 
       sf.arquivo = arquivoAnterior;
-      sf.soundFontId = idAnterior;
+
+      // Recupera o ID anterior, se houver.
+      sf.soundFontId = arquivoAnterior
+        ? cache.get(arquivoAnterior) ?? null
+        : null;
 
     } finally {
       sf.carregando = false;
@@ -1732,6 +1731,19 @@ export class KeyboardComponent implements OnDestroy {
     const angulo = -135 + percentual * 270;
 
     return `rotate(${angulo}deg)`;
+  }
+
+  private obterCacheSoundFonts(
+    synth: object
+  ): Map<string, number> {
+    let cache = this.soundFontCache.get(synth);
+
+    if (!cache) {
+      cache = new Map<string, number>();
+      this.soundFontCache.set(synth, cache);
+    }
+
+    return cache;
   }
 
 }

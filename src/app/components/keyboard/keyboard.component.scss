@@ -104,7 +104,7 @@ select, input[type="number"], input[type="text"] { width: 100%; min-height: 38px
 .cena-selecionada .cena-rapida-numero { background: var(--cor-primaria); color: #fff; }
 .cena-rapida-nome { overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 
-.slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.slots { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
 .slot { min-width: 0; padding: 16px; border: 1px solid var(--borda); border-radius: 14px; background: var(--superficie); box-shadow: 0 2px 8px rgba(28, 30, 33, .035); }
 .slot-header { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--borda); }
 .slot-header h3 { overflow: hidden; flex: 1 1 100px; margin: 0; font-size: 15px; font-weight: 700; text-overflow: ellipsis; }
@@ -174,14 +174,19 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .midi-connect { width: auto; }
 .midi-status { color: #18794e; font-size: 12px; }
 
-@media (max-width: 1200px) {
-  .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1600px) {
+  .slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-@media (max-width: 760px) {
+
+@media (max-width: 1200px) {
+  .slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 840px) {
   .keyboard-container { padding: 12px; }
   .keyboard-header { align-items: flex-start; flex-direction: column; padding: 16px; }
   .audio-buffer { justify-content: flex-start; }
-  .slots { grid-template-columns: minmax(0, 1fr); }
+  .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cenas-rapidas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .painel-cenas, .controles, .teclado-virtual { padding: 14px; }
   .efeitos-controles { gap: 8px; }
@@ -189,8 +194,9 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
   .keybad > div { flex-basis: 26px; }
   .keybad > .asus, .keybad > .csus, .keybad > .dsus, .keybad > .fsus, .keybad > .gsus { flex-basis: 17px; margin-left: -8px; margin-right: -8px; }
 }
-@media (max-width: 380px) {
-  .cenas-rapidas-grid { grid-template-columns: 1fr 1fr; }
+@media (max-width: 480px) {
+  .cenas-rapidas-grid { grid-template-columns: minmax(0, 1fr); }
+  .slots { grid-template-columns: repeat(1, minmax(0, 1fr)); }
   .efeitos-slot { padding: 10px 6px; }
   .efeitos-controles { gap: 4px; }
   .efeito-nome, .efeito-controle output { font-size: 9px; }

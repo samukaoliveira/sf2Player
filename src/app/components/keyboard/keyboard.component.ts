@@ -49,6 +49,7 @@ export class KeyboardComponent implements OnDestroy {
       pitchBendAtivado: true,
       modulacaoAtivada: true,
       carregando: false,
+      progresso: 0,
       efeitos: {
         filtro: null,
         ganhoSeco: null,
@@ -334,9 +335,8 @@ export class KeyboardComponent implements OnDestroy {
     const idAnterior = sf.soundFontId;
 
     this.erro = '';
-
-    // Ativa o spinner antes de iniciar o download.
     sf.carregando = true;
+    sf.progresso = 0;
 
     try {
       const resposta = await fetch(arquivo);
@@ -347,8 +347,56 @@ export class KeyboardComponent implements OnDestroy {
         );
       }
 
-      const dados = await resposta.arrayBuffer();
-      const novoId = await sf.synth.loadSFont(dados);
+      const tamanhoTotal = Number(
+        resposta.headers.get('Content-Length')
+      );
+
+      const leitor = resposta.body?.getReader();
+
+      if (!leitor) {
+        throw new Error(
+          'O navegador não disponibilizou a leitura progressiva do arquivo.'
+        );
+      }
+
+      const blocos: Uint8Array[] = [];
+      let totalRecebido = 0;
+
+      while (true) {
+        const { done, value } = await leitor.read();
+
+        if (done) {
+          break;
+        }
+
+        if (value) {
+          blocos.push(value);
+          totalRecebido += value.byteLength;
+
+          if (tamanhoTotal > 0) {
+            sf.progresso = Math.min(
+              100,
+              Math.round((totalRecebido / tamanhoTotal) * 100)
+            );
+          }
+        }
+      }
+
+      // Reúne os blocos em um único ArrayBuffer.
+      const dados = new Uint8Array(totalRecebido);
+      let deslocamento = 0;
+
+      for (const bloco of blocos) {
+        dados.set(bloco, deslocamento);
+        deslocamento += bloco.byteLength;
+      }
+
+      // Download concluído; agora começa o processamento do SF2.
+      sf.progresso = 100;
+
+      const novoId = await sf.synth.loadSFont(
+        dados.buffer
+      );
 
       if (typeof novoId !== 'number' || novoId < 0) {
         throw new Error(`Falha ao carregar ${arquivo}`);
@@ -390,13 +438,12 @@ export class KeyboardComponent implements OnDestroy {
       this.erro =
         `Não foi possível carregar o SoundFont ${arquivo}.`;
 
-      // Mantém o timbre anterior em caso de falha.
       sf.arquivo = arquivoAnterior;
       sf.soundFontId = idAnterior;
 
     } finally {
-      // Desativa o spinner tanto no sucesso quanto no erro.
       sf.carregando = false;
+      sf.progresso = 0;
     }
   }
 

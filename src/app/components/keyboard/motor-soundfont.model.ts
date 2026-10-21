@@ -24,4 +24,5 @@ export interface MotorSoundFont extends SoundFontMixer {
   programas: ProgramaSoundFont[];
   efeitos: EfeitosSoundFont;
   carregando: boolean;
+  progresso: number;
 }

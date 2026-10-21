@@ -158,6 +158,7 @@
         </h3>
 
         <span class="slot-numero">SLOT {{ i + 1 }}</span>
+
         <div
           class="carregamento-timbre"
           *ngIf="sf.carregando"
@@ -165,7 +166,19 @@
           aria-live="polite"
         >
           <span class="spinner-timbre"></span>
+
           <span>Carregando timbre...</span>
+
+          <strong class="percentual-timbre">
+            {{ sf.progresso }}%
+          </strong>
+
+          <div class="barra-progresso-timbre">
+            <div
+              class="barra-progresso-timbre-fill"
+              [style.width.%]="sf.progresso"
+            ></div>
+          </div>
         </div>
       </div>
 

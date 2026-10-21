@@ -1680,4 +1680,11 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
+  anguloKnob(valor: number, minimo: number, maximo: number): string {
+    const percentual = (valor - minimo) / (maximo - minimo);
+    const angulo = -135 + percentual * 270;
+
+    return `rotate(${angulo}deg)`;
+  }
+
 }

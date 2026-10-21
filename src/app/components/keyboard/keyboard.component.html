@@ -288,85 +288,83 @@
       </label>
 
 
-    <!-- EFEITOS  -->
-    <div class="efeitos-slot">
-      <h4>Efeitos — {{ sf.nome }}</h4>
+    <!-- Efeitos: cinco controles alinhados na mesma linha -->
+    <section class="efeitos-slot" aria-label="Efeitos do instrumento">
+      <div class="efeitos-header">
+        <h4>Efeitos</h4>
+        <span>{{ sf.nome }}</span>
+      </div>
 
-      <label>
-        Brilho: {{ sf.brilho }}%
-        <input
-          type="range"
-          min="0"
-          max="100"
-          [value]="sf.brilho"
-          (input)="alterarBrilho(sf, $any($event.target).value)"
-        />
-      </label>
+      <div class="efeitos-controles">
+        <label class="efeito-controle" [for]="'brilho-' + i">
+          <span class="efeito-nome">Brilho</span>
+          <output>{{ sf.brilho }}%</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(sf.brilho * 2.7 - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'brilho-' + i" type="range" min="0" max="100" [value]="sf.brilho"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Brilho"
+              (input)="alterarBrilho(sf, $any($event.target).value)" />
+          </span>
+        </label>
 
+        <label class="efeito-controle" [for]="'reverb-' + i">
+          <span class="efeito-nome">Reverb</span>
+          <output>{{ sf.reverb }}</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(sf.reverb * 1.35) + 'deg'"></span>
+            <input class="knob-input" [id]="'reverb-' + i" type="range" min="-100" max="100" step="1" [value]="sf.reverb"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Reverb"
+              (input)="alterarReverb(sf, +$any($event.target).value)" />
+          </span>
+        </label>
 
-      <label>
-        Reverb: {{ sf.reverb }}
-      </label>
+        <label class="efeito-controle" [for]="'chorus-' + i">
+          <span class="efeito-nome">Chorus</span>
+          <output>{{ sf.chorus }}%</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(sf.chorus * 2.7 - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'chorus-' + i" type="range" min="0" max="100" [value]="sf.chorus"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Chorus"
+              (input)="alterarChorus(sf, $any($event.target).value)" />
+          </span>
+        </label>
 
-      <input
-        type="range"
-        min="-100"
-        max="100"
-        step="1"
-        [value]="sf.reverb"
-        (input)="alterarReverb(sf, +$any($event.target).value)"
-      />
-      <label>
-        Chorus: {{ sf.chorus }}%
-        <input
-          type="range"
-          min="0"
-          max="100"
-          [value]="sf.chorus"
-          (input)="alterarChorus(sf, $any($event.target).value)"
-        />
-      </label>
+        <label class="efeito-controle" [for]="'cutoff-' + i">
+          <span class="efeito-nome">Cutoff</span>
+          <output>{{ sf.cutoff }} Hz</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.cutoff - 100) * 270 / 19900) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'cutoff-' + i" type="range" min="100" max="20000" step="100" [value]="sf.cutoff"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Cutoff"
+              (input)="alterarCutoff(sf, $any($event.target).value)" />
+          </span>
+        </label>
 
-      <label>
-        <input
-          type="checkbox"
-          [(ngModel)]="sf.pitchBendAtivado"
-        />
-        Permitir pitch bend neste slot
-      </label>
+        <label class="efeito-controle" [for]="'ressonancia-' + i">
+          <span class="efeito-nome">Ressonância</span>
+          <output>{{ sf.ressonancia }}</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.ressonancia - 0.1) * 270 / 9.9) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'ressonancia-' + i" type="range" min="0.1" max="10" step="0.1" [value]="sf.ressonancia"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Ressonância"
+              (input)="alterarRessonancia(sf, $any($event.target).value)" />
+          </span>
+        </label>
+      </div>
 
-      <label>
-        <input
-          type="checkbox"
-          [(ngModel)]="sf.modulacaoAtivada"
-        />
-        Permitir modulação neste slot
-      </label>
-
-      <label>
-        Cutoff: {{ sf.cutoff }} Hz
-        <input
-          type="range"
-          min="100"
-          max="20000"
-          step="100"
-          [value]="sf.cutoff"
-          (input)="alterarCutoff(sf, $any($event.target).value)"
-        />
-      </label>
-
-      <label>
-        Ressonância (Q): {{ sf.ressonancia }}
-        <input
-          type="range"
-          min="0.1"
-          max="10"
-          step="0.1"
-          [value]="sf.ressonancia"
-          (input)="alterarRessonancia(sf, $any($event.target).value)"
-        />
-      </label>
-    </div>
+      <div class="efeitos-opcoes">
+        <label class="check-option">
+          <input type="checkbox" [(ngModel)]="sf.pitchBendAtivado"
+            [disabled]="!pronto || !sf.arquivo" />
+          <span>Permitir pitch bend neste slot</span>
+        </label>
+        <label class="check-option">
+          <input type="checkbox" [(ngModel)]="sf.modulacaoAtivada"
+            [disabled]="!pronto || !sf.arquivo" />
+          <span>Permitir modulação neste slot</span>
+        </label>
+      </div>
+    </section>
 
 
     </article>

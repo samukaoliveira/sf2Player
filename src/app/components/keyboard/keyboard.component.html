@@ -398,20 +398,45 @@
       Pedal sustain
     </button>
 
-    <button
-      type="button"
-      (click)="conectarControladorMidi()"
-      [disabled]="!pronto || controladorMidi.conectado">
-      Conectar controlador MIDI
-    </button>
-
-    <span *ngIf="controladorMidi.conectado">
-      MIDI conectado: {{ nomeControladorMIDI }}
-    </span>
-
     <p *ngIf="erro">
       {{ erro }}
     </p>
+  </section>
+
+  <section class="midi">
+    <div class="controlador-midi">
+      <h3>
+        Controlador MIDI
+      </h3>
+
+      <select
+        id="controladorMidi"
+        class="midi-select"
+        [(ngModel)]="controladorSelecionadoId"
+        (focus)="listarControladoresMidi()"
+      >
+        <option
+          *ngFor="let controlador of controladoresMidi"
+          [value]="controlador.id"
+        >
+          {{ controlador.name }}
+        </option>
+      </select>
+
+      <button
+        type="button"
+        (click)="conectarControladorMidi()"
+        [disabled]="!controladorSelecionadoId"
+        class="midi-connect"
+      >
+        Conectar
+      </button>
+
+      <span *ngIf="controladorMidi.conectado"
+        class="midi-status">
+        MIDI conectado: {{ nomeControladorMIDI }}
+      </span>
+    </div>
   </section>
 
   <!-- Teclado virtual original -->

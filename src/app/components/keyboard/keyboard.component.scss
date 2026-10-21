@@ -208,7 +208,7 @@ label {
 }
 
 .botao-iniciar,
-.controles button {
+.controles button, .midi button {
   padding: 10px 16px;
   cursor: pointer;
 }
@@ -318,11 +318,11 @@ label {
   margin: 0;
 }
 
-.controles button {
+.controles button, .midi button {
   background: #eee;
 }
 
-.controles button.ativado {
+.controles button.ativado, .midi button.ativado {
   color: #fff;
   background: #303f9f;
 }
@@ -612,6 +612,34 @@ input:disabled {
   margin: 5px 10px 5px;
   gap: 5px;
   color: red;
+}
+
+.controlador-midi {
+  display: flex;
+  align-items: center;
+}
+
+.midi-label {
+  display: flex;
+  margin-top: 5px;
+  margin: 0 12px;
+  font-size: 14px;
+}
+
+.midi-select {
+  display: flex;
+  width: 400px;
+}
+
+.midi-connect {
+  display: flex;
+  width: 100px;
+  margin: 0 12px;
+}
+
+.midi-status {
+  display: flex;
+
 }
 
 @keyframes girar-timbre {

@@ -64,6 +64,9 @@ export class KeyboardComponent implements OnDestroy {
 
   BUFFER_SIZE = 512;
 
+  controladoresMidi: MIDIInput[] = [];
+  controladorSelecionadoId = '';
+
   readonly teclas: number[] = Array.from(
     { length: 25 },
     (_, i) => 48 + i
@@ -1647,6 +1650,33 @@ export class KeyboardComponent implements OnDestroy {
       this.erro = 'Não foi possível alterar o buffer de áudio.';
     } finally {
       this.inicializando = false;
+    }
+  }
+
+  async listarControladoresMidi(): Promise<void> {
+    try {
+      if (!navigator.requestMIDIAccess) {
+        throw new Error(
+          'Seu navegador não suporta Web MIDI API.'
+        );
+      }
+
+      const acessoMidi = await navigator.requestMIDIAccess();
+
+      this.controladoresMidi = Array.from(
+        acessoMidi.inputs.values()
+      );
+
+      if (this.controladoresMidi.length > 0) {
+        this.controladorSelecionadoId =
+          this.controladoresMidi[0].id;
+      }
+
+      this.erro = '';
+    } catch (e) {
+      this.erro = e instanceof Error
+        ? e.message
+        : 'Não foi possível listar os controladores MIDI.';
     }
   }
 

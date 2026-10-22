@@ -431,7 +431,7 @@ export class KeyboardComponent implements OnDestroy {
       console.error('Erro ao trocar SoundFont:', e);
 
       this.erro =
-        `Não foi possível carregar o SoundFont ${arquivo}.`;
+        `Não foi possível carregar o SoundFont ${arquivo.split('/').pop()}.`;
 
       sf.arquivo = arquivoAnterior;
 
@@ -867,32 +867,35 @@ async conectarControladorMidi(): Promise<void> {
     valor: number,
     canal: number
   ): void {
-
-    // Modulation Wheel: MIDI CC 1
+    // CC 1: Modulation
     if (controle === 1) {
-      if (!this.pronto) return;
+      const timbresComModulacao = this.soundfonts.filter(
+        sf =>
+          sf.ativo &&
+          sf.synth &&
+          sf.soundFontId != null &&
+          sf.modulacaoAtivada
+      );
 
-      for (const sf of this.soundfonts) {
-        if (
-          !sf.ativo ||
-          !sf.synth ||
-          sf.soundFontId == null ||
-          !sf.modulacaoAtivada
-        ) {
-          continue;
+      // Se houver timbres com modulação ativada,
+      // encaminha o CC 1 para eles.
+      if (timbresComModulacao.length > 0) {
+        for (const sf of timbresComModulacao) {
+          sf.synth.midiControl(sf.canal, 1, valor);
         }
 
-        sf.synth.midiControl(
-          sf.canal,
-          1,
-          valor
-        );
+        // Se o MIDI Learn estiver ativo para um timbre
+        // com modulação desativada, ainda permite aprender o CC.
+        if (
+          !this.midiLearnAlvo ||
+          this.midiLearnAlvo.modulacaoAtivada
+        ) {
+          return;
+        }
       }
-
-      return;
     }
 
-    // MIDI Learn de volume: mantém o comportamento existente.
+    // MIDI Learn: associa o CC ao timbre selecionado.
     if (this.midiLearnAlvo) {
       const sf = this.midiLearnAlvo;
 
@@ -908,22 +911,14 @@ async conectarControladorMidi(): Promise<void> {
         `MIDI Learn: ${sf.nome} associado ao CC ${controle}, canal MIDI ${canal + 1}`
       );
 
-      this.alterarVolume(
-        sf,
-        Math.round(valor * 100 / 127)
-      );
-
+      this.alterarVolume(sf, Math.round(valor * 100 / 127));
       return;
     }
 
+    // Controla o volume dos timbres associados ao CC recebido.
     for (const sf of this.soundfonts) {
-      if (
-        this.midiCCPorSoundFont[sf.nome] === controle
-      ) {
-        this.alterarVolume(
-          sf,
-          Math.round(valor * 100 / 127)
-        );
+      if (this.midiCCPorSoundFont[sf.nome] === controle) {
+        this.alterarVolume(sf, Math.round(valor * 100 / 127));
       }
     }
   }

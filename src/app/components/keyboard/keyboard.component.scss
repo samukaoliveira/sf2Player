@@ -115,7 +115,60 @@ select, input[type="number"], input[type="text"] { width: 100%; min-height: 38px
 .volume-header label { margin: 0; color: var(--texto-secundario); font-size: 12px; font-weight: 700; }
 .volume-header span { color: var(--cor-primaria); font-size: 12px; font-weight: 700; }
 input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: pointer; }
-.volume-slider { margin: 8px 0 12px; }
+.volume-slider {
+  margin: 8px 0 12px;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #222222; /* Fundo escuro estilo mesa de som */
+  border-radius: 3px;
+  outline: none;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 50px;  /* Largura do bloco */
+  height: 28px; /* Altura do bloco (mais alto para parecer o fader) */
+  background: #e0e0e0; /* Cor cinza metálico */
+  border: 1px solid #777;
+  border-radius: 2px; /* Cantos levemente chanfrados */
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 6px rgba(0,0,0,0.4); /* Sombra para dar volume */
+
+  clip-path: polygon(
+    0% 0%, 50% 5%, 100% 0%,
+    100% 100%, 50% 95%, 0% 100%
+  );
+
+  /* Linha central preta indicadora do fader usando gradiente */
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 4px,
+    #000 4px,
+    #000 5px,
+    transparent 5px
+  );
+  background-size: 38px 70%; /* Centraliza o grupo de linhas no botão */
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 28px;
+  background: #e0e0e0;
+  border: 1px solid #777;
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 3px 6px rgba(0,0,0,0.4);
+
+  background-image: linear-gradient(to right, transparent 45%, #000 45%, #000 55%, transparent 55%);
+}
 .midi-learn-volume { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px; border-radius: 9px; background: #f8faff; }
 .midi-learn-volume button { min-height: 32px; padding: 6px 9px; font-size: 11px; }
 .midi-learn-volume span { color: var(--texto-secundario); font-size: 11px; }

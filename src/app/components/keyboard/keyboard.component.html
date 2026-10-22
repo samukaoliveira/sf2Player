@@ -154,7 +154,7 @@
 
       <div class="slot-header">
         <h3>
-          {{ !sf.arquivo && i > 0 ? 'Empty' : sf.nome }}
+          {{ !sf.arquivo && i > 0 ? 'Empty' : obterNomeSoundFont(sf.nome) }}
         </h3>
 
         <span class="slot-numero">SLOT {{ i + 1 }}</span>

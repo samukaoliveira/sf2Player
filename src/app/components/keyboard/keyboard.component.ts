@@ -29,6 +29,8 @@ export class KeyboardComponent implements OnDestroy {
   sustainAtivado = false;
   sustainPressionado = false;
 
+  nomeArquivo = '';
+
   soundfontCatalogo = SOUNDFONT_CATALOGO;
   soundfontGrupos: SoundFontGrupo[] = [];
 
@@ -1820,6 +1822,14 @@ async conectarControladorMidi(): Promise<void> {
       // O valor MIDI recebido vai de 0 a 16383.
       sf.synth.midiPitchBend(sf.canal, valor);
     }
+  }
+
+  obterNomeSoundFont(arquivo: string): string {
+    this.nomeArquivo = arquivo.split('/').pop()?.replace(/\.sf2$/i, '') ?? 'SoundFont';
+
+    return this.nomeArquivo
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, letra => letra.toUpperCase());
   }
 
 

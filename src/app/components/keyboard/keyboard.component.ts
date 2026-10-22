@@ -691,6 +691,31 @@ export class KeyboardComponent implements OnDestroy {
     this.atualizarSustain();
   }
 
+
+  private atualizarModulacao(): void {
+    for (const sf of this.soundfonts) {
+      if (
+        !sf.synth ||
+        sf.soundFontId == null
+      ) {
+        continue;
+      }
+
+      // CC1: Modulation.
+      // Zera a modulação dos timbres que a desativaram.
+      const valor = sf.ativo && sf.modulacaoAtivada
+        ? 127
+        : 0;
+
+      sf.synth.midiControl(
+        sf.canal,
+        1,
+        valor
+      );
+    }
+  }
+
+
   nomeNota(nota: number): string {
     const nome = this.nomesNotas[nota % 12];
     const oitava = Math.floor(nota / 12) - 1;
@@ -1161,6 +1186,8 @@ async conectarControladorMidi(): Promise<void> {
 
       this.motoresPorNota.clear();
       this.atualizarSustain();
+
+      this.atualizarModulacao();
 
       this.erro = '';
 

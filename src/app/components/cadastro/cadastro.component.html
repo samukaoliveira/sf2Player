@@ -1,0 +1,42 @@
+<main class="login-page">
+  <section class="login-card" aria-labelledby="cadastro-title">
+    <div class="brand-mark" aria-hidden="true">
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+    </div>
+
+    <p class="eyebrow">SAMNAT SYNTH</p>
+    <h1 id="cadastro-title">Crie sua conta</h1>
+    <p class="intro">Cadastre-se para começar sua experiência musical.</p>
+
+    <form (ngSubmit)="cadastrar()">
+      <p class="error-message" role="alert" *ngIf="message">{{ message }}</p>
+
+      <label for="nome">Nome</label>
+      <input id="nome" type="text" [(ngModel)]="nome" name="nome" placeholder="Como podemos chamar você?" autocomplete="name" required>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" [(ngModel)]="email" name="email" placeholder="voce@exemplo.com" autocomplete="email" required>
+
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" [(ngModel)]="senha" name="senha" placeholder="Crie uma senha" autocomplete="new-password" required minlength="6">
+
+      <label for="confirmar-senha">Confirmar senha</label>
+      <input id="confirmar-senha" type="password" [(ngModel)]="confirmarSenha" name="confirmarSenha" placeholder="Digite a senha novamente" autocomplete="new-password" required minlength="6">
+
+      <button type="submit" [disabled]="enviando">{{ enviando ? 'Criando conta...' : 'Criar conta' }}</button>
+    </form>
+
+    <p class="card-footer">Já tem uma conta? <a routerLink="/login">Entrar</a></p>
+  </section>
+</main>

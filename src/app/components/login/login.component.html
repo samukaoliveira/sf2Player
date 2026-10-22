@@ -1,24 +1,37 @@
-<div class="conteudo">
+<main class="login-page">
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="brand-mark" aria-hidden="true">
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+      <span class="key key-black"></span>
+      <span class="key key-white"></span>
+    </div>
 
-  <<mat-card class="title" appearance="outlined">
-    <mat-card-header>
-      <div mat-card-avatar class="example-header-image"></div>
-      <mat-card-title><h1>Login</h1></mat-card-title>
-      <mat-card-subtitle>
-        <span class="subtitle"><hr></span>
-        <span class="subtitle"><p>Realize o login</p></span>
-        <span class="subtitle"><hr></span>
-      </mat-card-subtitle>
-    </mat-card-header>
-  </mat-card>
+    <p class="eyebrow">SAMNAT SYNTH</p>
+    <h1 id="login-title">Bem-vindo de volta</h1>
+    <p class="intro">Entre para continuar sua experiência musical.</p>
 
-  <mat-card class="form-login" appearance="outlined">
     <form (ngSubmit)="login()">
-      <span>{{message}}</span>
-      <input type="text" [(ngModel)]="email" name="email" placeholder="Email">
-      <input type="password" [(ngModel)]="senha" name="senha" placeholder="Senha">
+      <p class="error-message" [class.success-message]="cadastroSucesso" role="status" *ngIf="message">{{ message }}</p>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" [(ngModel)]="email" name="email" placeholder="voce@exemplo.com" autocomplete="username" required>
+
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" [(ngModel)]="senha" name="senha" placeholder="Sua senha" autocomplete="current-password" required>
+
       <button type="submit">Entrar</button>
     </form>
-  </mat-card>>
 
-</div>
+    <p class="card-footer"><span class="status-dot" aria-hidden="true"></span> Seu espaço para criar e explorar música</p>
+    <p class="account-link">Ainda não tem uma conta? <a routerLink="/cadastro">Cadastre-se</a></p>
+  </section>
+</main>

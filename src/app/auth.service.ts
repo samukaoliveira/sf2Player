@@ -19,6 +19,14 @@ export class AuthService {
     });
   }
 
+  cadastrar(nome: string, email: string, senha: string) {
+    return this.http.post<any>(`${environment.apiUrl}/usuarios/criar`, {
+      nome,
+      email,
+      senha
+    });
+  }
+
   logout() {
     localStorage.removeItem('token');
   }

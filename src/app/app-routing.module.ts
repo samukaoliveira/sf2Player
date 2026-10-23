@@ -18,8 +18,7 @@ const routes: Routes = [
   },
   {
     path: 'synth',
-    component: KeyboardComponent,
-    canActivate: [AuthGuard]
+    component: KeyboardComponent
   },
   {
     path: '',

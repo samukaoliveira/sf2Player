@@ -24,7 +24,8 @@ export class ControladorMidiService {
     aoPitchBend?: (
       valor: number,
       canal: number
-    ) => void
+    ) => void,
+    entradaPreferidaId?: string
   ): Promise<string[]> {
 
     if (!navigator.requestMIDIAccess) {
@@ -54,7 +55,10 @@ export class ControladorMidiService {
         );
       }
 
-      const entrada =
+      const entradaPreferida = entradaPreferidaId
+        ? entradas.find(input => input.id === entradaPreferidaId)
+        : undefined;
+      const entrada = entradaPreferida ||
         entradas.find(input =>
           !/midi through/i.test(input.name || '')
         ) || entradas[0];

@@ -1,13 +1,19 @@
 {
   "name": "samchat",
-  "version": "0.0.0",
+  "version": "2.3.3",
+  "description": "SamChat - Aplicativo desktop",
+  "main": "electron/main.cjs",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "build:desktop": "NODE_OPTIONS=--openssl-legacy-provider ng build --base-href ./",
+    "start:electron": "npm run build:desktop && env -u NODE_OPTIONS electron .",
+    "dist:windows": "npm run build:desktop && env -u NODE_OPTIONS electron-builder --win nsis",
+    "dist:windows:portable": "npm run build:desktop && env -u NODE_OPTIONS electron-builder --win portable"
   },
   "private": true,
   "dependencies": {
@@ -36,6 +42,8 @@
     "@types/node": "^12.11.1",
     "@types/webmidi": "^3.0.1",
     "codelyzer": "^6.0.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "jasmine-core": "~3.8.0",
     "jasmine-spec-reporter": "~5.0.0",
     "karma": "~5.0.0",
@@ -47,5 +55,28 @@
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
     "typescript": "~4.0.2"
+  },
+  "build": {
+    "appId": "br.com.samuka.samchat",
+    "productName": "SamChat",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

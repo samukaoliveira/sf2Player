@@ -8,18 +8,18 @@
   <header class="keyboard-header">
     <div>
       <h2>MIDI SoundFont Mixer</h2>
-      <p>Quatro slots independentes de instrumentos</p>
+      <p>{{ soundfonts.length }} de {{ maximoSlots }} slots de instrumentos</p>
     </div>
 
     <button
       type="button"
       class="botao-iniciar"
-      *ngIf="!pronto"
-      [disabled]="inicializando"
+      [disabled]="pronto || inicializando"
       (click)="iniciarAudio(BUFFER_SIZE)">
-      {{ inicializando ? 'Carregando...' : 'Iniciar áudio' }}
+      {{ inicializando ? 'Carregando...' : (pronto ? 'Áudio iniciado' : 'Iniciar áudio') }}
     </button>
 
+    <div class="header-controls">
     <div class="audio-buffer">
       <span class="status" *ngIf="pronto">
         Áudio pronto
@@ -29,13 +29,39 @@
       <select class="buffer" id="buffer"
         [(ngModel)]="BUFFER_SIZE"
         (ngModelChange)="alterarBuffer(BUFFER_SIZE)">
-        <option [ngValue]value="0" >0</option>
-        <option [ngValue]value="256" >256</option>
-        <option [ngValue]value="512" >512</option>
-        <option [ngValue]value="1024" >1024</option>
-        <option [ngValue]value="1024" >2048</option>
-        <option [ngValue]value="1024" >4096</option>
+        <option [ngValue]="0">0</option>
+        <option [ngValue]="256">256</option>
+        <option [ngValue]="512">512</option>
+        <option [ngValue]="1024">1024</option>
+        <option [ngValue]="2048">2048</option>
+        <option [ngValue]="4096">4096</option>
       </select>
+    </div>
+
+    <div class="controlador-midi header-midi">
+      <label class="midi-label" for="controladorMidi">Controlador MIDI</label>
+      <select id="controladorMidi" class="midi-select"
+        [(ngModel)]="controladorSelecionadoId"
+        (focus)="listarControladoresMidi()">
+        <option value="">Selecionar controlador</option>
+        <option *ngFor="let controlador of controladoresMidi" [value]="controlador.id">
+          {{ controlador.name }}
+        </option>
+      </select>
+      <button type="button" (click)="conectarControladorMidi()"
+        class="midi-connect">{{ controladorMidi.conectado ? 'Reconectar' : 'Conectar' }}</button>
+      <span *ngIf="controladorMidi.conectado" class="midi-status">
+        MIDI conectado: {{ nomeControladorMIDI }}
+      </span>
+    </div>
+
+    <div class="header-sustain">
+      <button type="button" [class.ativado]="sustainAtivado" [disabled]="!pronto"
+        (click)="alternarSustain()">Sustain {{ sustainAtivado ? 'ligado' : 'desligado' }}</button>
+      <button type="button" class="pedal" [class.ativado]="sustainPressionado" [disabled]="!pronto"
+        (pointerdown)="pressionarSustain()" (pointerup)="soltarSustain()"
+        (pointerleave)="soltarSustain()" (pointercancel)="soltarSustain()">Pedal sustain</button>
+    </div>
     </div>
   </header>
 
@@ -43,9 +69,9 @@
     {{ erro }}
   </p>
 
-  <!-- Salvar Senas -->
-
-  <section class="painel-cenas">
+  <div class="workspace">
+  <!-- Cenas salvas e acessos rápidos -->
+  <aside class="painel-cenas">
     <h3>Cenas</h3>
 
     <div class="cenas-salvar">
@@ -142,11 +168,19 @@
       </div>
     </section>
 
-  </section>
+  </aside>
 
 
   <!-- Slots de SoundFont -->
+  <main class="mixer-main">
   <section class="slots">
+    <div class="slots-heading">
+      <div><h3>Instrumentos</h3><span>{{ soundfonts.length }} / {{ maximoSlots }} slots</span></div>
+      <button type="button" (click)="adicionarSlot()"
+        [disabled]="soundfonts.length >= maximoSlots || inicializando">
+        + Adicionar slot
+      </button>
+    </div>
 
     <article
       class="slot"
@@ -154,10 +188,14 @@
 
       <div class="slot-header">
         <h3>
-          {{ !sf.arquivo && i > 0 ? 'Empty' : obterNomeSoundFont(sf.nome) }}
+          {{ sf.arquivo ? obterNomeSoundFont(sf.nome) : 'Slot vazio' }}
         </h3>
 
         <span class="slot-numero">SLOT {{ i + 1 }}</span>
+        <button type="button" class="slot-remover" *ngIf="soundfonts.length > 1"
+          (click)="removerSlot(sf)" [disabled]="inicializando || sf.carregando"
+          [attr.aria-label]="'Remover slot ' + (i + 1)"
+          title="Remover slot">×</button>
 
         <div
           class="carregamento-timbre"
@@ -182,9 +220,9 @@
         </div>
       </div>
 
-      <!-- Seleção do arquivo SF2 -->
+      <div class="slot-controls">
+      <div class="slot-field slot-file">
       <label [for]="'sf-' + i">SoundFont</label>
-
       <select
         [id]="'sf-' + i"
         [ngModel]="sf.arquivo"
@@ -205,8 +243,10 @@
           </option>
         </optgroup>
       </select>
+      </div>
 
       <!-- Banco MIDI -->
+      <div class="slot-field slot-bank">
       <label [for]="'banco-' + i">Banco MIDI</label>
 
       <input
@@ -217,8 +257,10 @@
         [ngModel]="sf.banco"
         [disabled]="!pronto || !sf.arquivo"
         (ngModelChange)="alterarBanco(sf, $event)">
+      </div>
 
       <!-- Programa selecionado pelo nome -->
+      <div class="slot-field slot-preset">
       <label [for]="'programa-' + i">Instrumento</label>
 
       <select
@@ -240,8 +282,10 @@
       <div *ngIf="pronto && sf.arquivo && !sf.programas.length">
         Nenhum preset encontrado neste SoundFont.
       </div>
+      </div>
 
       <!-- Volume individual -->
+      <div class="slot-field slot-volume">
       <div class="volume-header">
         <label [for]="'volume-' + i">Volume</label>
         <span>{{ sf.volume }}%</span>
@@ -256,8 +300,18 @@
         [ngModel]="sf.volume"
         [disabled]="!pronto || !sf.arquivo"
         (ngModelChange)="alterarVolume(sf, $event)">
+      </div>
 
+      <!-- Ativação independente -->
+      <label class="ativo slot-ativo">
+        <input type="checkbox" [ngModel]="sf.ativo"
+          [disabled]="!pronto || !sf.arquivo"
+          (ngModelChange)="alternarSoundFont(sf, $event)">
+        <span>Ativo</span>
+      </label>
 
+      <details class="slot-avancado">
+      <summary>Mais controles</summary>
       <div class="midi-learn-volume">
 
         <button
@@ -288,17 +342,6 @@
         </button>
 
       </div>
-
-
-      <!-- Ativação independente -->
-      <label class="ativo">
-        <input
-          type="checkbox"
-          [ngModel]="sf.ativo"
-          [disabled]="!pronto || !sf.arquivo"
-          (ngModelChange)="alternarSoundFont(sf, $event)">
-        <span>Ativar instrumento</span>
-      </label>
 
 
     <!-- Efeitos: cinco controles alinhados na mesma linha -->
@@ -378,76 +421,13 @@
         </label>
       </div>
     </section>
+      </details>
+      </div>
 
 
     </article>
 
 
-  </section>
-
-  <!-- Sustain -->
-  <section class="controles">
-    <h3>Controles de execução</h3>
-
-    <button
-      type="button"
-      [class.ativado]="sustainAtivado"
-      [disabled]="!pronto"
-      (click)="alternarSustain()">
-      Sustain {{ sustainAtivado ? 'ligado' : 'desligado' }}
-    </button>
-
-    <button
-      type="button"
-      class="pedal"
-      [class.ativado]="sustainPressionado"
-      [disabled]="!pronto"
-      (pointerdown)="pressionarSustain()"
-      (pointerup)="soltarSustain()"
-      (pointerleave)="soltarSustain()"
-      (pointercancel)="soltarSustain()">
-      Pedal sustain
-    </button>
-
-    <p *ngIf="erro">
-      {{ erro }}
-    </p>
-  </section>
-
-  <section class="midi">
-    <div class="controlador-midi">
-      <h3>
-        Controlador MIDI
-      </h3>
-
-      <select
-        id="controladorMidi"
-        class="midi-select"
-        [(ngModel)]="controladorSelecionadoId"
-        (focus)="listarControladoresMidi()"
-      >
-        <option
-          *ngFor="let controlador of controladoresMidi"
-          [value]="controlador.id"
-        >
-          {{ controlador.name }}
-        </option>
-      </select>
-
-      <button
-        type="button"
-        (click)="conectarControladorMidi()"
-        [disabled]="!controladorSelecionadoId"
-        class="midi-connect"
-      >
-        Conectar
-      </button>
-
-      <span *ngIf="controladorMidi.conectado"
-        class="midi-status">
-        MIDI conectado: {{ nomeControladorMIDI }}
-      </span>
-    </div>
   </section>
 
   <!-- Teclado virtual original -->
@@ -558,4 +538,6 @@
 
   </section>
 
+  </main>
+  </div>
 </div>

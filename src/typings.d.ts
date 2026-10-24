@@ -32,3 +32,10 @@ interface Navigator {
     options?: { sysex?: boolean }
   ): Promise<MIDIAccess>;
 }
+
+interface Window {
+  sf2LocalCache?: {
+    read(url: string): Promise<Uint8Array | null>;
+    write(url: string, bytes: ArrayBuffer): Promise<boolean>;
+  };
+}

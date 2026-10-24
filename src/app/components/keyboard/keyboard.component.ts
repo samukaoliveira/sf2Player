@@ -14,12 +14,17 @@ import { Cena, CenaSoundFont } from '../../models/cenas';
 
 declare const JSSynth: any;
 
+// Compartilhado entre todos os slots e instâncias do componente nesta execução.
+const soundFontBytesCache = new Map<string, Uint8Array>();
+const soundFontBytesPending = new Map<string, Promise<Uint8Array>>();
+
 @Component({
   selector: 'keyboard',
   templateUrl: './keyboard.component.html',
   styleUrls: ['./keyboard.component.scss']
 })
 export class KeyboardComponent implements OnDestroy {
+  readonly maximoSlots = 8;
   context: AudioContext | null = null;
 
   inicializando = false;
@@ -104,6 +109,93 @@ export class KeyboardComponent implements OnDestroy {
   cenaSelecionada = '';
 
   private readonly chaveCenas = 'sf2Player.cenas';
+
+  async adicionarSlot(): Promise<void> {
+    if (this.soundfonts.length >= this.maximoSlots) return;
+
+    const indice = this.soundfonts.length;
+    const base = SOUNDFONTS[0];
+    const sf: MotorSoundFont = {
+      ...base,
+      nome: `Instrumento ${indice + 1}`,
+      arquivo: '',
+      canal: indice,
+      ativo: false,
+      synth: null,
+      audioNode: null,
+      soundFontId: null,
+      programas: [],
+      carregando: false,
+      progresso: 0,
+      efeitos: {
+        filtro: null,
+        ganhoSeco: null,
+        ganhoReverb: null,
+        convolver: null,
+        ganhoChorus: null,
+        atrasoChorus: null,
+        osciladorChorus: null,
+        profundidadeChorus: null
+      }
+    };
+    this.soundfonts.push(sf);
+
+    if (this.context && this.pronto) {
+      try {
+        await this.inicializarSynthSlot(sf, this.BUFFER_SIZE);
+      } catch (e) {
+        console.error('Erro ao adicionar slot:', e);
+        this.erro = `Não foi possível inicializar ${sf.nome}.`;
+      }
+    }
+  }
+
+  async removerSlot(sf: MotorSoundFont): Promise<void> {
+    if (this.soundfonts.length <= 1) return;
+    const indice = this.soundfonts.indexOf(sf);
+    if (indice < 0) return;
+
+    if (this.midiLearnAlvo === sf) this.cancelarMidiLearn();
+    for (const [nota, motores] of this.motoresPorNota) {
+      const restantes = motores.filter(motor => motor !== sf);
+      if (restantes.length) this.motoresPorNota.set(nota, restantes);
+      else this.motoresPorNota.delete(nota);
+    }
+    try {
+      await sf.synth?.close();
+    } catch (e) {
+      console.warn(`Erro ao remover ${sf.nome}:`, e);
+    }
+    sf.efeitos.osciladorChorus?.stop();
+    this.soundfonts.splice(indice, 1);
+  }
+
+  private async inicializarSynthSlot(
+    sf: MotorSoundFont,
+    bufferSize: number
+  ): Promise<void> {
+    if (!this.context) return;
+    sf.synth = new JSSynth.Synthesizer();
+    sf.synth.init(this.context.sampleRate, {
+      reverbActive: false,
+      chorusActive: false,
+      reverbRoomSize: 0.2,
+      reverbDamp: 0,
+      reverbWidth: 0.5,
+      reverbLevel: 0,
+      chorusNr: 3,
+      chorusLevel: 0,
+      chorusSpeed: 0.3,
+      chorusDepth: 8
+    });
+    sf.synth.setReverbOn(false);
+    sf.synth.setChorusOn(false);
+    sf.audioNode = sf.synth.createAudioNode(this.context, bufferSize);
+    this.criarEfeitosDoSlot(sf);
+    if (sf.arquivo) await this.carregarSoundFontInicial(sf);
+    sf.synth.midiControl(sf.canal, 64, this.sustainEstaAtivo() ? 127 : 0);
+    this.aplicarVolume(sf);
+  }
 
   constructor(
     public tecladoFisico: TecladoFisicoService,
@@ -225,16 +317,8 @@ export class KeyboardComponent implements OnDestroy {
     sf.carregando = true;
 
     try {
-      const resposta = await fetch(sf.arquivo);
-
-      if (!resposta.ok) {
-        throw new Error(
-          `Erro HTTP ${resposta.status}: ${sf.arquivo}`
-        );
-      }
-
-      const dados = await resposta.arrayBuffer();
-      const id = await sf.synth.loadSFont(dados);
+      const dados = await this.obterBytesSoundFont(sf.arquivo);
+      const id = await sf.synth.loadSFont(this.arrayBufferExato(dados));
 
       if (typeof id !== 'number' || id < 0) {
         throw new Error(
@@ -243,6 +327,7 @@ export class KeyboardComponent implements OnDestroy {
       }
 
       sf.soundFontId = id;
+      this.obterCacheSoundFonts(sf.synth).set(sf.arquivo, id);
 
       this.carregarProgramas(sf);
       this.selecionarPreset(sf);
@@ -348,66 +433,18 @@ export class KeyboardComponent implements OnDestroy {
 
       // Se já estiver carregado, reutiliza o ID.
       if (novoId == null) {
-        const resposta = await fetch(arquivo);
-
-        if (!resposta.ok) {
-          throw new Error(
-            `Erro HTTP ${resposta.status}: ${arquivo}`
-          );
-        }
-
-        const tamanhoTotal = Number(
-          resposta.headers.get('Content-Length')
+        const bytes = await this.obterBytesSoundFont(
+          arquivo,
+          progresso => sf.progresso = progresso
         );
-
-        const leitor = resposta.body?.getReader();
-
-        if (!leitor) {
-          throw new Error(
-            'Não foi possível ler o arquivo SF2.'
-          );
-        }
-
-        const blocos: Uint8Array[] = [];
-        let totalRecebido = 0;
-
-        while (true) {
-          const { done, value } = await leitor.read();
-
-          if (done) break;
-
-          if (value) {
-            blocos.push(value);
-            totalRecebido += value.byteLength;
-
-            if (tamanhoTotal > 0) {
-              sf.progresso = Math.min(
-                100,
-                Math.round(
-                  (totalRecebido / tamanhoTotal) * 100
-                )
-              );
-            }
-          }
-        }
-
-        const dados = new Uint8Array(totalRecebido);
-        let deslocamento = 0;
-
-        for (const bloco of blocos) {
-          dados.set(bloco, deslocamento);
-          deslocamento += bloco.byteLength;
-        }
-
         sf.progresso = 100;
-
-        novoId = await sf.synth.loadSFont(dados.buffer);
+        novoId = await sf.synth.loadSFont(this.arrayBufferExato(bytes));
 
         if (typeof novoId !== 'number' || novoId < 0) {
           throw new Error(`Falha ao carregar ${arquivo}`);
         }
 
-        // Armazena para reutilizar nas próximas trocas.
+        // IDs pertencem somente à instância deste sintetizador.
         cache.set(arquivo, novoId);
 
         console.log('SoundFont carregado e armazenado em cache:', arquivo);
@@ -446,6 +483,116 @@ export class KeyboardComponent implements OnDestroy {
       sf.carregando = false;
       sf.progresso = 0;
     }
+  }
+
+  private async obterBytesSoundFont(
+    arquivo: string,
+    aoProgredir?: (progresso: number) => void
+  ): Promise<Uint8Array> {
+    const emMemoria = soundFontBytesCache.get(arquivo);
+    if (emMemoria) {
+      aoProgredir?.(100);
+      return emMemoria;
+    }
+
+    const pendente = soundFontBytesPending.get(arquivo);
+    if (pendente) {
+      const bytes = await pendente;
+      aoProgredir?.(100);
+      return bytes;
+    }
+
+    const carregamento = (async () => {
+      if (window.sf2LocalCache) {
+        try {
+          const persistido = await window.sf2LocalCache.read(arquivo);
+          if (persistido && this.ehSoundFontValido(persistido)) {
+            const bytes = new Uint8Array(persistido);
+            soundFontBytesCache.set(arquivo, bytes);
+            aoProgredir?.(100);
+            return bytes;
+          }
+        } catch (e) {
+          console.warn('Não foi possível ler o cache local SF2:', e);
+        }
+      }
+
+      const resposta = await fetch(arquivo);
+      if (!resposta.ok) {
+        throw new Error(`Erro HTTP ${resposta.status}: ${arquivo}`);
+      }
+
+      const tamanhoTotal = Number(resposta.headers.get('Content-Length'));
+      const leitor = resposta.body?.getReader();
+      let bytes: Uint8Array;
+      if (leitor) {
+        const blocos: Uint8Array[] = [];
+        let total = 0;
+        while (true) {
+          const resultado = await leitor.read();
+          if (resultado.done) break;
+          if (resultado.value) {
+            blocos.push(resultado.value);
+            total += resultado.value.byteLength;
+            if (tamanhoTotal > 0) {
+              aoProgredir?.(Math.min(100, Math.round(total * 100 / tamanhoTotal)));
+            }
+          }
+        }
+        bytes = new Uint8Array(total);
+        let offset = 0;
+        blocos.forEach(bloco => {
+          bytes.set(bloco, offset);
+          offset += bloco.byteLength;
+        });
+      } else {
+        bytes = new Uint8Array(await resposta.arrayBuffer());
+      }
+
+      if (!this.ehSoundFontValido(bytes)) {
+        throw new Error(`O arquivo recebido não é um SoundFont SF2 válido: ${arquivo}`);
+      }
+
+      soundFontBytesCache.set(arquivo, bytes);
+      aoProgredir?.(100);
+      if (window.sf2LocalCache) {
+        try {
+          await window.sf2LocalCache.write(arquivo, this.arrayBufferExato(bytes));
+        } catch (e) {
+          console.warn('Não foi possível gravar o cache local SF2:', e);
+        }
+      }
+      return bytes;
+    })();
+
+    soundFontBytesPending.set(arquivo, carregamento);
+    try {
+      return await carregamento;
+    } finally {
+      soundFontBytesPending.delete(arquivo);
+    }
+  }
+
+  private arrayBufferExato(bytes: Uint8Array): ArrayBuffer {
+    return bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+  }
+
+  private ehSoundFontValido(bytes: Uint8Array): boolean {
+    if (bytes.byteLength < 12) return false;
+    const assinatura = (inicio: number, texto: string) =>
+      texto.split('').every((caractere, indice) =>
+        bytes[inicio + indice] === caractere.charCodeAt(0)
+      );
+    const view = new DataView(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength
+    );
+    return assinatura(0, 'RIFF') && assinatura(8, 'sfbk') &&
+      view.getUint32(4, true) + 8 <= bytes.byteLength;
   }
 
 
@@ -787,9 +934,11 @@ async conectarControladorMidi(): Promise<void> {
         },
         (valor, canal) => {
           this.aoReceberPitchBend(valor, canal);
-        }
+        },
+        this.controladorSelecionadoId
       );
 
+    await this.listarControladoresMidi();
     this.erro = '';
 
   } catch (e) {
@@ -1124,15 +1273,22 @@ async conectarControladorMidi(): Promise<void> {
       return;
     }
 
-    if (cena.soundfonts.length !== this.soundfonts.length) {
+    if (cena.soundfonts.length < 1 || cena.soundfonts.length > this.maximoSlots) {
       this.erro =
-        'Esta cena não corresponde à quantidade atual de timbres.';
+        `A cena precisa conter entre 1 e ${this.maximoSlots} slots.`;
       return;
     }
 
     this.erro = '';
 
     try {
+      while (this.soundfonts.length < cena.soundfonts.length) {
+        await this.adicionarSlot();
+      }
+      while (this.soundfonts.length > cena.soundfonts.length) {
+        await this.removerSlot(this.soundfonts[this.soundfonts.length - 1]);
+      }
+
       for (let i = 0; i < this.soundfonts.length; i++) {
         const sf = this.soundfonts[i];
         const configuracao = cena.soundfonts[i];
@@ -1318,7 +1474,8 @@ async conectarControladorMidi(): Promise<void> {
             typeof cena.nome === 'string' &&
             cena.nome.trim().length > 0 &&
             Array.isArray(cena.soundfonts) &&
-            cena.soundfonts.length === this.soundfonts.length &&
+            cena.soundfonts.length >= 1 &&
+            cena.soundfonts.length <= this.maximoSlots &&
             cena.soundfonts.every((sf: any) =>
               sf &&
               typeof sf.arquivo === 'string' &&

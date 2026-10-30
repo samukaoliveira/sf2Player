@@ -9,6 +9,7 @@ export interface ProgramaSoundFont {
 
 export interface EfeitosSoundFont {
   filtro: BiquadFilterNode | null;
+  equalizador: BiquadFilterNode[];
   ganhoSeco: GainNode | null;
   ganhoReverb: GainNode | null;
   convolver: ConvolverNode | null;
@@ -23,6 +24,7 @@ export interface MotorSoundFont extends SoundFontMixer {
   audioNode: AudioNode | null;
   programas: ProgramaSoundFont[];
   efeitos: EfeitosSoundFont;
+  equalizador: number[];
   carregando: boolean;
   progresso: number;
 }

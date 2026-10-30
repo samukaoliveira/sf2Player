@@ -408,6 +408,19 @@
         </label>
       </div>
 
+      <div class="equalizador-slot" role="group" aria-label="Equalizador de oito bandas">
+        <div class="equalizador-header"><strong>Equalizador</strong><span>±12 dB</span></div>
+        <label class="equalizador-banda" *ngFor="let frequencia of frequenciasEqualizador; let banda = index"
+          [for]="'eq-' + i + '-' + banda">
+          <output>{{ sf.equalizador[banda] > 0 ? '+' : '' }}{{ sf.equalizador[banda] }} dB</output>
+          <input [id]="'eq-' + i + '-' + banda" type="range" min="-12" max="12" step="1"
+            [value]="sf.equalizador[banda]" [disabled]="!pronto || !sf.arquivo"
+            [attr.aria-label]="frequencia + ' Hz'"
+            (input)="alterarBandaEqualizador(sf, banda, $any($event.target).value)" />
+          <span>{{ frequencia >= 1000 ? (frequencia / 1000) + 'k' : frequencia }} Hz</span>
+        </label>
+      </div>
+
       <div class="efeitos-opcoes">
         <label class="check-option">
           <input type="checkbox" [(ngModel)]="sf.pitchBendAtivado"

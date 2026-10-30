@@ -22,6 +22,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   },
@@ -39,6 +40,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   },
@@ -56,6 +58,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   },
@@ -73,6 +76,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   },
@@ -90,6 +94,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   },
@@ -107,6 +112,7 @@ export const SOUNDFONTS: SoundFontMixer[] = [
     chorus: 0,
     cutoff: 12000,
     ressonancia: 0.7,
+    equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
     pitchBendAtivado: true,
     modulacaoAtivada: true
   }

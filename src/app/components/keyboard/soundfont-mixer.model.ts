@@ -15,6 +15,7 @@ export interface SoundFontMixer {
   chorus: number;
   cutoff: number;
   ressonancia: number;
+  equalizador: number[];
 
   // Recepção de comandos MIDI
   pitchBendAtivado: boolean;

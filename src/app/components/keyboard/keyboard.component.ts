@@ -25,6 +25,7 @@ const soundFontBytesPending = new Map<string, Promise<Uint8Array>>();
 })
 export class KeyboardComponent implements OnDestroy {
   readonly maximoSlots = 8;
+  readonly frequenciasEqualizador = [60, 120, 250, 500, 1000, 2000, 4000, 8000];
   context: AudioContext | null = null;
 
   inicializando = false;
@@ -53,12 +54,14 @@ export class KeyboardComponent implements OnDestroy {
       chorus: 0,
       cutoff: 12000,
       ressonancia: 0.7,
+      equalizador: [...(sf.equalizador || [0, 0, 0, 0, 0, 0, 0, 0])],
       pitchBendAtivado: true,
       modulacaoAtivada: true,
       carregando: false,
       progresso: 0,
       efeitos: {
         filtro: null,
+        equalizador: [],
         ganhoSeco: null,
         ganhoReverb: null,
         convolver: null,
@@ -127,8 +130,10 @@ export class KeyboardComponent implements OnDestroy {
       programas: [],
       carregando: false,
       progresso: 0,
+      equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
       efeitos: {
         filtro: null,
+        equalizador: [],
         ganhoSeco: null,
         ganhoReverb: null,
         convolver: null,
@@ -175,7 +180,9 @@ export class KeyboardComponent implements OnDestroy {
     bufferSize: number
   ): Promise<void> {
     if (!this.context) return;
+
     sf.synth = new JSSynth.Synthesizer();
+
     sf.synth.init(this.context.sampleRate, {
       reverbActive: false,
       chorusActive: false,
@@ -188,12 +195,56 @@ export class KeyboardComponent implements OnDestroy {
       chorusSpeed: 0.3,
       chorusDepth: 8
     });
+
     sf.synth.setReverbOn(false);
     sf.synth.setChorusOn(false);
-    sf.audioNode = sf.synth.createAudioNode(this.context, bufferSize);
+
+    sf.audioNode = sf.synth.createAudioNode(
+      this.context,
+      bufferSize
+    );
+
     this.criarEfeitosDoSlot(sf);
-    if (sf.arquivo) await this.carregarSoundFontInicial(sf);
-    sf.synth.midiControl(sf.canal, 64, this.sustainEstaAtivo() ? 127 : 0);
+
+    if (sf.arquivo) {
+      await this.carregarSoundFontInicial(sf);
+    }
+
+    // Interromper sons e notas residuais
+    sf.synth.midiControl(sf.canal, 120, 0); // All Sound Off
+    sf.synth.midiControl(sf.canal, 123, 0); // All Notes Off
+
+    // Restaurar os controladores MIDI
+    sf.synth.midiControl(sf.canal, 121, 0); // Reset All Controllers
+
+    // Estado inicial dos controladores MIDI
+    sf.synth.midiControl(sf.canal, 1, 0);   // Modulação
+    sf.synth.midiControl(sf.canal, 11, 127); // Expressão
+    sf.synth.midiControl(sf.canal, 91, 0);  // Reverb send
+    sf.synth.midiControl(sf.canal, 93, 0);  // Chorus send
+    sf.synth.midiControl(sf.canal, 64, 0);  // Sustain
+    sf.synth.midiControl(sf.canal, 65, 0);  // Portamento
+    sf.synth.midiControl(sf.canal, 66, 0);  // Sostenuto
+
+    sf.synth.midiControl(sf.canal, 71, 64); // Harmonic Content
+    sf.synth.midiControl(sf.canal, 72, 64); // Release Time
+    sf.synth.midiControl(sf.canal, 73, 64); // Attack Time
+    sf.synth.midiControl(sf.canal, 74, 64); // Brightness
+    sf.synth.midiControl(sf.canal, 75, 64); // Decay Time
+
+
+    // Vibrato
+    sf.synth.midiControl(sf.canal, 76, 64); // Vibrato Rate
+    sf.synth.midiControl(sf.canal, 77, 64); // Vibrato Depth
+    sf.synth.midiControl(sf.canal, 78, 64); // Vibrato Delay
+
+    // Restaurar o sustain conforme o estado atual da aplicação
+    sf.synth.midiControl(
+      sf.canal,
+      64,
+      this.sustainEstaAtivo() ? 127 : 0
+    );
+
     this.aplicarVolume(sf);
   }
 
@@ -1165,6 +1216,7 @@ async conectarControladorMidi(): Promise<void> {
         chorus: sf.chorus,
         cuttof: sf.cutoff,
         ressonancia: sf.ressonancia,
+        equalizador: [...sf.equalizador],
         pitchBendAtivado: sf.pitchBendAtivado,
         modulacaoAtivada: sf.modulacaoAtivada
       })),
@@ -1316,6 +1368,7 @@ async conectarControladorMidi(): Promise<void> {
         sf.brilho = configuracao.brilho ?? 100;
         sf.reverb = configuracao.reverb ?? 0;
         sf.chorus = configuracao.chorus ?? 0;
+        sf.equalizador = this.normalizarEqualizador(configuracao.equalizador);
         sf.pitchBendAtivado = configuracao.pitchBendAtivado ?? true;
         sf.modulacaoAtivada = configuracao.modulacaoAtivada ?? true;
 
@@ -1525,6 +1578,7 @@ async conectarControladorMidi(): Promise<void> {
                 brilho: Math.max(0, Math.min(100, sf.brilho ?? 100)),
                 reverb: Math.max(0, Math.min(100, sf.reverb ?? 0)),
                 chorus: Math.max(0, Math.min(100, sf.chorus ?? 0)),
+                equalizador: this.normalizarEqualizador(sf.equalizador),
                 pitchBendAtivado: sf.pitchBendAtivado ?? true,
                 modulacaoAtivada: sf.modulacaoAtivada ?? true
               })),
@@ -1652,6 +1706,15 @@ async conectarControladorMidi(): Promise<void> {
     filtro.frequency.value = sf.cutoff;
     filtro.Q.value = sf.ressonancia;
 
+    const bandasEqualizador = [60, 120, 250, 500, 1000, 2000, 4000, 8000]
+      .map(frequencia => {
+        const banda = ctx.createBiquadFilter();
+        banda.type = 'peaking';
+        banda.frequency.value = frequencia;
+        banda.Q.value = 1;
+        return banda;
+      });
+
     const ganhoSeco = ctx.createGain();
     const ganhoReverb = ctx.createGain();
     const convolver = ctx.createConvolver();
@@ -1686,18 +1749,24 @@ async conectarControladorMidi(): Promise<void> {
     osciladorChorus.frequency.value = 0.8;
     profundidadeChorus.gain.value = 0.003;
 
-    // Caminho seco.
     sf.audioNode.connect(filtro);
-    filtro.connect(ganhoSeco);
+    let origemEqualizador: AudioNode = filtro;
+    for (const banda of bandasEqualizador) {
+      origemEqualizador.connect(banda);
+      origemEqualizador = banda;
+    }
+
+    // Caminho seco.
+    origemEqualizador.connect(ganhoSeco);
     ganhoSeco.connect(ctx.destination);
 
     // Caminho reverberado.
-    filtro.connect(convolver);
+    origemEqualizador.connect(convolver);
     convolver.connect(ganhoReverb);
     ganhoReverb.connect(ctx.destination);
 
     // Chorus: sinal atrasado com atraso modulado por LFO.
-    filtro.connect(atrasoChorus);
+    origemEqualizador.connect(atrasoChorus);
     atrasoChorus.connect(ganhoChorus);
     ganhoChorus.connect(ctx.destination);
 
@@ -1707,6 +1776,7 @@ async conectarControladorMidi(): Promise<void> {
 
     sf.efeitos = {
       filtro,
+      equalizador: bandasEqualizador,
       ganhoSeco,
       ganhoReverb,
       convolver,
@@ -1717,6 +1787,30 @@ async conectarControladorMidi(): Promise<void> {
     };
 
     this.aplicarEfeitos(sf);
+  }
+
+  alterarBandaEqualizador(sf: MotorSoundFont, indice: number, valor: number | string): void {
+    const ganho = Number(valor);
+    if (!Number.isFinite(ganho) || indice < 0 || indice >= 8) return;
+    sf.equalizador[indice] = Math.max(-12, Math.min(12, ganho));
+    this.aplicarEqualizador(sf);
+  }
+
+  private aplicarEqualizador(sf: MotorSoundFont): void {
+    sf.efeitos.equalizador.forEach((banda, indice) => {
+      banda.gain.setTargetAtTime(
+        Math.max(-12, Math.min(12, Number(sf.equalizador[indice]) || 0)),
+        this.context?.currentTime || 0,
+        0.02
+      );
+    });
+  }
+
+  private normalizarEqualizador(valor: unknown): number[] {
+    return Array.from({ length: 8 }, (_, indice) => {
+      const ganho = Array.isArray(valor) ? Number(valor[indice]) : 0;
+      return Number.isFinite(ganho) ? Math.max(-12, Math.min(12, ganho)) : 0;
+    });
   }
 
   private aplicarFiltro(sf: MotorSoundFont): void {
@@ -1786,6 +1880,7 @@ async conectarControladorMidi(): Promise<void> {
     }
 
     this.aplicarFiltro(sf);
+    this.aplicarEqualizador(sf);
 
     // Reverb: -100 a +100.
     // Valores negativos reduzem o reverb externo.

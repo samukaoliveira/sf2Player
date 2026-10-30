@@ -9,6 +9,7 @@ export interface CenaSoundFont {
   brilho?: number;
   reverb?: number;
   chorus?: number;
+  equalizador?: number[];
   pitchBendAtivado?: boolean;
   modulacaoAtivada?: boolean;
 }

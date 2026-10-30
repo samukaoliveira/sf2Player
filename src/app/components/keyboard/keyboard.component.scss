@@ -188,6 +188,15 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .efeitos-header h4 { margin: 0; font-size: 13px; font-weight: 700; }
 .efeitos-header span { overflow: hidden; max-width: 55%; color: var(--texto-secundario); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .efeitos-controles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; align-items: start; }
+.equalizador-slot { margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--borda); }
+.equalizador-header { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--texto-secundario); font-size: 10px; }
+.equalizador-slot .equalizador-header strong { color: var(--texto); }
+.equalizador-banda { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 3px; margin: 0; color: var(--texto-secundario); font-size: 9px; }
+.equalizador-banda output { color: var(--texto); font-size: 9px; font-variant-numeric: tabular-nums; }
+.equalizador-banda input { width: 100%; height: 14px; margin: 0; accent-color: var(--cor-primaria); }
+.equalizador-banda span { white-space: nowrap; }
+.equalizador-slot { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); column-gap: 6px; }
+.equalizador-header { grid-column: 1 / -1; }
 .efeito-controle { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer; }
 .efeito-nome { overflow: hidden; width: 100%; color: var(--texto-secundario); font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .efeito-controle output { min-height: 14px; color: var(--cor-primaria); font-size: 10px; font-weight: 700; white-space: nowrap; }
@@ -349,6 +358,7 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .slot-avancado[open] summary { margin-bottom: 8px; }
 .slot-avancado .efeitos-slot { margin: 0; padding: 9px; }
 .slot-avancado .efeitos-controles { gap: 4px; }
+.slot-avancado .equalizador-slot { column-gap: 3px; }
 .slot-avancado .knob-wrap { width: 36px; height: 36px; }
 .slot-avancado .knob-face { width: 32px; height: 32px; }
 .slot-avancado .midi-learn-volume { margin-bottom: 7px; padding: 6px; }

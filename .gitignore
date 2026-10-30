@@ -45,8 +45,6 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Executáveis Windows
-*.exe
 
 Builds e instaladores do Electron
 
@@ -59,7 +57,7 @@ Builds e instaladores do Electron
 
 Executáveis e pacotes gerados
 
-*.exe
+//*.exe
 *.msi
 *.msix
 *.appx

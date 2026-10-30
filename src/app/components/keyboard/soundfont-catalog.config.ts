@@ -40,7 +40,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "Kurzweil K2500",
-    arquivo: soundfontUrl("Kurzweil K2500.sf2"),
+    arquivo: soundfontUrl("Kurzweil_K2500.sf2"),
     categoria: "Pianos"
   },
   {
@@ -55,7 +55,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "LSPModel Bosendorfer Imperial [Yamaha CP88]",
-    arquivo: soundfontUrl("LSPModel Bosendorfer Imperial [Yamaha CP88].sf2"),
+    arquivo: soundfontUrl("LSPModel_Bosendorfer_Imperial_[Yamaha_CP88].sf2"),
     categoria: "Pianos"
   },
   {
@@ -65,12 +65,12 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "Nord Imperial Grand",
-    arquivo: soundfontUrl("Nord Imperial Grand.sf2"),
+    arquivo: soundfontUrl("Nord_Imperial_Grand.sf2"),
     categoria: "Pianos"
   },
   {
     nome: "Nord Romantic Grand",
-    arquivo: soundfontUrl("Nord Romantic Grand.sf2"),
+    arquivo: soundfontUrl("Nord_Romantic_Grand.sf2"),
     categoria: "Pianos"
   },
   {
@@ -80,7 +80,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "FatBoy - Pianos",
-    arquivo: soundfontUrl("FatBoy-v0 - EPs.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_EPs.sf2"),
     categoria: "Pianos"
   },
 
@@ -112,12 +112,12 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "KORG D1 Digital Piano EPiano2 (Retro)",
-    arquivo: soundfontUrl("KORG D1 Digital Piano EPiano2（Retro）.sf2"),
+    arquivo: soundfontUrl("KORG_D1_Digital_Piano_EPiano2（Retro）.sf2"),
     categoria: "Pianos Elétricos"
   },
   {
     nome: "KORG D1 Digital Piano EPiano (Solid)",
-    arquivo: soundfontUrl("KORG D1 Digital Piano EPiano（Solid）.sf2"),
+    arquivo: soundfontUrl("KORG_D1_Digital_Piano_EPiano（Solid）.sf2"),
     categoria: "Pianos Elétricos"
   },
   {
@@ -127,7 +127,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "FatBoy - EPs",
-    arquivo: soundfontUrl("FatBoy-v0 - EPs.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_EPs.sf2"),
     categoria: "Pianos Elétricos"
   },
 
@@ -234,7 +234,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "FatBoy - Guitars",
-    arquivo: soundfontUrl("FatBoy-v0 - Guitars.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_Guitars.sf2"),
     categoria: "Guitarras"
   },
 
@@ -251,7 +251,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   },
   {
     nome: "FatBoy - Clavis e Bells",
-    arquivo: soundfontUrl("FatBoy-v0 - Clavis e Bells.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_Clavis_e_Bells.sf2"),
     categoria: "Teclas"
   },
 
@@ -296,397 +296,471 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   // LEADS
   {
     nome: "FatBoy - Leads",
-    arquivo: soundfontUrl("FatBoy-v0 - Leads.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_Leads.sf2"),
     categoria: "Leads"
   },
 
   // ÓRGÃOS
   {
     nome: "FatBoy - Organs",
-    arquivo: soundfontUrl("FatBoy-v0 - Organs.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_Organs.sf2"),
     categoria: "Órgãos"
   },
 
   // STRINGS
   {
     nome: "FatBoy - Strings",
-    arquivo: soundfontUrl("FatBoy-v0 - Strings.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0_-_Strings.sf2"),
     categoria: "Strings"
   },
 
   // VIOLIN
   {
     nome: "FatBoy - Violin",
-    arquivo: soundfontUrl("FatBoy-v0-3 - Violin.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0-3_-_Violin.sf2"),
     categoria: "Strings"
   },
   {
     nome: "FatBoy - Cello",
-    arquivo: soundfontUrl("FatBoy-v0-3 - Cello.sf2"),
+    arquivo: soundfontUrl("FatBoy-v0-3_-_Cello.sf2"),
     categoria: "Strings"
   },
-  // PIANOS - SÉRIE A
-{
-  nome: "Roland Fantom X - So True",
-  arquivo: soundfontUrl("A001 So True....sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Concert Piano",
-  arquivo: soundfontUrl("A002 ConcertPiano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Warm Piano",
-  arquivo: soundfontUrl("A003 Warm Piano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Warm Pad Piano",
-  arquivo: soundfontUrl("A004 Warm Pad Pno.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Warm Strings Piano",
-  arquivo: soundfontUrl("A005 Warm Str Pno.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Beale Street Walk",
-  arquivo: soundfontUrl("A006 BealeSt Walk.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Rapsody",
-  arquivo: soundfontUrl("A007 Rapsody.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - JD-800 Piano",
-  arquivo: soundfontUrl("A008 JD-800 Piano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - SA Dance Piano",
-  arquivo: soundfontUrl("A009 SA Dance Pno.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - FS E-Grand",
-  arquivo: soundfontUrl("A010 FS E-Grand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - FS Blend Piano",
-  arquivo: soundfontUrl("A011 FS Blend Pno.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - LA Piano",
-  arquivo: soundfontUrl("A012 LA Piano.sf2"),
-  categoria: "Pianos"
-},
 
-// PIANOS - Roland Fantom X
-{
-  nome: "Roland Fantom X - Concert Grand",
-  arquivo: soundfontUrl("F001 ConcertGrand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Hall Concert",
-  arquivo: soundfontUrl("F002 Hall Concert.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Bright Tune",
-  arquivo: soundfontUrl("F003 Bright Tune.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Mellow Tune",
-  arquivo: soundfontUrl("F004 Mellow Tune.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Ultimate Grand",
-  arquivo: soundfontUrl("F009 UltimatGrand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - X Pure Grand",
-  arquivo: soundfontUrl("F010 X Pure Grand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Studio Grand",
-  arquivo: soundfontUrl("F011 Studio Grand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - 88 Concert Piano",
-  arquivo: soundfontUrl("F012 88ConcertPno.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Dry Studio 88",
-  arquivo: soundfontUrl("F013 DryStudio88.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - First Choice",
-  arquivo: soundfontUrl("F014 First Choice.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Rokkin' Piano",
-  arquivo: soundfontUrl("F015 Rokkin' pF.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Dark Grand",
-  arquivo: soundfontUrl("F016 Dark Grand.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Piano Oz",
-  arquivo: soundfontUrl("F017 Piano Oz.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Piano",
-  arquivo: soundfontUrl("F017.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Grand Hall",
-  arquivo: soundfontUrl("F018 Grand Hall.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - X Piano + Strings",
-  arquivo: soundfontUrl("F019 X Piano +Str.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Arie Piano",
-  arquivo: soundfontUrl("F020 Arie Piano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Cicada Piano",
-  arquivo: soundfontUrl("F021 Cicada Piano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Clare Voyent",
-  arquivo: soundfontUrl("F022 Clare Voyent.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - X Piano + Pad",
-  arquivo: soundfontUrl("F023 X Piano +Pad.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - X Piano + Vox",
-  arquivo: soundfontUrl("F024 X Piano +Vox.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - FX Piano",
-  arquivo: soundfontUrl("F025 FX Piano.sf2"),
-  categoria: "Pianos"
-},
-{
-  nome: "Roland Fantom X - Ambient Piano",
-  arquivo: soundfontUrl("F026 AmbientPiano.sf2"),
-  categoria: "Pianos"
-},
-// LEADS - ROLAND FANTOM X
-{
-  nome: "Roland Fantom X - R&B TriLead",
-  arquivo: soundfontUrl("C053 R&B TriLead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - PeakArpSine",
-  arquivo: soundfontUrl("C054 PeakArpSine.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Theramax",
-  arquivo: soundfontUrl("C055 Theramax.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - FS Square Lead",
-  arquivo: soundfontUrl("C056 FS Sqr Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Dawn Of Pan",
-  arquivo: soundfontUrl("C057 Dawn Of Pan.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Square Diamond",
-  arquivo: soundfontUrl("C058 Sqr Diamond.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - FS SoftLead",
-  arquivo: soundfontUrl("C059 FS SoftLead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Mid Saw Lead",
-  arquivo: soundfontUrl("C060 Mid Saw Ld.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - FS ResoLead",
-  arquivo: soundfontUrl("C061 FS ResoLead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Dig-n-Duke",
-  arquivo: soundfontUrl("C062 Dig-n-Duke.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Modulated Lead",
-  arquivo: soundfontUrl("C063 Modulated Ld.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Waspy Lead",
-  arquivo: soundfontUrl("C064 Waspy Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Mew Lead",
-  arquivo: soundfontUrl("C065 Mew Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Violin Lead",
-  arquivo: soundfontUrl("C066 Violin Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Oscillo Lead",
-  arquivo: soundfontUrl("C067 Oscillo Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - JP Saw Lead",
-  arquivo: soundfontUrl("C068 JP Saw Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - MG Square Lead",
-  arquivo: soundfontUrl("C069 MG Sqr Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Tristar",
-  arquivo: soundfontUrl("C070 Tristar.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Mod Lead",
-  arquivo: soundfontUrl("C071 Mod Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Digital Lead 1",
-  arquivo: soundfontUrl("C072 Digital Ld 1.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Chubby Lead",
-  arquivo: soundfontUrl("C073 Chubby Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Sneaky Leady",
-  arquivo: soundfontUrl("C074 Sneaky Leady.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - SoloNzPeaker",
-  arquivo: soundfontUrl("C075 SoloNzPeaker.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Clone Zone",
-  arquivo: soundfontUrl("C076 Clone Zone.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Legato Tkno",
-  arquivo: soundfontUrl("C077 Legato Tkno.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - SliCed Lead",
-  arquivo: soundfontUrl("G089 SliCed Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Synthi Fizz",
-  arquivo: soundfontUrl("G090 Synthi Fizz.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Mini Growl",
-  arquivo: soundfontUrl("G091 Mini Growl.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Jupiter Lead",
-  arquivo: soundfontUrl("G092 Jupiter Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - X-Pulse Lead",
-  arquivo: soundfontUrl("G093 X-Pulse Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Jupi Square",
-  arquivo: soundfontUrl("G094 Jupi Square.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - TriStac Lead",
-  arquivo: soundfontUrl("G095 TriStac Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Modular Lead",
-  arquivo: soundfontUrl("G096 Modular Lead.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Sinetific",
-  arquivo: soundfontUrl("G097 Sinetific.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Dirty D_A",
-  arquivo: soundfontUrl("G098 Dirty D_A.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - EuronalSynth",
-  arquivo: soundfontUrl("G099 EuronalSynth.sf2"),
-  categoria: "Leads"
-},
-{
-  nome: "Roland Fantom X - Xtrem Sine",
-  arquivo: soundfontUrl("G100 Xtrem Sine.sf2"),
-  categoria: "Leads"
-}
+  // PIANOS - SÉRIE A
+  {
+    nome: "Roland Fantom X - So True",
+    arquivo: soundfontUrl("A001_So_True....sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Concert Piano",
+    arquivo: soundfontUrl("A002_ConcertPiano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Warm Piano",
+    arquivo: soundfontUrl("A003_Warm_Piano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Warm Pad Piano",
+    arquivo: soundfontUrl("A004_Warm_Pad_Pno.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Warm Strings Piano",
+    arquivo: soundfontUrl("A005_Warm_Str_Pno.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Beale Street Walk",
+    arquivo: soundfontUrl("A006_BealeSt_Walk.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Rapsody",
+    arquivo: soundfontUrl("A007_Rapsody.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - JD-800 Piano",
+    arquivo: soundfontUrl("A008_JD-800_Piano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - SA Dance Piano",
+    arquivo: soundfontUrl("A009_SA_Dance_Pno.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - FS E-Grand",
+    arquivo: soundfontUrl("A010_FS_E-Grand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - FS Blend Piano",
+    arquivo: soundfontUrl("A011_FS_Blend_Pno.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - LA Piano",
+    arquivo: soundfontUrl("A012_LA_Piano.sf2"),
+    categoria: "Pianos"
+  },
+
+  // PIANOS - ROLAND FANTOM X
+  {
+    nome: "Roland Fantom X - Concert Grand",
+    arquivo: soundfontUrl("F001_ConcertGrand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Hall Concert",
+    arquivo: soundfontUrl("F002_Hall_Concert.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Bright Tune",
+    arquivo: soundfontUrl("F003_Bright_Tune.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Mellow Tune",
+    arquivo: soundfontUrl("F004_Mellow_Tune.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Ultimate Grand",
+    arquivo: soundfontUrl("F009_UltimatGrand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - X Pure Grand",
+    arquivo: soundfontUrl("F010_X_Pure_Grand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Studio Grand",
+    arquivo: soundfontUrl("F011_Studio_Grand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - 88 Concert Piano",
+    arquivo: soundfontUrl("F012_88ConcertPno.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Dry Studio 88",
+    arquivo: soundfontUrl("F013_DryStudio88.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - First Choice",
+    arquivo: soundfontUrl("F014_First_Choice.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Rokkin' Piano",
+    arquivo: soundfontUrl("F015_Rokkin'_pF.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Dark Grand",
+    arquivo: soundfontUrl("F016_Dark_Grand.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Piano Oz",
+    arquivo: soundfontUrl("F017_Piano_Oz.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Piano",
+    arquivo: soundfontUrl("F017.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Grand Hall",
+    arquivo: soundfontUrl("F018_Grand_Hall.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - X Piano + Strings",
+    arquivo: soundfontUrl("F019_X_Piano_+Str.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Arie Piano",
+    arquivo: soundfontUrl("F020_Arie_Piano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Cicada Piano",
+    arquivo: soundfontUrl("F021_Cicada_Piano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Clare Voyent",
+    arquivo: soundfontUrl("F022_Clare_Voyent.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - X Piano + Pad",
+    arquivo: soundfontUrl("F023_X_Piano_+Pad.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - X Piano + Vox",
+    arquivo: soundfontUrl("F024_X_Piano_+Vox.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - FX Piano",
+    arquivo: soundfontUrl("F025_FX_Piano.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Roland Fantom X - Ambient Piano",
+    arquivo: soundfontUrl("F026_AmbientPiano.sf2"),
+    categoria: "Pianos"
+  },
+
+  // LEADS - ROLAND FANTOM X
+  {
+    nome: "Roland Fantom X - R&B TriLead",
+    arquivo: soundfontUrl("C053_R&B_TriLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - PeakArpSine",
+    arquivo: soundfontUrl("C054_PeakArpSine.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Theramax",
+    arquivo: soundfontUrl("C055_Theramax.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS Square Lead",
+    arquivo: soundfontUrl("C056_FS_Sqr_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Dawn Of Pan",
+    arquivo: soundfontUrl("C057_Dawn_Of_Pan.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Square Diamond",
+    arquivo: soundfontUrl("C058_Sqr_Diamond.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS SoftLead",
+    arquivo: soundfontUrl("C059_FS_SoftLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mid Saw Lead",
+    arquivo: soundfontUrl("C060_Mid_Saw_Ld.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS ResoLead",
+    arquivo: soundfontUrl("C061_FS_ResoLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Dig-n-Duke",
+    arquivo: soundfontUrl("C062_Dig-n-Duke.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Modulated Lead",
+    arquivo: soundfontUrl("C063_Modulated_Ld.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Waspy Lead",
+    arquivo: soundfontUrl("C064_Waspy_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mew Lead",
+    arquivo: soundfontUrl("C065_Mew_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Violin Lead",
+    arquivo: soundfontUrl("C066_Violin_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Oscillo Lead",
+    arquivo: soundfontUrl("C067_Oscillo_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - JP Saw Lead",
+    arquivo: soundfontUrl("C068_JP_Saw_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - MG Square Lead",
+    arquivo: soundfontUrl("C069_MG_Sqr_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Tristar",
+    arquivo: soundfontUrl("C070_Tristar.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mod Lead",
+    arquivo: soundfontUrl("C071_Mod_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Digital Lead 1",
+    arquivo: soundfontUrl("C072_Digital_Ld_1.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Chubby Lead",
+    arquivo: soundfontUrl("C073_Chubby_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Sneaky Leady",
+    arquivo: soundfontUrl("C074_Sneaky_Leady.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - SoloNzPeaker",
+    arquivo: soundfontUrl("C075_SoloNzPeaker.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Clone Zone",
+    arquivo: soundfontUrl("C076_Clone_Zone.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Legato Tkno",
+    arquivo: soundfontUrl("C077_Legato_Tkno.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - SliCed Lead",
+    arquivo: soundfontUrl("G089_SliCed_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Synthi Fizz",
+    arquivo: soundfontUrl("G090_Synthi_Fizz.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mini Growl",
+    arquivo: soundfontUrl("G091_Mini_Growl.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Jupiter Lead",
+    arquivo: soundfontUrl("G092_Jupiter_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - X-Pulse Lead",
+    arquivo: soundfontUrl("G093_X-Pulse_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Jupi Square",
+    arquivo: soundfontUrl("G094_Jupi_Square.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - TriStac Lead",
+    arquivo: soundfontUrl("G095_TriStac_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Modular Lead",
+    arquivo: soundfontUrl("G096_Modular_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Sinetific",
+    arquivo: soundfontUrl("G097_Sinetific.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Dirty D_A",
+    arquivo: soundfontUrl("G098_Dirty_D_A.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - EuronalSynth",
+    arquivo: soundfontUrl("G099_EuronalSynth.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Xtrem Sine",
+    arquivo: soundfontUrl("G100_Xtrem_Sine.sf2"),
+    categoria: "Leads"
+  },
+
+  // KURZWEIL K2500
+  {
+    nome: "Kurzweil K2500 - Bass",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Bass.sf2"),
+    categoria: "Bass"
+  },
+  {
+    nome: "Kurzweil K2500 - Bells",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Bells.sf2"),
+    categoria: "Bells"
+  },
+  {
+    nome: "Kurzweil K2500 - Brass",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Brass.sf2"),
+    categoria: "Brass"
+  },
+  {
+    nome: "Kurzweil K2500 - Choir",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Choir.sf2"),
+    categoria: "Choir"
+  },
+  {
+    nome: "Kurzweil K2500 - Drums",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Drums.sf2"),
+    categoria: "Drums"
+  },
+  {
+    nome: "Kurzweil K2500 - EPianos",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_EPianos.sf2"),
+    categoria: "EPs"
+  },
+  {
+    nome: "Kurzweil K2500 - Flutes",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Flutes.sf2"),
+    categoria: "Flutes"
+  },
+  {
+    nome: "Kurzweil K2500 - Guitars",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Guitars.sf2"),
+    categoria: "Guitars"
+  },
+  {
+    nome: "Kurzweil K2500 - Leads",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Leads.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Kurzweil K2500 - Organs",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Organs.sf2"),
+    categoria: "Organs"
+  },
+  {
+    nome: "Kurzweil K2500 - Pads",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Pads.sf2"),
+    categoria: "Pads"
+  },
+  {
+    nome: "Kurzweil K2500 - Pianos",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Pianos.sf2"),
+    categoria: "Pianos"
+  },
+  {
+    nome: "Kurzweil K2500 - Strings",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_Strings.sf2"),
+    categoria: "Strings"
+  },
+  {
+    nome: "Kurzweil K2500 - World",
+    arquivo: soundfontUrl("Kurzweil_K2500_-_World.sf2"),
+    categoria: "World"
+  }
 ];

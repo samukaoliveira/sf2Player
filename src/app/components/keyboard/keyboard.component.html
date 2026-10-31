@@ -68,6 +68,9 @@
   <p class="erro" *ngIf="erro">
     {{ erro }}
   </p>
+  <p class="aviso-soundfont" *ngIf="avisoSoundFont" role="status" aria-live="polite">
+    {{ avisoSoundFont }}
+  </p>
 
   <div class="workspace">
   <!-- Cenas salvas e acessos rápidos -->
@@ -80,6 +83,7 @@
         [(ngModel)]="nomeNovaCena"
         placeholder="Nome da cena"
         maxlength="60"
+        [disabled]="!!cenaAtivaNome"
         (keyup.enter)="salvarCena()"
       />
 
@@ -87,7 +91,14 @@
         type="button"
         (click)="salvarCena()"
       >
-        Salvar cena
+        Salvar
+      </button>
+
+      <button
+        type="button"
+        (click)="novaCena()"
+      >
+        Nova Cena
       </button>
     </div>
 
@@ -182,8 +193,34 @@
       </button>
     </div>
 
+    <div class="soundfont-upload">
+      <label class="soundfont-upload-arquivo">
+        <span>{{ arquivoSoundFontUpload ? arquivoSoundFontUpload.name : 'Escolher arquivo SF2' }}</span>
+        <input type="file" accept=".sf2,application/octet-stream"
+          (change)="selecionarArquivoSoundFontUpload($event)" />
+      </label>
+      <select aria-label="Categoria do SoundFont importado"
+        [(ngModel)]="categoriaSoundFontUpload">
+        <option value="">Escolha a categoria</option>
+        <option *ngFor="let categoria of categoriasSoundFontUpload" [value]="categoria">
+          {{ categoria }}
+        </option>
+      </select>
+      <button type="button" (click)="importarSoundFontLocal()"
+        [disabled]="!localSoundFontsDisponivel || !arquivoSoundFontUpload || !categoriaSoundFontUpload">
+        Importar SoundFont
+      </button>
+      <span class="soundfont-upload-mensagem" *ngIf="!localSoundFontsDisponivel">
+        Upload para a pasta local disponível no aplicativo desktop.
+      </span>
+      <span class="soundfont-upload-mensagem" *ngIf="mensagemUploadSoundFont" role="status">
+        {{ mensagemUploadSoundFont }}
+      </span>
+    </div>
+
     <article
       class="slot"
+      [ngClass]="'categoria-' + categoriaVisualSlot(sf)"
       *ngFor="let sf of soundfonts; let i = index">
 
       <div class="slot-header">
@@ -349,6 +386,9 @@
       <div class="efeitos-header">
         <h4>Efeitos</h4>
         <span>{{ sf.nome }}</span>
+        <button type="button" class="resetar-efeitos" (click)="resetarEfeitosSlot(sf)">
+          Restaurar padrões
+        </button>
       </div>
 
       <div class="efeitos-controles">
@@ -393,6 +433,73 @@
             <input class="knob-input" [id]="'cutoff-' + i" type="range" min="100" max="20000" step="100" [value]="sf.cutoff"
               [disabled]="!pronto || !sf.arquivo" aria-label="Cutoff"
               (input)="alterarCutoff(sf, $any($event.target).value)" />
+          </span>
+        </label>
+
+        <label class="efeito-controle" [for]="'release-' + i">
+          <span class="efeito-nome">Release</span>
+          <output>{{ sf.release }}</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.release || 0) * 270 / 127) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'release-' + i" type="range" min="0" max="127" [value]="sf.release"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Release"
+              (input)="alterarRelease(sf, $any($event.target).value)" />
+          </span>
+        </label>
+
+        <label class="efeito-controle" [for]="'attack-' + i">
+          <span class="efeito-nome">Attack</span>
+          <output>{{ sf.attack }}</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.attack || 0) * 270 / 127) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'attack-' + i" type="range" min="0" max="127" [value]="sf.attack"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Attack"
+              (input)="alterarAttack(sf, $any($event.target).value)" />
+          </span>
+        </label>
+
+        <label class="efeito-controle" [for]="'decay-' + i">
+          <span class="efeito-nome">Decay</span>
+          <output>{{ sf.decay }}</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.decay || 0) * 270 / 127) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'decay-' + i" type="range" min="0" max="127" [value]="sf.decay"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Decay"
+              (input)="alterarDecay(sf, $any($event.target).value)" />
+          </span>
+        </label>
+
+        <label class="efeito-controle" [for]="'waveform-' + i">
+          <span class="efeito-nome">Waveform</span>
+          <select [id]="'waveform-' + i" [ngModel]="sf.waveform"
+            [disabled]="!pronto || !sf.arquivo"
+            (ngModelChange)="alterarWaveform(sf, $event)">
+            <option value="sine">Sine</option>
+            <option value="triangle">Triangle</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="square">Square</option>
+          </select>
+        </label>
+
+        <label class="efeito-controle" [for]="'depth-' + i">
+          <span class="efeito-nome">Depth</span>
+          <output>{{ sf.depth }}%</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.depth || 0) * 2.7) - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'depth-' + i" type="range" min="0" max="100" [value]="sf.depth"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Depth"
+              (input)="alterarDepth(sf, $any($event.target).value)" />
+          </span>
+        </label>
+
+        <label class="efeito-controle" [for]="'rate-' + i">
+          <span class="efeito-nome">Rate</span>
+          <output>{{ sf.rate }} Hz</output>
+          <span class="knob-wrap">
+            <span class="knob-face" [style.--knob-angle]="(((sf.rate || 0.1) - 0.1) * 270 / 9.9 - 135) + 'deg'"></span>
+            <input class="knob-input" [id]="'rate-' + i" type="range" min="0.1" max="10" step="0.1" [value]="sf.rate"
+              [disabled]="!pronto || !sf.arquivo" aria-label="Rate"
+              (input)="alterarRate(sf, $any($event.target).value)" />
           </span>
         </label>
 

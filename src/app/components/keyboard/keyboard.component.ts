@@ -7,7 +7,8 @@ import {
 import { SOUNDFONTS } from './soundfont-mixer.config';
 import { SOUNDFONT_CATALOGO,
   SoundFontGrupo,
-  SoundFontOpcao } from './soundfont-catalog.config';
+  SoundFontOpcao,
+  normalizarCategoriaSoundFont } from './soundfont-catalog.config';
 import { TecladoFisicoService } from './teclado-fisico.service';
 import { ControladorMidiService } from './controlador-midi.service';
 import { Cena, CenaSoundFont } from '../../models/cenas';
@@ -31,6 +32,7 @@ export class KeyboardComponent implements OnDestroy {
   inicializando = false;
   pronto = false;
   erro = '';
+  avisoSoundFont = '';
 
   sustainAtivado = false;
   sustainPressionado = false;
@@ -39,8 +41,13 @@ export class KeyboardComponent implements OnDestroy {
 
   soundfontCatalogo = SOUNDFONT_CATALOGO;
   soundfontGrupos: SoundFontGrupo[] = [];
+  categoriasSoundFontUpload: string[] = [];
+  localSoundFontsDisponivel = false;
+  arquivoSoundFontUpload: File | null = null;
+  categoriaSoundFontUpload = '';
+  mensagemUploadSoundFont = '';
 
-  soundfonts: MotorSoundFont[] = SOUNDFONTS.map(
+  soundfonts: MotorSoundFont[] = SOUNDFONTS.slice(0, 1).map(
     (sf: SoundFontMixer, index: number) => ({
       ...sf,
       arquivo: index === 0 ? sf.arquivo : '',
@@ -53,10 +60,16 @@ export class KeyboardComponent implements OnDestroy {
       reverb: 0,
       chorus: 0,
       cutoff: 12000,
+      release: sf.release ?? 64,
+      attack: sf.attack ?? 64,
+      decay: sf.decay ?? 64,
+      waveform: sf.waveform ?? 'sine',
+      depth: sf.depth ?? 50,
+      rate: sf.rate ?? 0.8,
       ressonancia: 0.7,
       equalizador: [...(sf.equalizador || [0, 0, 0, 0, 0, 0, 0, 0])],
       pitchBendAtivado: true,
-      modulacaoAtivada: true,
+      modulacaoAtivada: false,
       carregando: false,
       progresso: 0,
       efeitos: {
@@ -110,8 +123,10 @@ export class KeyboardComponent implements OnDestroy {
 
   // Cena selecionada na lista.
   cenaSelecionada = '';
+  cenaAtivaNome = '';
 
   private readonly chaveCenas = 'sf2Player.cenas';
+  private cenasAlteradasDuranteLeitura = false;
 
   async adicionarSlot(): Promise<void> {
     if (this.soundfonts.length >= this.maximoSlots) return;
@@ -124,6 +139,19 @@ export class KeyboardComponent implements OnDestroy {
       arquivo: '',
       canal: indice,
       ativo: false,
+      brilho: 100,
+      reverb: 0,
+      chorus: 0,
+      cutoff: 12000,
+      release: 64,
+      attack: 64,
+      decay: 64,
+      waveform: 'sine',
+      depth: 50,
+      rate: 0.8,
+      ressonancia: 0.7,
+      pitchBendAtivado: true,
+      modulacaoAtivada: false,
       synth: null,
       audioNode: null,
       soundFontId: null,
@@ -228,9 +256,13 @@ export class KeyboardComponent implements OnDestroy {
 
     sf.synth.midiControl(sf.canal, 71, 64); // Harmonic Content
     sf.synth.midiControl(sf.canal, 72, 64); // Release Time
-    sf.synth.midiControl(sf.canal, 73, 64); // Attack Time
-    sf.synth.midiControl(sf.canal, 74, 64); // Brightness
-    sf.synth.midiControl(sf.canal, 75, 64); // Decay Time
+    sf.synth.midiControl(sf.canal, 73, sf.attack ?? 64); // Attack Time
+    sf.synth.midiControl(
+      sf.canal,
+      74,
+      Math.round((sf.brilho / 100) * 127)
+    ); // Brightness
+    sf.synth.midiControl(sf.canal, 75, sf.decay ?? 64); // Decay Time
 
 
     // Vibrato
@@ -254,7 +286,9 @@ export class KeyboardComponent implements OnDestroy {
   ) {
     this.midiCCPorSoundFont = {};
     this.carregarCenasSalvas();
+    void this.carregarCenasDaPasta();
     this.agruparSoundFonts();
+    void this.carregarSoundFontsLocais();
   }
 
   aoPressionarTecla(event: KeyboardEvent): void {
@@ -284,6 +318,7 @@ export class KeyboardComponent implements OnDestroy {
 
     this.inicializando = true;
     this.erro = '';
+    this.avisoSoundFont = '';
 
     try {
       await JSSynth.waitForReady();
@@ -476,6 +511,7 @@ export class KeyboardComponent implements OnDestroy {
     const cache = this.obterCacheSoundFonts(sf.synth);
 
     this.erro = '';
+    this.avisoSoundFont = '';
     sf.carregando = true;
     sf.progresso = 0;
 
@@ -554,18 +590,37 @@ export class KeyboardComponent implements OnDestroy {
     }
 
     const carregamento = (async () => {
+      if (arquivo.startsWith('local-sf2://')) {
+        if (!window.sf2LocalCache) {
+          throw new Error('Arquivos locais só estão disponíveis no aplicativo desktop.');
+        }
+        const nomeLocal = decodeURIComponent(arquivo.slice('local-sf2://'.length));
+        const local = await window.sf2LocalCache.readLocal(nomeLocal);
+        if (!local || !this.ehSoundFontValido(local)) {
+          throw new Error(`O arquivo ${nomeLocal} não foi encontrado na pasta de SoundFonts.`);
+        }
+        const bytes = new Uint8Array(local);
+        soundFontBytesCache.set(arquivo, bytes);
+        aoProgredir?.(100);
+        return bytes;
+      }
+
       if (window.sf2LocalCache) {
         try {
           const persistido = await window.sf2LocalCache.read(arquivo);
           if (persistido && this.ehSoundFontValido(persistido)) {
             const bytes = new Uint8Array(persistido);
             soundFontBytesCache.set(arquivo, bytes);
+            this.avisoSoundFont = '';
             aoProgredir?.(100);
             return bytes;
           }
         } catch (e) {
           console.warn('Não foi possível ler o cache local SF2:', e);
         }
+        this.avisoSoundFont =
+          `SoundFont não encontrado em ${window.sf2LocalCache.directory}. ` +
+          'Será baixado agora.';
       }
 
       const resposta = await fetch(arquivo);
@@ -605,6 +660,7 @@ export class KeyboardComponent implements OnDestroy {
       }
 
       soundFontBytesCache.set(arquivo, bytes);
+      this.avisoSoundFont = '';
       aoProgredir?.(100);
       if (window.sf2LocalCache) {
         try {
@@ -1196,7 +1252,7 @@ async conectarControladorMidi(): Promise<void> {
 
 
   salvarCena(): void {
-    const nome = this.nomeNovaCena.trim();
+    const nome = this.cenaAtivaNome || this.nomeNovaCena.trim();
 
     if (!nome) {
       this.erro = 'Informe um nome para a cena.';
@@ -1214,6 +1270,12 @@ async conectarControladorMidi(): Promise<void> {
         brilho: sf.brilho,
         reverb: sf.reverb,
         chorus: sf.chorus,
+        release: sf.release ?? 64,
+        attack: sf.attack ?? 64,
+        decay: sf.decay ?? 64,
+        waveform: sf.waveform ?? 'sine',
+        depth: sf.depth ?? 50,
+        rate: sf.rate ?? 0.8,
         cuttof: sf.cutoff,
         ressonancia: sf.ressonancia,
         equalizador: [...sf.equalizador],
@@ -1237,22 +1299,122 @@ async conectarControladorMidi(): Promise<void> {
     }
 
     this.salvarCenasNoNavegador();
+    this.cenaAtivaNome = nome;
     this.cenaSelecionada = nome;
-    this.nomeNovaCena = '';
+    this.nomeNovaCena = nome;
     this.erro = '';
 
     console.log(`Cena "${nome}" salva.`);
   }
 
+  async novaCena(): Promise<void> {
+    while (this.soundfonts.length > 1) {
+      await this.removerSlot(this.soundfonts[this.soundfonts.length - 1]);
+    }
+
+    const sf = this.soundfonts[0];
+    if (sf.synth) {
+      try {
+        await sf.synth.close();
+      } catch (e) {
+        console.warn('Erro ao limpar o slot para uma nova cena:', e);
+      }
+      sf.efeitos.osciladorChorus?.stop();
+      sf.synth = null;
+      sf.audioNode = null;
+      sf.efeitos = {
+        filtro: null,
+        equalizador: [],
+        ganhoSeco: null,
+        ganhoReverb: null,
+        convolver: null,
+        ganhoChorus: null,
+        atrasoChorus: null,
+        osciladorChorus: null,
+        profundidadeChorus: null
+      };
+    }
+
+    Object.assign(sf, {
+      nome: 'Instrumento 1',
+      arquivo: '',
+      canal: 0,
+      banco: 0,
+      programa: 0,
+      volume: 85,
+      ativo: false,
+      brilho: 100,
+      reverb: 0,
+      chorus: 0,
+      cutoff: 12000,
+      release: 64,
+      attack: 64,
+      decay: 64,
+      waveform: 'sine',
+      depth: 50,
+      rate: 0.8,
+      ressonancia: 0.7,
+      equalizador: [0, 0, 0, 0, 0, 0, 0, 0],
+      pitchBendAtivado: true,
+      modulacaoAtivada: false,
+      soundFontId: null,
+      programas: [],
+      carregando: false,
+      progresso: 0
+    });
+    if (this.context && this.pronto) {
+      await this.inicializarSynthSlot(sf, this.BUFFER_SIZE);
+    }
+
+    this.cenaAtivaNome = '';
+    this.cenaSelecionada = '';
+    this.nomeNovaCena = '';
+    this.midiCCPorSoundFont = {};
+    this.salvarAssociacoesMidi();
+    this.erro = '';
+    this.avisoSoundFont = '';
+    this.motoresPorNota.clear();
+    this.atualizarSustain();
+  }
+
   private salvarCenasNoNavegador(): void {
+    const conteudo = JSON.stringify(this.cenas);
+    this.cenasAlteradasDuranteLeitura = true;
     try {
-      localStorage.setItem(
-        this.chaveCenas,
-        JSON.stringify(this.cenas)
-      );
+      localStorage.setItem(this.chaveCenas, conteudo);
     } catch (e) {
       console.error('Erro ao salvar cenas:', e);
       this.erro = 'Não foi possível salvar as cenas.';
+    }
+    if (window.sf2LocalCache) {
+      void window.sf2LocalCache.writeScenes(conteudo).then(salvo => {
+        if (!salvo) this.erro = 'Não foi possível gravar as cenas na pasta local.';
+      }).catch(e => {
+        console.warn('Não foi possível gravar as cenas na pasta local:', e);
+        this.erro = 'Não foi possível gravar as cenas na pasta local.';
+      });
+    }
+  }
+
+  private async carregarCenasDaPasta(): Promise<void> {
+    if (!window.sf2LocalCache) return;
+    try {
+      const conteudo = await window.sf2LocalCache.readScenes();
+      if (this.cenasAlteradasDuranteLeitura) {
+        await window.sf2LocalCache.writeScenes(JSON.stringify(this.cenas));
+        return;
+      }
+      if (!conteudo) {
+        await window.sf2LocalCache.writeScenes(JSON.stringify(this.cenas));
+        return;
+      }
+      const cenas = JSON.parse(conteudo);
+      if (!Array.isArray(cenas)) throw new Error('Arquivo de cenas inválido.');
+      localStorage.setItem(this.chaveCenas, conteudo);
+      this.carregarCenasSalvas();
+    } catch (e) {
+      console.warn('Não foi possível carregar cenas da pasta local:', e);
+      this.erro = 'Não foi possível carregar as cenas da pasta local.';
     }
   }
 
@@ -1360,17 +1522,50 @@ async conectarControladorMidi(): Promise<void> {
             );
           }
         }
+        if (!configuracao.arquivo && sf.arquivo) {
+          await sf.synth?.close();
+          sf.efeitos.osciladorChorus?.stop();
+          sf.arquivo = '';
+          sf.soundFontId = null;
+          sf.programas = [];
+          sf.audioNode = null;
+          sf.synth = null;
+          sf.efeitos = {
+            filtro: null,
+            equalizador: [],
+            ganhoSeco: null,
+            ganhoReverb: null,
+            convolver: null,
+            ganhoChorus: null,
+            atrasoChorus: null,
+            osciladorChorus: null,
+            profundidadeChorus: null
+          };
+          if (this.context && this.pronto) {
+            await this.inicializarSynthSlot(sf, this.BUFFER_SIZE);
+          }
+        }
 
         sf.banco = configuracao.banco;
         sf.programa = configuracao.programa;
         sf.volume = configuracao.volume;
         sf.ativo = configuracao.ativo;
         sf.brilho = configuracao.brilho ?? 100;
+        sf.synth?.midiControl(sf.canal, 74, Math.round((sf.brilho / 100) * 127));
         sf.reverb = configuracao.reverb ?? 0;
         sf.chorus = configuracao.chorus ?? 0;
+        sf.release = configuracao.release ?? 64;
+        sf.attack = configuracao.attack ?? 64;
+        sf.decay = configuracao.decay ?? 64;
+        sf.waveform = configuracao.waveform ?? 'sine';
+        sf.depth = configuracao.depth ?? 50;
+        sf.rate = configuracao.rate ?? 0.8;
         sf.equalizador = this.normalizarEqualizador(configuracao.equalizador);
         sf.pitchBendAtivado = configuracao.pitchBendAtivado ?? true;
-        sf.modulacaoAtivada = configuracao.modulacaoAtivada ?? true;
+        sf.modulacaoAtivada = configuracao.modulacaoAtivada ?? false;
+        sf.synth?.midiControl(sf.canal, 72, sf.release);
+        sf.synth?.midiControl(sf.canal, 73, sf.attack);
+        sf.synth?.midiControl(sf.canal, 75, sf.decay);
 
         this.aplicarEfeitos(sf);
 
@@ -1400,6 +1595,10 @@ async conectarControladorMidi(): Promise<void> {
 
       this.atualizarModulacao();
 
+      this.cenaAtivaNome = cena.nome;
+      this.cenaSelecionada = cena.nome;
+      this.nomeNovaCena = cena.nome;
+
       this.erro = '';
 
       console.log(
@@ -1428,6 +1627,10 @@ async conectarControladorMidi(): Promise<void> {
     );
 
     this.salvarCenasNoNavegador();
+    if (this.cenaAtivaNome === this.cenaSelecionada) {
+      this.cenaAtivaNome = '';
+      this.nomeNovaCena = '';
+    }
     this.cenaSelecionada = '';
     this.erro = '';
   }
@@ -1580,7 +1783,14 @@ async conectarControladorMidi(): Promise<void> {
                 chorus: Math.max(0, Math.min(100, sf.chorus ?? 0)),
                 equalizador: this.normalizarEqualizador(sf.equalizador),
                 pitchBendAtivado: sf.pitchBendAtivado ?? true,
-                modulacaoAtivada: sf.modulacaoAtivada ?? true
+                release: Math.max(0, Math.min(127, sf.release ?? 64)),
+                attack: Math.max(0, Math.min(127, sf.attack ?? 64)),
+                decay: Math.max(0, Math.min(127, sf.decay ?? 64)),
+                waveform: ['sine', 'triangle', 'sawtooth', 'square'].indexOf(sf.waveform) >= 0
+                  ? sf.waveform : 'sine',
+                depth: Math.max(0, Math.min(100, sf.depth ?? 50)),
+                rate: Math.max(0.1, Math.min(10, sf.rate ?? 0.8)),
+                modulacaoAtivada: sf.modulacaoAtivada ?? false
               })),
               associacoesMidiVolume: associacoesCena
             };
@@ -1611,7 +1821,7 @@ async conectarControladorMidi(): Promise<void> {
         // Se a cena atualmente selecionada existir, mantém as
         // associações correspondentes à configuração ativa.
         const cenaAtual = this.cenas.find(
-          c => c.nome === this.cenaSelecionada
+          c => c.nome === this.cenaAtivaNome
         );
 
         if (cenaAtual) {
@@ -1649,13 +1859,13 @@ async conectarControladorMidi(): Promise<void> {
   }
 
   private salvarAssociacoesNaCena(): void {
-    if (!this.cenaSelecionada) {
+    if (!this.cenaAtivaNome) {
       this.salvarAssociacoesMidi();
       return;
     }
 
     const indice = this.cenas.findIndex(
-      c => c.nome === this.cenaSelecionada
+      c => c.nome === this.cenaAtivaNome
     );
 
     if (indice < 0) {
@@ -1746,8 +1956,9 @@ async conectarControladorMidi(): Promise<void> {
     ganhoChorus.gain.value = 0;
 
     atrasoChorus.delayTime.value = 0.018;
-    osciladorChorus.frequency.value = 0.8;
-    profundidadeChorus.gain.value = 0.003;
+    osciladorChorus.frequency.value = sf.rate ?? 0.8;
+    osciladorChorus.type = sf.waveform ?? 'sine';
+    profundidadeChorus.gain.value = (sf.depth ?? 50) * 0.00006;
 
     sf.audioNode.connect(filtro);
     let origemEqualizador: AudioNode = filtro;
@@ -1871,9 +2082,86 @@ async conectarControladorMidi(): Promise<void> {
     this.aplicarFiltro(sf);
   }
 
+  alterarRelease(sf: MotorSoundFont, valor: number | string): void {
+    sf.release = Math.max(0, Math.min(127, Number(valor) || 0));
+    sf.synth?.midiControl(sf.canal, 72, sf.release);
+  }
+
+  alterarAttack(sf: MotorSoundFont, valor: number | string): void {
+    sf.attack = Math.max(0, Math.min(127, Number(valor) || 0));
+    sf.synth?.midiControl(sf.canal, 73, sf.attack);
+  }
+
+  alterarDecay(sf: MotorSoundFont, valor: number | string): void {
+    sf.decay = Math.max(0, Math.min(127, Number(valor) || 0));
+    sf.synth?.midiControl(sf.canal, 75, sf.decay);
+  }
+
+  alterarWaveform(sf: MotorSoundFont, valor: OscillatorType): void {
+    if (!['sine', 'triangle', 'sawtooth', 'square'].includes(valor)) return;
+    sf.waveform = valor;
+    if (sf.efeitos.osciladorChorus) sf.efeitos.osciladorChorus.type = valor;
+  }
+
+  alterarDepth(sf: MotorSoundFont, valor: number | string): void {
+    sf.depth = Math.max(0, Math.min(100, Number(valor) || 0));
+    if (sf.efeitos.profundidadeChorus) {
+      sf.efeitos.profundidadeChorus.gain.value = sf.depth * 0.00006;
+    }
+  }
+
+  alterarRate(sf: MotorSoundFont, valor: number | string): void {
+    sf.rate = Math.max(0.1, Math.min(10, Number(valor) || 0.1));
+    if (sf.efeitos.osciladorChorus) sf.efeitos.osciladorChorus.frequency.value = sf.rate;
+  }
+
+  resetarEfeitosSlot(sf: MotorSoundFont): void {
+    sf.brilho = 100;
+    sf.reverb = 0;
+    sf.chorus = 0;
+    sf.cutoff = 12000;
+    sf.release = 64;
+    sf.attack = 64;
+    sf.decay = 64;
+    sf.waveform = 'sine';
+    sf.depth = 50;
+    sf.rate = 0.8;
+    sf.ressonancia = 0.7;
+    sf.equalizador = [0, 0, 0, 0, 0, 0, 0, 0];
+    sf.synth?.midiControl(sf.canal, 72, sf.release);
+    sf.synth?.midiControl(sf.canal, 73, sf.attack);
+    sf.synth?.midiControl(sf.canal, 75, sf.decay);
+    sf.synth?.midiControl(sf.canal, 74, 127);
+    this.aplicarEfeitos(sf);
+  }
+
+  categoriaVisualSlot(sf: MotorSoundFont): string {
+    const categoria = this.soundfontCatalogo.find(opcao => opcao.arquivo === sf.arquivo)
+      ?.categoria.toLocaleLowerCase() || '';
+    if (categoria.includes('electric piano')) return 'piano-eletrico';
+    if (categoria.includes('bass') || categoria.includes('guitar')) return 'verde';
+    if (categoria.includes('brass') || categoria.includes('flute')) return 'dourado';
+    if (categoria.includes('piano')) return 'piano';
+    if (categoria.includes('órgão') || categoria.includes('organ')) return 'orgao';
+    if (categoria.includes('string')) return 'strings';
+    if (categoria.includes('pad')) return 'pads';
+    if (categoria.includes('lead') || categoria.includes('synth')) return 'leads';
+    if (categoria.includes('fx') || categoria.includes('bell') ||
+        categoria.includes('world') || categoria.includes('claves')) return 'amarelo';
+    return 'neutro';
+  }
+
 
   aplicarEfeitos(sf: MotorSoundFont): void {
     const efeitos = sf.efeitos;
+
+    if (efeitos.osciladorChorus) {
+      efeitos.osciladorChorus.type = sf.waveform ?? 'sine';
+      efeitos.osciladorChorus.frequency.value = sf.rate ?? 0.8;
+    }
+    if (efeitos.profundidadeChorus) {
+      efeitos.profundidadeChorus.gain.value = (sf.depth ?? 50) * 0.00006;
+    }
 
     if (!efeitos.filtro) {
       return;
@@ -1914,10 +2202,6 @@ async conectarControladorMidi(): Promise<void> {
       efeitos.ganhoChorus.gain.value = chorus * 0.35;
     }
 
-    if (efeitos.profundidadeChorus) {
-      efeitos.profundidadeChorus.gain.value = chorus * 0.006;
-    }
-
     // Reservado para a etapa seguinte:
     // aplicar uma compensação real do reverb interno,
     // caso a API do sintetizador permita controlar seu envio.
@@ -1933,6 +2217,7 @@ async conectarControladorMidi(): Promise<void> {
     }
 
     sf.brilho = Math.max(0, Math.min(100, numero));
+    sf.synth?.midiControl(sf.canal, 74, Math.round((sf.brilho / 100) * 127));
     this.aplicarEfeitos(sf);
   }
 
@@ -1957,7 +2242,7 @@ async conectarControladorMidi(): Promise<void> {
   private agruparSoundFonts(): void {
     const grupos = new Map<string, SoundFontOpcao[]>();
 
-    SOUNDFONT_CATALOGO.forEach(sf => {
+    this.soundfontCatalogo.forEach(sf => {
       if (!grupos.has(sf.categoria)) {
         grupos.set(sf.categoria, []);
       }
@@ -1971,6 +2256,98 @@ async conectarControladorMidi(): Promise<void> {
       categoria,
       opcoes
     }));
+    this.categoriasSoundFontUpload = Array.from(new Set([
+      ...grupos.keys(),
+      'Importados'
+    ])).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }
+
+  private async carregarSoundFontsLocais(): Promise<void> {
+    if (!window.sf2LocalCache) return;
+    this.localSoundFontsDisponivel = true;
+    try {
+      const locais = await window.sf2LocalCache.listLocal();
+      const opcoes = [...SOUNDFONT_CATALOGO];
+      locais.forEach(local => {
+        const nomeDecodificado = local.nome;
+        const mesmoNome = (opcao: SoundFontOpcao): boolean => {
+          try {
+            const nome = opcao.arquivo.startsWith('local-sf2://')
+              ? decodeURIComponent(opcao.arquivo.slice('local-sf2://'.length))
+              : decodeURIComponent(new URL(opcao.arquivo).pathname.split('/').pop() || '');
+            return nome.toLocaleLowerCase() === nomeDecodificado.toLocaleLowerCase();
+          } catch (_erro) {
+            return false;
+          }
+        };
+        const jaLocal = opcoes.some(opcao =>
+          opcao.arquivo.startsWith('local-sf2://') && mesmoNome(opcao)
+        );
+        if (jaLocal) return;
+        const jaNoCatalogoRemoto = opcoes.some(opcao =>
+          !opcao.arquivo.startsWith('local-sf2://') && mesmoNome(opcao)
+        );
+        if (jaNoCatalogoRemoto && !local.categoria) return;
+        opcoes.push({
+          nome: nomeDecodificado.replace(/\.sf2$/i, ''),
+          arquivo: `local-sf2://${encodeURIComponent(nomeDecodificado)}`,
+          categoria: local.categoria
+            ? normalizarCategoriaSoundFont(local.categoria)
+            : 'Importados'
+        });
+      });
+      this.soundfontCatalogo = opcoes;
+      this.agruparSoundFonts();
+    } catch (e) {
+      console.warn('Não foi possível listar SoundFonts locais:', e);
+      this.mensagemUploadSoundFont = 'Não foi possível listar os arquivos da pasta de SoundFonts.';
+    }
+  }
+
+  selecionarArquivoSoundFontUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const arquivo = input.files && input.files[0];
+    this.arquivoSoundFontUpload = arquivo || null;
+    this.mensagemUploadSoundFont = arquivo && !/\.sf2$/i.test(arquivo.name)
+      ? 'Selecione um arquivo com extensão .sf2.'
+      : '';
+  }
+
+  async importarSoundFontLocal(): Promise<void> {
+    if (!window.sf2LocalCache || !this.arquivoSoundFontUpload) return;
+    if (!this.categoriaSoundFontUpload) {
+      this.mensagemUploadSoundFont = 'Escolha uma categoria para o SoundFont.';
+      return;
+    }
+    const arquivo = this.arquivoSoundFontUpload;
+    if (!/\.sf2$/i.test(arquivo.name)) {
+      this.mensagemUploadSoundFont = 'Selecione um arquivo com extensão .sf2.';
+      return;
+    }
+    this.mensagemUploadSoundFont = 'Importando SoundFont...';
+    const leitor = new FileReader();
+    leitor.onload = async () => {
+      try {
+        const dados = leitor.result;
+        if (!(dados instanceof ArrayBuffer)) throw new Error('Não foi possível ler o arquivo selecionado.');
+        const resultado = await window.sf2LocalCache!.importLocal(
+          arquivo.name,
+          this.categoriaSoundFontUpload,
+          dados
+        );
+        if (!resultado.sucesso) throw new Error(resultado.erro || 'Falha ao importar SoundFont.');
+        this.mensagemUploadSoundFont = `${arquivo.name} importado para ${window.sf2LocalCache!.directory}.`;
+        this.arquivoSoundFontUpload = null;
+        this.categoriaSoundFontUpload = '';
+        await this.carregarSoundFontsLocais();
+      } catch (e) {
+        this.mensagemUploadSoundFont = e instanceof Error ? e.message : 'Falha ao importar SoundFont.';
+      }
+    };
+    leitor.onerror = () => {
+      this.mensagemUploadSoundFont = 'Não foi possível ler o arquivo selecionado.';
+    };
+    leitor.readAsArrayBuffer(arquivo);
   }
 
 

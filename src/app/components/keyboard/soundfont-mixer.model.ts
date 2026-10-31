@@ -14,6 +14,12 @@ export interface SoundFontMixer {
   reverb: number;
   chorus: number;
   cutoff: number;
+  release?: number;
+  attack?: number;
+  decay?: number;
+  waveform?: OscillatorType;
+  depth?: number;
+  rate?: number;
   ressonancia: number;
   equalizador: number[];
 

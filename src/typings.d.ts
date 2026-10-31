@@ -37,5 +37,15 @@ interface Window {
   sf2LocalCache?: {
     read(url: string): Promise<Uint8Array | null>;
     write(url: string, bytes: ArrayBuffer): Promise<boolean>;
+    listLocal(): Promise<{ nome: string; categoria: string }[]>;
+    readLocal(nome: string): Promise<Uint8Array | null>;
+    importLocal(
+      nome: string,
+      categoria: string,
+      bytes: ArrayBuffer
+    ): Promise<{ sucesso: boolean; erro?: string }>;
+    readScenes(): Promise<string | null>;
+    writeScenes(conteudo: string): Promise<boolean>;
+    directory: string;
   };
 }

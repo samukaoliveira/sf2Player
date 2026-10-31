@@ -236,6 +236,26 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .midi-connect { width: auto; }
 .midi-status { color: #18794e; font-size: 12px; }
 
+/* Tons pastel identificam a família do SoundFont sem competir com os controles. */
+.slot.categoria-piano { background: #ecebed; border-color: #d4d1d6; }
+.slot.categoria-orgao { background: #fbefe4; border-color: #ead2bd; }
+.slot.categoria-strings { background: #eef0f2; border-color: #d7dce1; }
+.slot.categoria-pads { background: #fff; border-color: #e5e7eb; }
+.slot.categoria-leads { background: #eaf4ff; border-color: #cbdff5; }
+.slot.categoria-amarelo { background: #fff8dc; border-color: #eee0a8; }
+.slot.categoria-verde { background: #edf6ed; border-color: #c9dfca; }
+.slot.categoria-dourado { background: #fbf5e4; border-color: #e8d7a3; }
+.slot.categoria-piano-eletrico { background: #f7f3df; border-color: #dfd39a; }
+.slot.categoria-neutro { background: #f7f8fa; }
+.efeitos-header .resetar-efeitos { min-height: 27px; padding: 4px 8px; font-size: 10px; }
+.efeitos-controles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.soundfont-upload { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid var(--borda); border-radius: 9px; background: #f8faff; }
+.soundfont-upload-arquivo { display: flex; min-width: 180px; flex: 1 1 220px; align-items: center; gap: 7px; color: var(--texto-secundario); font-size: 11px; cursor: pointer; }
+.soundfont-upload-arquivo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.soundfont-upload-arquivo input { min-width: 0; max-width: 210px; font-size: 10px; }
+.soundfont-upload select, .soundfont-upload button { min-height: 30px; height: 30px; margin: 0; padding: 4px 8px; font-size: 10px; }
+.soundfont-upload-mensagem { flex: 1 1 100%; color: var(--texto-secundario); font-size: 10px; }
+
 @media (max-width: 1600px) {
   .slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
@@ -323,15 +343,27 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .slots-heading span { color: var(--texto-secundario); font-size: 11px; }
 .slots-heading button { min-height: 32px; padding: 6px 10px; }
 .slot {
+  position: relative;
   display: grid;
   min-height: 0;
   flex: 1 1 0;
   grid-template-columns: 112px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 5px 9px;
+  padding: 12px 9px 5px;
   border-radius: 10px;
 }
+.slot::before { position: absolute; z-index: 1; top: 0; right: 0; left: 0; height: 7px; border-radius: 9px 9px 0 0; content: ""; pointer-events: none; }
+.slot.categoria-piano::before { background: #111; }
+.slot.categoria-orgao::before { background: #c56a2b; }
+.slot.categoria-strings::before { background: #68737e; }
+.slot.categoria-pads::before { background: #fff; box-shadow: inset 0 -1px #aeb8c4; }
+.slot.categoria-leads::before { background: var(--cor-primaria); }
+.slot.categoria-amarelo::before { background: #dfb400; }
+.slot.categoria-verde::before { background: #27834a; }
+.slot.categoria-dourado::before { background: #c79a16; }
+.slot.categoria-piano-eletrico::before { background: linear-gradient(90deg, #111 0 72%, #f2c400 72% 100%); }
+.slot.categoria-neutro::before { background: #737d87; }
 .slot-header { position: relative; min-height: 30px; flex-wrap: nowrap; gap: 5px; margin: 0; padding: 0; border: 0; }
 .slot-header h3 { min-width: 0; flex-basis: auto; font-size: 11px; }
 .slot-numero { padding: 3px 4px; font-size: 8px; }

@@ -11,6 +11,26 @@ export interface SoundFontGrupo {
   opcoes: SoundFontOpcao[];
 }
 
+export function normalizarCategoriaSoundFont(categoria: string): string {
+  const chave = categoria.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toLocaleLowerCase();
+  const categorias: { [chave: string]: string } = {
+    'pianos eletricos': 'Electric Pianos',
+    'eps': 'Electric Pianos',
+    'orgaos': 'Organs',
+    'synths e leads': 'Leads',
+    'baixos': 'Bass',
+    'guitarras': 'Guitars',
+    'claves e bells': 'Keys & Bells',
+    'teclas': 'Keys & Bells',
+    'sopros': 'Winds',
+    'percussao': 'Drums',
+    'fx e outros': 'FX',
+    'bells': 'Keys & Bells'
+  };
+  return categorias[chave] || categoria.trim();
+}
+
 /**
  * Monta a URL de um SoundFont no Oracle Object Storage.
  * O soundfontBaseUrl deve apontar para o caminho base
@@ -88,96 +108,96 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: "Big M1 Piano 16",
     arquivo: soundfontUrl("Big_M1_piano_16.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "Custom DX EP",
     arquivo: soundfontUrl("CustomDXEP.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "Custom Libre FM EP",
     arquivo: soundfontUrl("Custom_Libre_FM_EP.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "DX7 E-Piano 1",
     arquivo: soundfontUrl("DX7_E_Piano_1.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "FM EP Layers 2x",
     arquivo: soundfontUrl("FMEP_Layers_2x.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "KORG D1 Digital Piano EPiano2 (Retro)",
     arquivo: soundfontUrl("KORG_D1_Digital_Piano_EPiano2（Retro）.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "KORG D1 Digital Piano EPiano (Solid)",
     arquivo: soundfontUrl("KORG_D1_Digital_Piano_EPiano（Solid）.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "Nord EP",
     arquivo: soundfontUrl("nord_EP.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
   {
     nome: "FatBoy - EPs",
     arquivo: soundfontUrl("FatBoy-v0_-_EPs.sf2"),
-    categoria: "Pianos Elétricos"
+    categoria: "Electric Pianos"
   },
 
   // ÓRGÃOS
   {
     nome: "Organ ESQ-1",
     arquivo: soundfontUrl("ORGAN1__ESQ-1_.sf2"),
-    categoria: "Órgãos"
+    categoria: "Organs"
   },
   {
     nome: "Organ",
     arquivo: soundfontUrl("organ.sf2"),
-    categoria: "Órgãos"
+    categoria: "Organs"
   },
   {
     nome: "Percussion Organ",
     arquivo: soundfontUrl("Perc_Organ.sf2"),
-    categoria: "Órgãos"
+    categoria: "Organs"
   },
   {
     nome: "Yamaha Montage - Organs",
     arquivo: soundfontUrl("General_Montage_Organs.sf2"),
-    categoria: "Órgãos"
+    categoria: "Organs"
   },
 
   // SYNTHS E LEADS
   {
     nome: "Fantasia 2",
     arquivo: soundfontUrl("Fantasia_2.sf2"),
-    categoria: "Synths e Leads"
+    categoria: "Leads"
   },
   {
     nome: "Leads",
     arquivo: soundfontUrl("leads.sf2"),
-    categoria: "Synths e Leads"
+    categoria: "Leads"
   },
   {
     nome: "Sin Pad ESQ-1",
     arquivo: soundfontUrl("SINPAD__ESQ-1_.sf2"),
-    categoria: "Synths e Leads"
+    categoria: "Leads"
   },
   {
     nome: "TBOSf",
     arquivo: soundfontUrl("TBOSf.sf2"),
-    categoria: "Synths e Leads"
+    categoria: "Leads"
   },
   {
     nome: "Yamaha Montage - Leads/Synths",
     arquivo: soundfontUrl("General_Montage_Leads.sf2"),
-    categoria: "Synths e Leads"
+    categoria: "Leads"
   },
 
   // PADS
@@ -213,77 +233,77 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: "SRX Bass",
     arquivo: soundfontUrl("srx_bass.sf2"),
-    categoria: "Baixos"
+    categoria: "Bass"
   },
   {
     nome: "Yamaha Montage - Bass",
     arquivo: soundfontUrl("General_Montage_Bass.sf2"),
-    categoria: "Baixos"
+    categoria: "Bass"
   },
 
   // GUITARRAS
   {
     nome: "91 Slow Chorus Guitar",
     arquivo: soundfontUrl("91SlowChorusGuitar.sf2"),
-    categoria: "Guitarras"
+    categoria: "Guitars"
   },
   {
     nome: "Yamaha Montage - Guitars",
     arquivo: soundfontUrl("General_Montage_Guitars.sf2"),
-    categoria: "Guitarras"
+    categoria: "Guitars"
   },
   {
     nome: "FatBoy - Guitars",
     arquivo: soundfontUrl("FatBoy-v0_-_Guitars.sf2"),
-    categoria: "Guitarras"
+    categoria: "Guitars"
   },
 
   // BELLS
   {
     nome: "Bells",
     arquivo: soundfontUrl("bells.sf2"),
-    categoria: "Claves e Bells"
+    categoria: "Keys & Bells"
   },
   {
     nome: "Yamaha Montage - Bells",
     arquivo: soundfontUrl("General_Montage_Bells.sf2"),
-    categoria: "Claves e Bells"
+    categoria: "Keys & Bells"
   },
   {
     nome: "FatBoy - Clavis e Bells",
     arquivo: soundfontUrl("FatBoy-v0_-_Clavis_e_Bells.sf2"),
-    categoria: "Teclas"
+    categoria: "Keys & Bells"
   },
 
   // SOPROS
   {
     nome: "Yamaha Montage - Flutes",
     arquivo: soundfontUrl("General_Montage_Flutes.sf2"),
-    categoria: "Sopros"
+    categoria: "Winds"
   },
 
   // PERCUSSÃO
   {
     nome: "Yamaha Montage - Drums",
     arquivo: soundfontUrl("General_Montage_Drums.sf2"),
-    categoria: "Percussão"
+    categoria: "Drums"
   },
 
   // FX E OUTROS
   {
     nome: "Korg AG-10",
     arquivo: soundfontUrl("Korg_AG-10.sf2"),
-    categoria: "FX e Outros"
+    categoria: "FX"
   },
   {
     nome: "Roland U20",
     arquivo: soundfontUrl("Roland_U20.sf2"),
-    categoria: "FX e Outros"
+    categoria: "FX"
   },
   {
     nome: "Yamaha Montage - FX",
     arquivo: soundfontUrl("General_Montage_FX.sf2"),
-    categoria: "FX e Outros"
+    categoria: "FX"
   },
 
   // WORLD
@@ -304,7 +324,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: "FatBoy - Organs",
     arquivo: soundfontUrl("FatBoy-v0_-_Organs.sf2"),
-    categoria: "Órgãos"
+    categoria: "Organs"
   },
 
   // STRINGS
@@ -701,7 +721,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: "Kurzweil K2500 - Bells",
     arquivo: soundfontUrl("Kurzweil_K2500_-_Bells.sf2"),
-    categoria: "Bells"
+    categoria: "Keys & Bells"
   },
   {
     nome: "Kurzweil K2500 - Brass",
@@ -721,7 +741,7 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
   {
     nome: "Kurzweil K2500 - EPianos",
     arquivo: soundfontUrl("Kurzweil_K2500_-_EPianos.sf2"),
-    categoria: "EPs"
+    categoria: "Electric Pianos"
   },
   {
     nome: "Kurzweil K2500 - Flutes",
@@ -762,5 +782,131 @@ export const SOUNDFONT_CATALOGO: SoundFontOpcao[] = [
     nome: "Kurzweil K2500 - World",
     arquivo: soundfontUrl("Kurzweil_K2500_-_World.sf2"),
     categoria: "World"
+  },
+  // LEADS - ROLAND FANTOM X
+  {
+    nome: "Roland Fantom X - R&B TriLead",
+    arquivo: soundfontUrl("C053_R&B_TriLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - PeakArpSine",
+    arquivo: soundfontUrl("C054_PeakArpSine.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Theramax",
+    arquivo: soundfontUrl("C055_Theramax.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS Square Lead",
+    arquivo: soundfontUrl("C056_FS_Sqr_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Dawn Of Pan",
+    arquivo: soundfontUrl("C057_Dawn_Of_Pan.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Square Diamond",
+    arquivo: soundfontUrl("C058_Sqr_Diamond.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS SoftLead",
+    arquivo: soundfontUrl("C059_FS_SoftLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mid Saw Lead",
+    arquivo: soundfontUrl("C060_Mid_Saw_Ld.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - FS ResoLead",
+    arquivo: soundfontUrl("C061_FS_ResoLead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Dig-n-Duke",
+    arquivo: soundfontUrl("C062_Dig-n-Duke.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Modulated Lead",
+    arquivo: soundfontUrl("C063_Modulated_Ld.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Waspy Lead",
+    arquivo: soundfontUrl("C064_Waspy_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mew Lead",
+    arquivo: soundfontUrl("C065_Mew_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Violin Lead",
+    arquivo: soundfontUrl("C066_Violin_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Oscillo Lead",
+    arquivo: soundfontUrl("C067_Oscillo_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - JP Saw Lead",
+    arquivo: soundfontUrl("C068_JP_Saw_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - MG Square Lead",
+    arquivo: soundfontUrl("C069_MG_Sqr_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Tristar",
+    arquivo: soundfontUrl("C070_Tristar.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Mod Lead",
+    arquivo: soundfontUrl("C071_Mod_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Digital Lead 1",
+    arquivo: soundfontUrl("C072_Digital_Ld_1.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Chubby Lead",
+    arquivo: soundfontUrl("C073_Chubby_Lead.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Sneaky Leady",
+    arquivo: soundfontUrl("C074_Sneaky_Leady.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - SoloNzPeaker",
+    arquivo: soundfontUrl("C075_SoloNzPeaker.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Clone Zone",
+    arquivo: soundfontUrl("C076_Clone_Zone.sf2"),
+    categoria: "Leads"
+  },
+  {
+    nome: "Roland Fantom X - Legato Tkno",
+    arquivo: soundfontUrl("C077_Legato_Tkno.sf2"),
+    categoria: "Leads"
   }
 ];

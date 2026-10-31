@@ -18,6 +18,13 @@
       (click)="iniciarAudio(BUFFER_SIZE)">
       {{ inicializando ? 'Carregando...' : (pronto ? 'Áudio iniciado' : 'Iniciar áudio') }}
     </button>
+    <button
+      type="button"
+      class="botao-reiniciar-audio"
+      [disabled]="inicializando"
+      (click)="reiniciarAudio()">
+      Reiniciar áudio
+    </button>
 
     <div class="header-controls">
     <div class="audio-buffer">
@@ -35,6 +42,14 @@
         <option [ngValue]="1024">1024</option>
         <option [ngValue]="2048">2048</option>
         <option [ngValue]="4096">4096</option>
+      </select>
+      <label for="limiteCacheRam" class="buffer-label">Cache RAM</label>
+      <select class="cache-ram" id="limiteCacheRam"
+        [(ngModel)]="limiteCacheRamMb"
+        (ngModelChange)="alterarLimiteCacheRam($event)">
+        <option *ngFor="let limite of opcoesLimiteCacheRam" [ngValue]="limite">
+          {{ limite }} MB
+        </option>
       </select>
     </div>
 
@@ -186,7 +201,10 @@
   <main class="mixer-main">
   <section class="slots">
     <div class="slots-heading">
-      <div><h3>Instrumentos</h3><span>{{ soundfonts.length }} / {{ maximoSlots }} slots</span></div>
+      <div>
+        <h3>Instrumentos</h3>
+        <span>{{ soundfonts.length }} / {{ maximoSlots }} slots · 1 SoundFont por slot · cache temporário: {{ limiteCacheRamMb }} MB</span>
+      </div>
       <button type="button" (click)="adicionarSlot()"
         [disabled]="soundfonts.length >= maximoSlots || inicializando">
         + Adicionar slot

@@ -67,12 +67,15 @@ button:disabled, select:disabled, input:disabled { cursor: not-allowed; opacity:
   background: var(--cor-primaria);
   color: #fff;
 }
+.botao-reiniciar-audio { border-color: #b9c6d6; background: #f2f5f9; }
+.botao-reiniciar-audio:hover:not(:disabled) { border-color: #8294aa; background: #e5ebf2; color: var(--texto); }
 .botao-iniciar:hover:not(:disabled), .controles button.ativado:hover:not(:disabled) { border-color: var(--cor-primaria-hover); background: var(--cor-primaria-hover); color: #fff; }
 .status { color: #18794e; font-size: 12px; font-weight: 700; }
 .audio-buffer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .buffer-label { margin: 0; color: var(--texto-secundario); font-size: 12px; font-weight: 700; }
 select, input[type="number"], input[type="text"] { width: 100%; min-height: 38px; padding: 9px 11px; border: 1px solid var(--borda); border-radius: 9px; background: #fff; color: var(--texto); }
 .audio-buffer .buffer { width: 94px; }
+.audio-buffer .cache-ram { width: 100px; }
 
 .erro { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #f4c7c3; border-radius: 10px; background: #fff0ef; color: var(--erro); font-size: 13px; }
 

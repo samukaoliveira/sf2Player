@@ -18,6 +18,41 @@ declare const JSSynth: any;
 // Compartilhado entre todos os slots e instâncias do componente nesta execução.
 const soundFontBytesCache = new Map<string, Uint8Array>();
 const soundFontBytesPending = new Map<string, Promise<Uint8Array>>();
+const MEGABYTE = 1024 * 1024;
+let maxBytesCacheSoundFonts = 128 * MEGABYTE;
+let soundFontBytesCacheSize = 0;
+
+function aplicarLimiteCacheSoundFonts(limiteMb: number): void {
+  maxBytesCacheSoundFonts = limiteMb * MEGABYTE;
+  while (soundFontBytesCacheSize > maxBytesCacheSoundFonts && soundFontBytesCache.size) {
+    const maisAntigo = soundFontBytesCache.keys().next().value as string;
+    const removido = soundFontBytesCache.get(maisAntigo);
+    soundFontBytesCache.delete(maisAntigo);
+    soundFontBytesCacheSize -= removido ? removido.byteLength : 0;
+  }
+}
+
+function obterBytesCache(arquivo: string): Uint8Array | undefined {
+  const bytes = soundFontBytesCache.get(arquivo);
+  if (!bytes) return undefined;
+  soundFontBytesCache.delete(arquivo);
+  soundFontBytesCache.set(arquivo, bytes);
+  return bytes;
+}
+
+function guardarBytesCache(arquivo: string, bytes: Uint8Array): void {
+  const anterior = soundFontBytesCache.get(arquivo);
+  if (anterior) soundFontBytesCacheSize -= anterior.byteLength;
+  soundFontBytesCache.delete(arquivo);
+  soundFontBytesCache.set(arquivo, bytes);
+  soundFontBytesCacheSize += bytes.byteLength;
+  aplicarLimiteCacheSoundFonts(maxBytesCacheSoundFonts / MEGABYTE);
+}
+
+function limparCacheBytesSoundFont(): void {
+  soundFontBytesCache.clear();
+  soundFontBytesCacheSize = 0;
+}
 
 @Component({
   selector: 'keyboard',
@@ -88,8 +123,12 @@ export class KeyboardComponent implements OnDestroy {
 
   private soundFontCache =
   new WeakMap<object, Map<string, number>>();
+  private geracaoAudio = 0;
 
   BUFFER_SIZE = 512;
+  readonly opcoesLimiteCacheRam = [64, 128, 160, 256, 384, 512, 768, 1024];
+  limiteCacheRamMb = 128;
+  private readonly chaveLimiteCacheRam = 'sf2Player.limiteCacheRamMb';
 
   controladoresMidi: MIDIInput[] = [];
   controladorSelecionadoId = '';
@@ -286,9 +325,32 @@ export class KeyboardComponent implements OnDestroy {
   ) {
     this.midiCCPorSoundFont = {};
     this.carregarCenasSalvas();
+    this.carregarLimiteCacheRam();
     void this.carregarCenasDaPasta();
     this.agruparSoundFonts();
     void this.carregarSoundFontsLocais();
+  }
+
+  private carregarLimiteCacheRam(): void {
+    try {
+      const salvo = Number(localStorage.getItem(this.chaveLimiteCacheRam));
+      if (this.opcoesLimiteCacheRam.includes(salvo)) this.limiteCacheRamMb = salvo;
+    } catch (_e) {
+      this.limiteCacheRamMb = 128;
+    }
+    aplicarLimiteCacheSoundFonts(this.limiteCacheRamMb);
+  }
+
+  alterarLimiteCacheRam(valor: number | string): void {
+    const limite = Number(valor);
+    if (!this.opcoesLimiteCacheRam.includes(limite)) return;
+    this.limiteCacheRamMb = limite;
+    aplicarLimiteCacheSoundFonts(limite);
+    try {
+      localStorage.setItem(this.chaveLimiteCacheRam, String(limite));
+    } catch (e) {
+      console.warn('Não foi possível salvar o limite do cache de RAM:', e);
+    }
   }
 
   aoPressionarTecla(event: KeyboardEvent): void {
@@ -387,6 +449,27 @@ export class KeyboardComponent implements OnDestroy {
 
       await this.fecharRecursos();
 
+    } finally {
+      this.inicializando = false;
+    }
+  }
+
+  async reiniciarAudio(): Promise<void> {
+    if (this.inicializando) return;
+    this.inicializando = true;
+    this.pronto = false;
+    this.geracaoAudio++;
+    this.erro = '';
+    try {
+      await this.fecharRecursos();
+      soundFontBytesPending.clear();
+      limparCacheBytesSoundFont();
+      // Solta a trava antes de chamar o inicializador público.
+      this.inicializando = false;
+      await this.iniciarAudio(this.BUFFER_SIZE);
+    } catch (e) {
+      console.error('Erro ao reiniciar o áudio:', e);
+      this.erro = 'Não foi possível reiniciar o áudio. Tente novamente.';
     } finally {
       this.inicializando = false;
     }
@@ -509,6 +592,7 @@ export class KeyboardComponent implements OnDestroy {
 
     const arquivoAnterior = sf.arquivo;
     const cache = this.obterCacheSoundFonts(sf.synth);
+    const geracao = this.geracaoAudio;
 
     this.erro = '';
     this.avisoSoundFont = '';
@@ -524,8 +608,10 @@ export class KeyboardComponent implements OnDestroy {
           arquivo,
           progresso => sf.progresso = progresso
         );
+        if (geracao !== this.geracaoAudio) return;
         sf.progresso = 100;
         novoId = await sf.synth.loadSFont(this.arrayBufferExato(bytes));
+        if (geracao !== this.geracaoAudio) return;
 
         if (typeof novoId !== 'number' || novoId < 0) {
           throw new Error(`Falha ao carregar ${arquivo}`);
@@ -552,8 +638,10 @@ export class KeyboardComponent implements OnDestroy {
       this.carregarProgramas(sf);
       this.selecionarPreset(sf);
       this.aplicarVolume(sf);
+      await this.liberarSoundFontsAntigos(sf, novoId);
 
     } catch (e) {
+      if (geracao !== this.geracaoAudio) return;
       console.error('Erro ao trocar SoundFont:', e);
 
       this.erro =
@@ -572,11 +660,28 @@ export class KeyboardComponent implements OnDestroy {
     }
   }
 
+  private async liberarSoundFontsAntigos(
+    sf: MotorSoundFont,
+    manterId: number
+  ): Promise<void> {
+    if (!sf.synth) return;
+    const cache = this.obterCacheSoundFonts(sf.synth);
+    for (const [arquivo, id] of Array.from(cache.entries())) {
+      if (id === manterId) continue;
+      try {
+        await sf.synth.unloadSFontAsync(id);
+      } catch (e) {
+        console.warn(`Não foi possível liberar ${arquivo} da memória:`, e);
+      }
+      cache.delete(arquivo);
+    }
+  }
+
   private async obterBytesSoundFont(
     arquivo: string,
     aoProgredir?: (progresso: number) => void
   ): Promise<Uint8Array> {
-    const emMemoria = soundFontBytesCache.get(arquivo);
+    const emMemoria = obterBytesCache(arquivo);
     if (emMemoria) {
       aoProgredir?.(100);
       return emMemoria;
@@ -600,7 +705,7 @@ export class KeyboardComponent implements OnDestroy {
           throw new Error(`O arquivo ${nomeLocal} não foi encontrado na pasta de SoundFonts.`);
         }
         const bytes = new Uint8Array(local);
-        soundFontBytesCache.set(arquivo, bytes);
+        guardarBytesCache(arquivo, bytes);
         aoProgredir?.(100);
         return bytes;
       }
@@ -610,7 +715,7 @@ export class KeyboardComponent implements OnDestroy {
           const persistido = await window.sf2LocalCache.read(arquivo);
           if (persistido && this.ehSoundFontValido(persistido)) {
             const bytes = new Uint8Array(persistido);
-            soundFontBytesCache.set(arquivo, bytes);
+            guardarBytesCache(arquivo, bytes);
             this.avisoSoundFont = '';
             aoProgredir?.(100);
             return bytes;
@@ -659,7 +764,7 @@ export class KeyboardComponent implements OnDestroy {
         throw new Error(`O arquivo recebido não é um SoundFont SF2 válido: ${arquivo}`);
       }
 
-      soundFontBytesCache.set(arquivo, bytes);
+      guardarBytesCache(arquivo, bytes);
       this.avisoSoundFont = '';
       aoProgredir?.(100);
       if (window.sf2LocalCache) {
@@ -1001,6 +1106,9 @@ export class KeyboardComponent implements OnDestroy {
 
       sf.synth = null;
       sf.audioNode = null;
+      sf.efeitos.osciladorChorus?.stop();
+      sf.carregando = false;
+      sf.progresso = 0;
       sf.soundFontId = null;
       sf.programas = [];
     }

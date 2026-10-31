@@ -1,7 +1,7 @@
 {
-  "name": "samchat",
-  "version": "2.3.3",
-  "description": "SamChat - Aplicativo desktop",
+  "name": "Samnat-Synth",
+  "version": "3.1.0",
+  "description": "Samnat-Synth - Aplicativo desktop",
   "main": "electron/main.cjs",
   "scripts": {
     "ng": "ng",
@@ -58,7 +58,7 @@
   },
   "build": {
     "appId": "br.com.samuka.samchat",
-    "productName": "SamChat",
+    "productName": "Samnat-Synth",
     "directories": {
       "output": "release"
     },

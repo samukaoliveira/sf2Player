@@ -63,6 +63,7 @@ export class KeyboardComponent implements OnDestroy {
   readonly maximoSlots = 8;
   readonly frequenciasEqualizador = [60, 120, 250, 500, 1000, 2000, 4000, 8000];
   context: AudioContext | null = null;
+  private mixerNode: AudioWorkletNode | null = null;
 
   inicializando = false;
   pronto = false;
@@ -238,6 +239,7 @@ export class KeyboardComponent implements OnDestroy {
     } catch (e) {
       console.warn(`Erro ao remover ${sf.nome}:`, e);
     }
+    sf.audioNode?.disconnect();
     sf.efeitos.osciladorChorus?.stop();
     this.soundfonts.splice(indice, 1);
   }
@@ -248,9 +250,9 @@ export class KeyboardComponent implements OnDestroy {
   ): Promise<void> {
     if (!this.context) return;
 
-    sf.synth = new JSSynth.Synthesizer();
+    sf.synth = new JSSynth.AudioWorkletNodeSynthesizer();
 
-    sf.synth.init(this.context.sampleRate, {
+    sf.audioNode = sf.synth.createAudioNode(this.context, {
       reverbActive: false,
       chorusActive: false,
       reverbRoomSize: 0.2,
@@ -263,13 +265,7 @@ export class KeyboardComponent implements OnDestroy {
       chorusDepth: 8
     });
 
-    sf.synth.setReverbOn(false);
-    sf.synth.setChorusOn(false);
-
-    sf.audioNode = sf.synth.createAudioNode(
-      this.context,
-      bufferSize
-    );
+    void bufferSize;
 
     this.criarEfeitosDoSlot(sf);
 
@@ -383,13 +379,30 @@ export class KeyboardComponent implements OnDestroy {
     this.avisoSoundFont = '';
 
     try {
+      // Cria e retoma o contexto enquanto o gesto do usuário ainda está ativo.
+      // Esperar o WASM ou os módulos Worklet antes disso pode deixar o áudio suspenso.
+      this.context = new AudioContext();
+      const contexto = this.context;
+      const retomarAudio = contexto.resume();
+
       await JSSynth.waitForReady();
 
-      this.context = new AudioContext();
+      if (!contexto.audioWorklet) {
+        throw new Error('AudioWorklet não é suportado neste navegador.');
+      }
+      await this.prepararWorklets(contexto);
+      this.mixerNode = new AudioWorkletNode(contexto, 'sf2-mixer', {
+        numberOfInputs: this.maximoSlots,
+        numberOfOutputs: 1,
+        outputChannelCount: [2],
+        channelCount: 2,
+        channelCountMode: 'explicit'
+      });
+      this.mixerNode.connect(contexto.destination);
 
       for (const sf of this.soundfonts) {
-        sf.synth = new JSSynth.Synthesizer();
-        sf.synth.init(this.context.sampleRate, {
+        sf.synth = new JSSynth.AudioWorkletNodeSynthesizer();
+        sf.audioNode = sf.synth.createAudioNode(contexto, {
           reverbActive: false,
           chorusActive: false,
 
@@ -406,24 +419,17 @@ export class KeyboardComponent implements OnDestroy {
           chorusDepth: 8
         });
 
-        sf.synth.setReverbOn(false);
-        sf.synth.setChorusOn(false);
-
-        sf.audioNode = sf.synth.createAudioNode(
-          this.context,
-          bufferSize
-        );
+        void bufferSize;
 
         console.log({
-          sampleRate: this.context.sampleRate,
-          baseLatencyMs: this.context.baseLatency * 1000,
+          sampleRate: contexto.sampleRate,
+          baseLatencyMs: contexto.baseLatency * 1000,
           outputLatencyMs:
-            typeof this.context.outputLatency === 'number'
-              ? this.context.outputLatency * 1000
+            typeof contexto.outputLatency === 'number'
+              ? contexto.outputLatency * 1000
               : 'Não disponível'
         });
 
-        //sf.audioNode.connect(this.context.destination);
         this.criarEfeitosDoSlot(sf);
         sf.soundFontId = null;
         sf.programas = [];
@@ -436,7 +442,7 @@ export class KeyboardComponent implements OnDestroy {
         this.aplicarVolume(sf);
       }
 
-      await this.context.resume();
+      await retomarAudio;
 
       this.pronto = true;
       this.atualizarSustain();
@@ -452,6 +458,12 @@ export class KeyboardComponent implements OnDestroy {
     } finally {
       this.inicializando = false;
     }
+  }
+
+  private async prepararWorklets(context: AudioContext): Promise<void> {
+    await context.audioWorklet.addModule('assets/synth/libfluidsynth-2.4.6.js');
+    await context.audioWorklet.addModule('assets/synth/js-synthesizer.worklet.min.js');
+    await context.audioWorklet.addModule('assets/synth/sf2-mixer.worklet.js');
   }
 
   async reiniciarAudio(): Promise<void> {
@@ -498,7 +510,7 @@ export class KeyboardComponent implements OnDestroy {
       sf.soundFontId = id;
       this.obterCacheSoundFonts(sf.synth).set(sf.arquivo, id);
 
-      this.carregarProgramas(sf);
+      await this.carregarProgramas(sf);
       this.selecionarPreset(sf);
 
       console.log(
@@ -525,14 +537,14 @@ export class KeyboardComponent implements OnDestroy {
    * getSFontObject() retorna o objeto SoundFont.
    * getPresetIterable() permite percorrer os presets.
    */
-  private carregarProgramas(sf: MotorSoundFont): void {
+  private async carregarProgramas(sf: MotorSoundFont): Promise<void> {
     sf.programas = [];
 
     if (!sf.synth || sf.soundFontId == null) {
       return;
     }
 
-    const soundFont = sf.synth.getSFontObject(
+    const soundFont = await sf.synth.getSFontObject(
       sf.soundFontId
     );
 
@@ -543,8 +555,8 @@ export class KeyboardComponent implements OnDestroy {
       return;
     }
 
-    const presets: ProgramaSoundFont[] = Array.from(
-      soundFont.getPresetIterable(),
+    const dadosPresets: any[] = await soundFont.getPresetIterable();
+    const presets: ProgramaSoundFont[] = dadosPresets.map(
       (preset: any): ProgramaSoundFont => ({
         nome: preset.name,
         banco: preset.bankNum,
@@ -635,7 +647,7 @@ export class KeyboardComponent implements OnDestroy {
         sf.ativo = true;
       }
 
-      this.carregarProgramas(sf);
+      await this.carregarProgramas(sf);
       this.selecionarPreset(sf);
       this.aplicarVolume(sf);
       await this.liberarSoundFontsAntigos(sf, novoId);
@@ -1093,6 +1105,7 @@ export class KeyboardComponent implements OnDestroy {
     this.motoresPorNota.clear();
 
     for (const sf of this.soundfonts) {
+      sf.audioNode?.disconnect();
       if (sf.synth) {
         try {
           await sf.synth.close();
@@ -1121,6 +1134,8 @@ export class KeyboardComponent implements OnDestroy {
         await contexto.close();
       }
     }
+    this.mixerNode?.disconnect();
+    this.mixerNode = null;
   }
 
 
@@ -2077,17 +2092,17 @@ async conectarControladorMidi(): Promise<void> {
 
     // Caminho seco.
     origemEqualizador.connect(ganhoSeco);
-    ganhoSeco.connect(ctx.destination);
+    this.conectarSaidaMixer(ganhoSeco, sf);
 
     // Caminho reverberado.
     origemEqualizador.connect(convolver);
     convolver.connect(ganhoReverb);
-    ganhoReverb.connect(ctx.destination);
+    this.conectarSaidaMixer(ganhoReverb, sf);
 
     // Chorus: sinal atrasado com atraso modulado por LFO.
     origemEqualizador.connect(atrasoChorus);
     atrasoChorus.connect(ganhoChorus);
-    ganhoChorus.connect(ctx.destination);
+    this.conectarSaidaMixer(ganhoChorus, sf);
 
     osciladorChorus.connect(profundidadeChorus);
     profundidadeChorus.connect(atrasoChorus.delayTime);
@@ -2106,6 +2121,17 @@ async conectarControladorMidi(): Promise<void> {
     };
 
     this.aplicarEfeitos(sf);
+  }
+
+  private conectarSaidaMixer(origem: AudioNode, sf: MotorSoundFont): void {
+    if (this.mixerNode) {
+      const indice = this.soundfonts.indexOf(sf);
+      if (indice >= 0 && indice < this.maximoSlots) {
+        origem.connect(this.mixerNode, 0, indice);
+        return;
+      }
+    }
+    origem.connect(this.context.destination);
   }
 
   alterarBandaEqualizador(sf: MotorSoundFont, indice: number, valor: number | string): void {

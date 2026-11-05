@@ -127,8 +127,9 @@ export class KeyboardComponent implements OnDestroy {
   private geracaoAudio = 0;
 
   BUFFER_SIZE = 512;
-  readonly opcoesLimiteCacheRam = [64, 128, 160, 256, 384, 512, 768, 1024];
-  limiteCacheRamMb = 128;
+  readonly opcoesLimiteCacheRam = [64, 128, 160, 256, 384, 512, 
+                                    768, 1024, 2048];
+  limiteCacheRamMb = 512;
   private readonly chaveLimiteCacheRam = 'sf2Player.limiteCacheRamMb';
 
   controladoresMidi: MIDIInput[] = [];

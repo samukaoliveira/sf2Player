@@ -1,7 +1,7 @@
 {
-  "name": "Samnat-Synth",
-  "version": "3.1.0",
-  "description": "Samnat-Synth - Aplicativo desktop",
+  "name": "samchat",
+  "version": "3.2.0",
+  "description": "SamChat - Aplicativo desktop",
   "main": "electron/main.cjs",
   "scripts": {
     "ng": "ng",

@@ -63,7 +63,9 @@ export class KeyboardComponent implements OnDestroy {
   readonly maximoSlots = 8;
   readonly frequenciasEqualizador = [60, 120, 250, 500, 1000, 2000, 4000, 8000];
   context: AudioContext | null = null;
-  private mixerNode: AudioWorkletNode | null = null;
+  /** Uma única instância FluidSynth atende os canais MIDI de todos os slots. */
+  private synthCompartilhado: any | null = null;
+  private audioNodeCompartilhado: AudioNode | null = null;
 
   inicializando = false;
   pronto = false;
@@ -124,6 +126,7 @@ export class KeyboardComponent implements OnDestroy {
 
   private soundFontCache =
   new WeakMap<object, Map<string, number>>();
+  private filaTrocaSoundFont: Promise<void> = Promise.resolve();
   private geracaoAudio = 0;
 
   BUFFER_SIZE = 512;
@@ -173,12 +176,16 @@ export class KeyboardComponent implements OnDestroy {
     if (this.soundfonts.length >= this.maximoSlots) return;
 
     const indice = this.soundfonts.length;
+    const canaisEmUso = new Set(this.soundfonts.map(slot => slot.canal));
+    let canalLivre = 0;
+    while (canaisEmUso.has(canalLivre) && canalLivre < 16) canalLivre++;
+    if (canalLivre >= 16) return;
     const base = SOUNDFONTS[0];
     const sf: MotorSoundFont = {
       ...base,
       nome: `Instrumento ${indice + 1}`,
       arquivo: '',
-      canal: indice,
+      canal: canalLivre,
       ativo: false,
       brilho: 100,
       reverb: 0,
@@ -235,14 +242,11 @@ export class KeyboardComponent implements OnDestroy {
       if (restantes.length) this.motoresPorNota.set(nota, restantes);
       else this.motoresPorNota.delete(nota);
     }
-    try {
-      await sf.synth?.close();
-    } catch (e) {
-      console.warn(`Erro ao remover ${sf.nome}:`, e);
-    }
-    sf.audioNode?.disconnect();
+    // O sintetizador é compartilhado: fechar a referência deste slot encerraria
+    // também os demais timbres. Libera só os bancos não usados por outros slots.
     sf.efeitos.osciladorChorus?.stop();
     this.soundfonts.splice(indice, 1);
+    await this.liberarSoundFontsAntigos(sf, null);
   }
 
   private async inicializarSynthSlot(
@@ -251,24 +255,19 @@ export class KeyboardComponent implements OnDestroy {
   ): Promise<void> {
     if (!this.context) return;
 
-    sf.synth = new JSSynth.AudioWorkletNodeSynthesizer();
-
-    sf.audioNode = sf.synth.createAudioNode(this.context, {
-      reverbActive: false,
-      chorusActive: false,
-      reverbRoomSize: 0.2,
-      reverbDamp: 0,
-      reverbWidth: 0.5,
-      reverbLevel: 0,
-      chorusNr: 3,
-      chorusLevel: 0,
-      chorusSpeed: 0.3,
-      chorusDepth: 8
-    });
+    if (!this.synthCompartilhado) {
+      this.synthCompartilhado = new JSSynth.AudioWorkletNodeSynthesizer();
+      this.audioNodeCompartilhado = this.synthCompartilhado.createAudioNode(this.context, {
+        reverbActive: false, chorusActive: false,
+        reverbRoomSize: 0.2, reverbDamp: 0, reverbWidth: 0.5, reverbLevel: 0,
+        chorusNr: 3, chorusLevel: 0, chorusSpeed: 0.3, chorusDepth: 8
+      });
+      this.audioNodeCompartilhado.connect(this.context.destination);
+    }
+    sf.synth = this.synthCompartilhado;
+    sf.audioNode = this.audioNodeCompartilhado;
 
     void bufferSize;
-
-    this.criarEfeitosDoSlot(sf);
 
     if (sf.arquivo) {
       await this.carregarSoundFontInicial(sf);
@@ -392,33 +391,21 @@ export class KeyboardComponent implements OnDestroy {
         throw new Error('AudioWorklet não é suportado neste navegador.');
       }
       await this.prepararWorklets(contexto);
-      this.mixerNode = new AudioWorkletNode(contexto, 'sf2-mixer', {
-        numberOfInputs: this.maximoSlots,
-        numberOfOutputs: 1,
-        outputChannelCount: [2],
-        channelCount: 2,
-        channelCountMode: 'explicit'
+      this.synthCompartilhado = new JSSynth.AudioWorkletNodeSynthesizer();
+      this.audioNodeCompartilhado = this.synthCompartilhado.createAudioNode(contexto, {
+        reverbActive: false, chorusActive: false,
+        reverbRoomSize: 0.2, reverbDamp: 0, reverbWidth: 0.5, reverbLevel: 0,
+        chorusNr: 3, chorusLevel: 0, chorusSpeed: 0.3, chorusDepth: 8,
+        polyphony: 128
       });
-      this.mixerNode.connect(contexto.destination);
-
+      // Linear reduz bastante o custo por voz mantendo qualidade adequada ao vivo.
+      this.synthCompartilhado.setInterpolation(1);
+      this.audioNodeCompartilhado.connect(contexto.destination);
+      // Cenas antigas podem trazer canais repetidos. Cada slot precisa de um canal.
+      this.soundfonts.forEach((slot, indice) => { slot.canal = indice; });
       for (const sf of this.soundfonts) {
-        sf.synth = new JSSynth.AudioWorkletNodeSynthesizer();
-        sf.audioNode = sf.synth.createAudioNode(contexto, {
-          reverbActive: false,
-          chorusActive: false,
-
-          // Mantém os parâmetros explícitos para facilitar
-          // futuros testes de configuração.
-          reverbRoomSize: 0.2,
-          reverbDamp: 0,
-          reverbWidth: 0.5,
-          reverbLevel: 0,
-
-          chorusNr: 3,
-          chorusLevel: 0,
-          chorusSpeed: 0.3,
-          chorusDepth: 8
-        });
+        sf.synth = this.synthCompartilhado;
+        sf.audioNode = this.audioNodeCompartilhado;
 
         void bufferSize;
 
@@ -431,7 +418,6 @@ export class KeyboardComponent implements OnDestroy {
               : 'Não disponível'
         });
 
-        this.criarEfeitosDoSlot(sf);
         sf.soundFontId = null;
         sf.programas = [];
 
@@ -464,7 +450,6 @@ export class KeyboardComponent implements OnDestroy {
   private async prepararWorklets(context: AudioContext): Promise<void> {
     await context.audioWorklet.addModule('assets/synth/libfluidsynth-2.4.6.js');
     await context.audioWorklet.addModule('assets/synth/js-synthesizer.worklet.min.js');
-    await context.audioWorklet.addModule('assets/synth/sf2-mixer.worklet.js');
   }
 
   async reiniciarAudio(): Promise<void> {
@@ -599,6 +584,19 @@ export class KeyboardComponent implements OnDestroy {
     sf: MotorSoundFont,
     arquivo: string
   ): Promise<void> {
+    const troca = this.filaTrocaSoundFont.then(
+      () => this.trocarSoundFontSequencial(sf, arquivo)
+    );
+    // Mantém a fila viva mesmo se uma carga falhar; a chamada atual ainda
+    // propaga o erro para quem a aguardou.
+    this.filaTrocaSoundFont = troca.catch(() => undefined);
+    return troca;
+  }
+
+  private async trocarSoundFontSequencial(
+    sf: MotorSoundFont,
+    arquivo: string
+  ): Promise<void> {
     if (!sf.synth || !arquivo || sf.arquivo === arquivo) {
       return;
     }
@@ -675,12 +673,17 @@ export class KeyboardComponent implements OnDestroy {
 
   private async liberarSoundFontsAntigos(
     sf: MotorSoundFont,
-    manterId: number
+    manterId: number | null
   ): Promise<void> {
     if (!sf.synth) return;
     const cache = this.obterCacheSoundFonts(sf.synth);
+    const idsEmUso = new Set(
+      this.soundfonts
+        .filter(slot => slot !== sf && slot.soundFontId != null)
+        .map(slot => slot.soundFontId as number)
+    );
     for (const [arquivo, id] of Array.from(cache.entries())) {
-      if (id === manterId) continue;
+      if (id === manterId || idsEmUso.has(id)) continue;
       try {
         await sf.synth.unloadSFontAsync(id);
       } catch (e) {
@@ -1104,20 +1107,18 @@ export class KeyboardComponent implements OnDestroy {
   private async fecharRecursos(): Promise<void> {
     this.pronto = false;
     this.motoresPorNota.clear();
-
-    for (const sf of this.soundfonts) {
-      sf.audioNode?.disconnect();
-      if (sf.synth) {
-        try {
-          await sf.synth.close();
-        } catch (e) {
-          console.warn(
-            `Erro ao fechar ${sf.nome}:`,
-            e
-          );
-        }
+    const sintetizador = this.synthCompartilhado;
+    this.audioNodeCompartilhado?.disconnect();
+    if (sintetizador) {
+      try {
+        await sintetizador.close();
+      } catch (e) {
+        console.warn('Erro ao fechar o sintetizador compartilhado:', e);
       }
-
+    }
+    this.synthCompartilhado = null;
+    this.audioNodeCompartilhado = null;
+    for (const sf of this.soundfonts) {
       sf.synth = null;
       sf.audioNode = null;
       sf.efeitos.osciladorChorus?.stop();
@@ -1135,8 +1136,6 @@ export class KeyboardComponent implements OnDestroy {
         await contexto.close();
       }
     }
-    this.mixerNode?.disconnect();
-    this.mixerNode = null;
   }
 
 
@@ -1438,14 +1437,11 @@ async conectarControladorMidi(): Promise<void> {
 
     const sf = this.soundfonts[0];
     if (sf.synth) {
-      try {
-        await sf.synth.close();
-      } catch (e) {
-        console.warn('Erro ao limpar o slot para uma nova cena:', e);
-      }
+      sf.synth.midiControl(sf.canal, 120, 0);
+      sf.synth.midiControl(sf.canal, 123, 0);
       sf.efeitos.osciladorChorus?.stop();
-      sf.synth = null;
-      sf.audioNode = null;
+      sf.synth = this.synthCompartilhado;
+      sf.audioNode = this.audioNodeCompartilhado;
       sf.efeitos = {
         filtro: null,
         equalizador: [],
@@ -1627,6 +1623,12 @@ async conectarControladorMidi(): Promise<void> {
         await this.removerSlot(this.soundfonts[this.soundfonts.length - 1]);
       }
 
+      // Uma cena pode ter sido salva quando os canais dos slots se repetiam.
+      // Reatribui-os em ordem para impedir que um preset substitua outro canal.
+      this.synthCompartilhado?.midiAllSoundsOff();
+      this.motoresPorNota.clear();
+      this.soundfonts.forEach((sf, indice) => { sf.canal = indice; });
+
       for (let i = 0; i < this.soundfonts.length; i++) {
         const sf = this.soundfonts[i];
         const configuracao = cena.soundfonts[i];
@@ -1647,13 +1649,12 @@ async conectarControladorMidi(): Promise<void> {
           }
         }
         if (!configuracao.arquivo && sf.arquivo) {
-          await sf.synth?.close();
           sf.efeitos.osciladorChorus?.stop();
           sf.arquivo = '';
           sf.soundFontId = null;
           sf.programas = [];
-          sf.audioNode = null;
-          sf.synth = null;
+          sf.audioNode = this.audioNodeCompartilhado;
+          sf.synth = this.synthCompartilhado;
           sf.efeitos = {
             filtro: null,
             equalizador: [],
@@ -2125,13 +2126,6 @@ async conectarControladorMidi(): Promise<void> {
   }
 
   private conectarSaidaMixer(origem: AudioNode, sf: MotorSoundFont): void {
-    if (this.mixerNode) {
-      const indice = this.soundfonts.indexOf(sf);
-      if (indice >= 0 && indice < this.maximoSlots) {
-        origem.connect(this.mixerNode, 0, indice);
-        return;
-      }
-    }
     origem.connect(this.context.destination);
   }
 

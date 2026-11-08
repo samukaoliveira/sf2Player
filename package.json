@@ -11,7 +11,10 @@
     "lint": "ng lint",
     "e2e": "ng e2e",
     "build:desktop": "NODE_OPTIONS=--openssl-legacy-provider ng build --base-href ./",
+    "build:desktop:production": "NODE_OPTIONS=--openssl-legacy-provider ng build --prod --base-href ./",
     "start:electron": "npm run build:desktop && env -u NODE_OPTIONS electron .",
+    "build:linux:x64": "npm run build:desktop:production && env -u NODE_OPTIONS electron-builder --linux --dir --x64",
+    "build:linux:arm64": "npm run build:desktop:production && env -u NODE_OPTIONS electron-builder --linux --dir --arm64",
     "dist:windows": "npm run build:desktop && env -u NODE_OPTIONS electron-builder --win nsis",
     "dist:windows:portable": "npm run build:desktop && env -u NODE_OPTIONS electron-builder --win portable"
   },
@@ -65,8 +68,14 @@
     "files": [
       "electron/**/*",
       "dist/**/*",
-      "package.json"
+      "build/icon.png",
+      "package.json",
+      "!**/node_modules/**",
+      "!**/*.map"
     ],
+    "linux": {
+      "executableName": "samnat-synth"
+    },
     "win": {
       "icon": "build/icon.ico",
       "target": [

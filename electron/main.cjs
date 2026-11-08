@@ -168,11 +168,14 @@ ipcMain.handle('soundfont-cache:gravar', async (_event, url, bytes) => {
 });
 
 function criarJanela() {
+  const modoKioskLinux = process.platform === 'linux';
   const janela = new BrowserWindow({
     width: 1400,
     height: 900,
     icon: path.join(__dirname, '../build/icon.png'),
     autoHideMenuBar: true,
+    fullscreen: modoKioskLinux,
+    kiosk: modoKioskLinux,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -199,8 +202,7 @@ function criarJanela() {
 
   janela.loadFile(indexPath);
 
-  // Temporariamente, para diagnosticar a tela branca.
-  janela.webContents.openDevTools();
+  if (!app.isPackaged) janela.webContents.openDevTools();
 }
 
 app.whenReady().then(criarJanela);

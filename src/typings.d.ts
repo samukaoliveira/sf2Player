@@ -46,6 +46,7 @@ interface Window {
     ): Promise<{ sucesso: boolean; erro?: string }>;
     readScenes(): Promise<string | null>;
     writeScenes(conteudo: string): Promise<boolean>;
+    getBenchmark?(): Promise<{ cpuPercentual: number; ramMb: number }>;
     directory: string;
   };
 }

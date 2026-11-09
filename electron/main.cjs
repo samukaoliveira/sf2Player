@@ -12,6 +12,20 @@ const DIRETORIO_CENAS = () => process.platform === 'win32'
 const ARQUIVO_CENAS = () => path.join(DIRETORIO_CENAS(), 'cenas.json');
 let filaSalvarCenas = Promise.resolve();
 
+function obterAmostraBenchmark() {
+  const metricas = app.getAppMetrics();
+  return {
+    cpuPercentual: Number(metricas.reduce(
+      (total, processo) => total + processo.cpu.percentCPUUsage, 0
+    ).toFixed(1)),
+    ramMb: Number((metricas.reduce(
+      (total, processo) => total + processo.memory.workingSetSize, 0
+    ) / 1024).toFixed(0))
+  };
+}
+
+ipcMain.handle('benchmark:agora', () => obterAmostraBenchmark());
+
 function ehSoundFontValido(dados) {
   return Buffer.isBuffer(dados) && dados.length >= 12 &&
     dados.toString('ascii', 0, 4) === 'RIFF' &&
@@ -198,6 +212,17 @@ function criarJanela() {
   });
 
   janela.loadFile(indexPath);
+
+  const publicarBenchmark = async () => {
+    try {
+      const amostra = obterAmostraBenchmark();
+      console.log(`[Benchmark Synth] CPU ${amostra.cpuPercentual}% | RAM ${amostra.ramMb} MB`);
+    } catch (erro) {
+      console.warn('Falha coletando benchmark do synth:', erro);
+    }
+  };
+  const intervaloBenchmark = setInterval(publicarBenchmark, 2000);
+  janela.on('closed', () => clearInterval(intervaloBenchmark));
 
   // Temporariamente, para diagnosticar a tela branca.
   janela.webContents.openDevTools();

@@ -11,6 +11,11 @@
       <p>{{ soundfonts.length }} de {{ maximoSlots }} slots de instrumentos</p>
     </div>
 
+    <div class="benchmark" aria-live="polite">
+      <span>CPU (synth): <strong>{{ benchmark ? benchmark.cpuPercentual + '%' : '—' }}</strong></span>
+      <span>RAM (heap JS): <strong>{{ benchmark && benchmark.ramMb !== null ? benchmark.ramMb + ' MB' : 'n/d' }}</strong></span>
+    </div>
+
     <button
       type="button"
       class="botao-iniciar"
@@ -567,6 +572,8 @@
 
 
   </section>
+
+  <button (click)="rodarBenchmark()">Benchmark</button>
 
   <!-- Teclado virtual original -->
   <section class="teclado-virtual">

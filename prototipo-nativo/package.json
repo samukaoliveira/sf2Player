@@ -1,0 +1,23 @@
+{
+  "name": "samnat-synth-native-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Native SamNat Synth prototype with four independent channels.",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "qode src/index.js",
+    "pack:init": "nodegui-packer --init SamnatSynthNative",
+    "pack": "nodegui-packer --pack ./src"
+  },
+  "dependencies": {
+    "@nodegui/nodegui": "0.74.2",
+    "js-synthesizer": "1.13.0",
+    "speaker": "0.5.5"
+  },
+  "devDependencies": {
+    "@nodegui/packer": "1.5.0"
+  }
+}

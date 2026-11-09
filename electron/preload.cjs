@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('sf2LocalCache', {
   ),
   readScenes: () => ipcRenderer.invoke('cenas-local:ler'),
   writeScenes: conteudo => ipcRenderer.invoke('cenas-local:gravar', conteudo),
+  getBenchmark: () => ipcRenderer.invoke('benchmark:agora'),
   directory: process.platform === 'win32'
     ? 'C:\\Samnat-Synth\\soundfonts'
     : 'Pasta de dados local do SamNat Synth'

@@ -41,6 +41,26 @@
   box-shadow: 0 2px 8px rgba(28, 30, 33, .035);
 }
 
+.benchmark {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+  background: var(--superficie-secundaria);
+  color: var(--texto-secundario);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.benchmark strong {
+  margin-left: 3px;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
 .keyboard-header h2 { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
 .keyboard-header p { margin: 0; color: var(--texto-secundario); font-size: 13px; }
 button, input, select { font: inherit; }

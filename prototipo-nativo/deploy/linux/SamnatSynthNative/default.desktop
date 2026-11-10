@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SamNat Synth
+Exec=AppRun %F
+Icon=default
+Comment=Edit this default file
+Terminal=false
+Categories=AudioVideo;Audio;Midi;

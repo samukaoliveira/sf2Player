@@ -2,20 +2,23 @@
   "name": "samnat-synth-native-prototype",
   "version": "0.1.0",
   "private": true,
-  "description": "Native SamNat Synth prototype with four independent channels.",
+  "description": "Native SamNat Synth prototype with eight parts, MIDI and local scenes.",
   "main": "src/index.js",
   "engines": {
-    "node": ">=22"
+    "node": ">=18"
   },
   "scripts": {
     "start": "qode src/index.js",
     "pack:init": "nodegui-packer --init SamnatSynthNative",
-    "pack": "nodegui-packer --pack ./src"
+    "prepare:linux": "node scripts/prepare-linux.cjs",
+    "pack:linux": "npm run prepare:linux && QT_INSTALL_DIR=./build-linux/node_modules/@nodegui/nodegui/miniqt/6.4.1/gcc_64 nodegui-packer --pack ./build-linux"
   },
   "dependencies": {
-    "@nodegui/nodegui": "0.74.2",
-    "js-synthesizer": "1.13.0",
-    "speaker": "0.5.5"
+    "@nodegui/nodegui": "0.58.0",
+    "js-synthesizer": "1.13.0"
+  },
+  "optionalDependencies": {
+    "midi": "^2.0.0"
   },
   "devDependencies": {
     "@nodegui/packer": "1.5.0"

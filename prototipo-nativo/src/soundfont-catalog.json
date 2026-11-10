@@ -1,0 +1,14 @@
+{
+  "baseUrl": "https://objectstorage.sa-saopaulo-1.oraclecloud.com/p/BzIk03W2wUEw3nU_Ua611Iu99otKQtdnLwLUXse6m1iKrlAWCAYzXmTyFXR6iBab/n/grdlytz8yrvt/b/SamNat-Synth/o/",
+  "items": [
+    { "name": "Yamaha Montage - Pianos", "file": "General_Montage_Pianos.sf2", "category": "Pianos" },
+    { "name": "Yamaha Concert Grand", "file": "ConcertGrand.sf2", "category": "Pianos" },
+    { "name": "Kurzweil K2500", "file": "Kurzweil_K2500.sf2", "category": "Pianos" },
+    { "name": "Kurzweil PC88", "file": "k-pc88.sf2", "category": "Pianos" },
+    { "name": "Nord EP", "file": "nord_EP.sf2", "category": "Electric Pianos" },
+    { "name": "Strings", "file": "strings2.sf2", "category": "Strings" },
+    { "name": "Organ", "file": "organ.sf2", "category": "Organs" },
+    { "name": "Leads", "file": "leads.sf2", "category": "Leads" },
+    { "name": "Yamaha Montage - Drums", "file": "General_Montage_Drums.sf2", "category": "Drums" }
+  ]
+}

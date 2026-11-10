@@ -1,25 +1,37 @@
-# Protótipo nativo do SamNat Synth
+# SamNat Synth nativo
 
-Este protótipo abre uma janela Qt nativa pelo NodeGui, sem navegador/Chromium. Ele usa um único `js-synthesizer`/FluidSynth executado no Node em uma thread de áudio, com quatro canais MIDI, seleção independente de SoundFont e CC 7 (volume) por canal.
+Aplicativo desktop em Node.js + NodeGui/Qt. A interface não carrega Chromium; o FluidSynth executa em um worker Node e envia áudio PCM ao ALSA (`aplay`).
 
-## Rodar no Windows
+## Recursos implementados
 
-Requer Node.js 22 ou superior e ferramentas de compilação C++ do Visual Studio para os módulos nativos.
+- Oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset, volume, reverb e chorus.
+- Teclado gráfico de duas oitavas e notas de teste por parte.
+- Entrada MIDI selecionável, notas, sustain, modulação, pitch bend e MIDI Learn para associar CC ao volume de uma parte.
+- Biblioteca local de SoundFonts, importação de SF2 e catálogo online inicial com nove instrumentos.
+- Cenas salvas em `~/.samnat-synth/scenes.json` (no Windows, na pasta de usuário correspondente).
+- Motor de áudio em thread separada, com uma instância FluidSynth compartilhada pelos oito canais.
 
-```powershell
+## Executar
+
+Requer Node.js 22+, Python, toolchain C/C++ compatível, Qt 5/6 e `alsa-utils` (para o comando `aplay`). NodeGui/MIDI compilam código nativo; no Windows instale Visual Studio Build Tools com C++ Desktop, e no Linux as dependências de desenvolvimento Qt indicadas pelo NodeGui.
+
+```sh
+cd prototipo-nativo
 npm install
 npm start
 ```
 
-Escolha um arquivo SF2 para cada canal e clique em **Tocar nota**. Os quatro canais usam a mesma nota de teste (C4), mas cada slider controla somente o seu canal.
+Na primeira execução, selecione um SF2 por parte ou importe arquivos para a biblioteca. Para MIDI, atualize a lista de entradas e conecte o dispositivo.
 
 ## Empacotar
 
-O NodeGui Packer produz no Windows uma pasta distribuível com o executável e as DLLs necessárias, não um único `.exe` independente:
+O empacotador NodeGui gera uma pasta de distribuição com executável e bibliotecas; deve ser executado na plataforma alvo:
 
-```powershell
+```sh
 npm run pack:init
 npm run pack
 ```
 
-É um protótipo de interface e áudio. Cenas, MIDI de entrada, efeitos e catálogo online ainda não foram migrados.
+## Escopo ainda pendente
+
+O catálogo local embarcado é uma seleção inicial, não todo o catálogo Angular. Também faltam login/cadastro e integração com API, presets enumerados por nome (o protótipo usa número de banco/preset), equalizador e filtros por parte, exportação/importação de cenas e polimento de estados de erro/instalação. O catálogo remoto depende do endpoint público já usado pelo app e requer conexão com a internet.

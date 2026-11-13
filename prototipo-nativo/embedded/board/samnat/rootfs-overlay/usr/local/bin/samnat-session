@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+if ! grep -qE '^[^ ]+ /data ext4 ' /proc/mounts; then
+	logger -t samnat "persistent data partition is not mounted; refusing to start without persistent user data"
+	exit 1
+fi
+
+export HOME=/data/home
+export SAMNAT_KIOSK=1
+export QT_QPA_PLATFORM=xcb
+mkdir -p "$HOME/.samnat-synth/soundfonts"
+chmod 0755 "$HOME" "$HOME/.samnat-synth" "$HOME/.samnat-synth/soundfonts"
+exec /opt/samnat-synth/AppRun

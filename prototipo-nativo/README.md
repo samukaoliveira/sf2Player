@@ -38,6 +38,10 @@ npm run pack:linux
 
 O AppImage é específico para Linux x86_64 e precisa de FUSE para abrir diretamente. Se o sistema não tiver FUSE, extraia com `./SamnatSynthNative-x86_64.AppImage --appimage-extract` e execute `./squashfs-root/AppRun`.
 
+## Imagem Linux embarcada x86_64
+
+O diretório `embedded/` contém a configuração Buildroot e os scripts para gerar uma imagem UEFI inicializável, com boot direto para a interface, ALSA/MIDI, Xorg/Mesa e uma partição `/data` persistente para cenas e SoundFonts. Consulte `embedded/README.md` para compilar e gravar a imagem.
+
 ## Escopo ainda pendente
 
 O catálogo local embarcado é uma seleção inicial, não todo o catálogo Angular. Também faltam login/cadastro e integração com API, equalizador e filtros por parte, exportação/importação de cenas e polimento de estados de erro/instalação. O catálogo remoto depende do endpoint público já usado pelo app e requer conexão com a internet.

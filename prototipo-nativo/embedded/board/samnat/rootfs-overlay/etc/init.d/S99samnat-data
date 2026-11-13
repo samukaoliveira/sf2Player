@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "$1" in
+	start)
+		mkdir -p /data
+		if command -v udevadm >/dev/null 2>&1; then
+			udevadm settle --timeout=10
+		fi
+		mount -t ext4 -o noatime /dev/disk/by-partuuid/3b816b4b-8a8e-41ab-9d0d-000000000002 /data
+		;;
+	stop)
+		umount /data 2>/dev/null || true
+		;;
+	*)
+		echo "Usage: $0 {start|stop}" >&2
+		exit 1
+		;;
+esac
+
+exit 0

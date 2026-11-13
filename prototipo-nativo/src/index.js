@@ -917,7 +917,8 @@ app.addEventListener('aboutToQuit', () => {
   worker.postMessage({ type: 'close' });
   workerCloseTimer = setTimeout(() => worker.terminate(), 3000);
 });
-window.show();
+if (process.env.SAMNAT_KIOSK === '1') window.showFullScreen();
+else window.show();
 // Qode injects Qt's event loop into Node's loop. Calling app.exec() here
 // starts a blocking Qt-only loop, which starves Node timers, Worker messages,
 // and child-process events (including FluidSynth and the direct audio test).

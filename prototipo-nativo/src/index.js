@@ -7,7 +7,7 @@ const { spawn, spawnSync } = require('child_process');
 const { Worker } = require('worker_threads');
 const {
   QApplication, QMainWindow, QWidget, QBoxLayout, Direction, QLabel,
-  QPushButton, QSlider, QFileDialog, FileMode, Orientation, QComboBox,
+  QPushButton, QSlider, QCheckBox, QFileDialog, FileMode, Orientation, QComboBox,
   QScrollArea, QLineEdit
 } = require('@nodegui/nodegui');
 
@@ -57,7 +57,7 @@ function horizontal(parent) {
   return lineLayout;
 }
 
-layout.addWidget(label('SamNat Synth · 8 partes · FluidSynth nativo', 'font-size: 22px; font-weight: 700; padding: 6px;'));
+layout.addWidget(label('SamNat Synth · até 8 partes · FluidSynth nativo', 'font-size: 22px; font-weight: 700; padding: 6px;'));
 const status = label('Inicializando áudio...', 'color: #93c5fd; padding: 4px 6px;');
 layout.addWidget(status);
 
@@ -280,12 +280,14 @@ audioDeviceList.addEventListener('currentIndexChanged', index => {
   requestAudioOutput(output);
   status.setText(`Abrindo ${output.label}...`);
 });
-const slots = Array.from({ length: CHANNELS }, (_, channel) => ({
-  channel, file: '', bank: 0, program: 0, presetName: '', loaded: false,
-  syncingPreset: false, volume: 85, reverb: 0, chorus: 0, active: false, midiVolumeCC: null
-}));
+const slots = [];
+const slotCache = [];
 const rows = [];
 let midiLearnChannel = null;
+let clearingScene = false;
+let sceneOperation = null;
+let slotCountLabel = null;
+let addSlotButton = null;
 const rowHost = new QWidget();
 const rowLayout = new QBoxLayout(Direction.TopToBottom);
 rowHost.setLayout(rowLayout);
@@ -293,7 +295,73 @@ const scroll = new QScrollArea();
 scroll.setWidget(rowHost);
 scroll.setWidgetResizable(true);
 
+function makeSlotState(channel) {
+  return {
+    channel, file: '', bank: 0, program: 0, presetName: '', loaded: false,
+    programs: [],
+    syncingPreset: false, syncingModulation: false, syncingControls: false,
+    modulationEnabled: false,
+    volume: 85, reverb: 0, chorus: 0, active: false, midiVolumeCC: null
+  };
+}
+
+function updateSlotToolbar() {
+  if (slotCountLabel) slotCountLabel.setText(`Partes ativas: ${slots.length}/${CHANNELS}`);
+  if (addSlotButton) addSlotButton.setEnabled(!clearingScene && slots.length < CHANNELS);
+}
+
+function resetSlotUi(slot) {
+  Object.assign(slot, makeSlotState(slot.channel));
+  const row = rows[slot.channel];
+  if (!row) return;
+  slot.syncingControls = true;
+  slot.syncingPreset = true;
+  row.bank.setText('0');
+  row.name.setText('Sem SF2');
+  row.test.setEnabled(false);
+  row.volumeControl.setValue(85);
+  row.volumeLabel.setText('Vol 85%');
+  row.reverb.setValue(0);
+  row.chorus.setValue(0);
+  setProgramOptions(slot, [], 0, 0);
+  slot.syncingPreset = false;
+  slot.syncingModulation = true;
+  row.modulation.setChecked(false);
+  row.modulation.setEnabled(false);
+  slot.syncingModulation = false;
+  slot.syncingControls = false;
+}
+
+function ensureSlotCount(requestedCount) {
+  const count = Math.max(1, Math.min(CHANNELS, requestedCount));
+  while (slots.length > count) {
+    const removed = slots.pop();
+    rows[removed.channel]?.container.setVisible(false);
+  }
+  while (slots.length < count) {
+    const channel = slots.length;
+    let slot = slotCache[channel];
+    if (!slot) {
+      slot = makeSlotState(channel);
+      slotCache[channel] = slot;
+      makeSlot(slot);
+    } else {
+      resetSlotUi(slot);
+      rows[channel].container.setVisible(true);
+    }
+    slots.push(slot);
+  }
+  updateSlotToolbar();
+}
+
+function addSlot() {
+  if (clearingScene || slots.length >= CHANNELS) return;
+  ensureSlotCount(slots.length + 1);
+  status.setText(`Parte ${slots.length} adicionada.`);
+}
+
 function chooseSoundFont(channel) {
+  if (clearingScene) return;
   const dialog = new QFileDialog(window, `SoundFont do canal ${channel + 1}`, SF_DIR, 'SoundFonts (*.sf2)');
   dialog.setFileMode(FileMode.ExistingFile);
   dialog.setNameFilter('SoundFonts (*.sf2)');
@@ -303,16 +371,38 @@ function chooseSoundFont(channel) {
   const file = selected[0];
   slots[channel].loaded = false;
   rows[channel].test.setEnabled(false);
+  rows[channel].modulation.setEnabled(audioReady);
   rows[channel].name.setText(path.basename(file));
   slots[channel].syncingPreset = true;
   slots[channel].program = 0;
-  rows[channel].program.setText('0');
-  slots[channel].syncingPreset = false;
+  slots[channel].programs = [];
   slots[channel].file = file;
+  setProgramOptions(slots[channel], [], 0, 0, 'Lendo presets...');
+  slots[channel].syncingPreset = false;
   worker.postMessage({ type: 'load-soundfont', channel, file, bank: slots[channel].bank, program: slots[channel].program });
   status.setText(audioReady
     ? `Carregando ${path.basename(file)} no canal ${channel + 1}...`
     : `SF2 selecionado; aguardando áudio. Estado: ${audioStartupStage}`);
+}
+
+function setProgramOptions(slot, presets, selectedBank, selectedProgram, emptyLabel = 'Sem presets') {
+  slot.programs = Array.isArray(presets) ? presets : [];
+  const control = rows[slot.channel]?.program;
+  if (!control) return;
+  slot.syncingPreset = true;
+  control.clear();
+  if (slot.programs.length) {
+    slot.programs.forEach(preset => {
+      const bankLabel = preset.bank === 0 ? '' : ` (Banco ${preset.bank})`;
+      control.addItem(undefined, `${preset.program + 1} — ${preset.name}${bankLabel}`);
+    });
+    const selected = slot.programs.findIndex(preset => preset.bank === selectedBank && preset.program === selectedProgram);
+    control.setCurrentIndex(selected >= 0 ? selected : 0);
+  } else {
+    control.addItem(undefined, emptyLabel);
+  }
+  control.setEnabled(audioReady && Boolean(slot.file) && slot.programs.length > 0);
+  slot.syncingPreset = false;
 }
 
 function makeSlot(slot) {
@@ -328,31 +418,46 @@ function makeSlot(slot) {
   const bank = new QLineEdit(); bank.setPlaceholderText('Banco'); bank.setText('0'); bank.setMaximumWidth(58);
   bank.addEventListener('textChanged', value => {
     const n = Number(value);
-    if (Number.isInteger(n) && n >= 0) {
+    if (!slot.syncingPreset && Number.isInteger(n) && n >= 0) {
       slot.bank = n;
       if (slot.file && slot.loaded) worker.postMessage({ type: 'program', channel: slot.channel, file: slot.file, bank: slot.bank, program: slot.program });
     }
   });
   sourceLine.addWidget(bank);
-  const program = new QLineEdit(); program.setPlaceholderText('Preset'); program.setText('0'); program.setMaximumWidth(58);
-  program.addEventListener('textChanged', value => {
-    const n = Number(value); if (!slot.syncingPreset && Number.isInteger(n) && n >= 0 && n <= 127) {
-      slot.program = n;
-      if (slot.file) worker.postMessage({ type: 'program', channel: slot.channel, file: slot.file, bank: slot.bank, program: n });
-    }
+  const program = new QComboBox();
+  program.setMinimumWidth(200);
+  program.addItem(undefined, 'Sem presets');
+  program.setEnabled(false);
+  program.addEventListener('currentIndexChanged', index => {
+    if (slot.syncingPreset) return;
+    const selected = slot.programs[index];
+    if (!selected) return;
+    slot.bank = selected.bank;
+    slot.program = selected.program;
+    slot.syncingPreset = true;
+    bank.setText(String(selected.bank));
+    slot.syncingPreset = false;
+    if (slot.file && slot.loaded) worker.postMessage({ type: 'program', channel: slot.channel, bank: slot.bank, program: slot.program });
   });
   sourceLine.addWidget(program);
   const mixLine = horizontal(stack);
   const volumeLabel = label(`Vol ${slot.volume}%`, 'min-width: 62px;');
   mixLine.addWidget(volumeLabel);
   const volumeControl = slider(0, 100, slot.volume, value => {
+    if (slot.syncingControls) return;
     slot.volume = value; volumeLabel.setText(`Vol ${value}%`);
     worker.postMessage({ type: 'volume', channel: slot.channel, value });
   });
   mixLine.addWidget(volumeControl);
-  const reverb = slider(0, 100, slot.reverb, value => { slot.reverb = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: value, chorus: slot.chorus }); });
+  const reverb = slider(0, 100, slot.reverb, value => {
+    if (slot.syncingControls) return;
+    slot.reverb = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: value, chorus: slot.chorus });
+  });
   reverb.setMaximumWidth(90); mixLine.addWidget(label('Rev')); mixLine.addWidget(reverb);
-  const chorus = slider(0, 100, slot.chorus, value => { slot.chorus = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: slot.reverb, chorus: value }); });
+  const chorus = slider(0, 100, slot.chorus, value => {
+    if (slot.syncingControls) return;
+    slot.chorus = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: slot.reverb, chorus: value });
+  });
   chorus.setMaximumWidth(90); mixLine.addWidget(label('Cho')); mixLine.addWidget(chorus);
   const test = button('C4', () => {
     if (!slot.loaded) {
@@ -366,10 +471,22 @@ function makeSlot(slot) {
   mixLine.addWidget(test);
   const midiLearn = button('MIDI Learn', () => { midiLearnChannel = slot.channel; status.setText(`MIDI Learn: mova um controle para associar ao volume da parte ${slot.channel + 1}.`); });
   mixLine.addWidget(midiLearn);
-  rows[slot.channel] = { name, bank, program, test, volumeControl, volumeLabel, reverb, chorus, midiLearn };
+  const modulationLine = horizontal(stack);
+  const modulation = new QCheckBox();
+  modulation.setText('Permitir modulação neste slot');
+  modulation.setChecked(slot.modulationEnabled);
+  modulation.setEnabled(false);
+  modulation.addEventListener('toggled', enabled => {
+    if (slot.syncingModulation) return;
+    slot.modulationEnabled = enabled;
+    worker.postMessage({ type: 'modulation-enabled', channel: slot.channel, enabled });
+  });
+  modulationLine.addWidget(modulation);
+  rows[slot.channel] = { container: row, name, bank, program, test, volumeControl, volumeLabel, reverb, chorus, midiLearn, modulation };
   rowLayout.addWidget(row);
+  row.setVisible(true);
 }
-slots.forEach(makeSlot);
+ensureSlotCount(1);
 const systemSoundFont = ['/usr/share/sounds/sf2/FluidR3_GM.sf2', '/usr/share/soundfonts/default.sf2']
   .find(file => fs.existsSync(file));
 if (systemSoundFont) {
@@ -392,6 +509,12 @@ for (let note = 48; note <= 72; note++) {
   keyRows[note <= 60 ? 0 : 1].addWidget(key);
 }
 layout.addWidget(keyboard);
+const slotsToolbar = horizontal(layout);
+slotCountLabel = label('Partes ativas: 1/8', 'font-weight: 700; padding: 4px;');
+slotsToolbar.addWidget(slotCountLabel);
+addSlotButton = button('+ Adicionar slot', addSlot);
+slotsToolbar.addWidget(addSlotButton);
+updateSlotToolbar();
 scroll.setMaximumHeight(310);
 layout.addWidget(scroll);
 
@@ -413,6 +536,8 @@ const sceneLine = horizontal(toolsLayout);
 const sceneName = new QLineEdit(); sceneName.setPlaceholderText('Nome da cena');
 sceneLine.addWidget(sceneName);
 sceneLine.addWidget(button('Salvar cena', () => saveScene()));
+const newSceneButton = button('Nova Cena', startNewScene);
+sceneLine.addWidget(newSceneButton);
 const sceneList = new QComboBox(); sceneLine.addWidget(sceneList);
 sceneLine.addWidget(button('Carregar cena', () => loadScene()));
 sceneLine.addWidget(button('Excluir cena', () => deleteScene()));
@@ -448,6 +573,7 @@ function connectMidi() {
     const port = midiList.currentIndex();
     if (port < 0 || port >= midiInput.getPortCount()) throw new Error('Selecione uma entrada MIDI.');
     midiInput.on('message', (_delta, bytes) => {
+      if (clearingScene) return;
       const command = bytes[0] & 0xf0;
       const note = bytes[1]; const value = bytes[2] || 0;
       const channel = (bytes[0] & 0x0f) % CHANNELS;
@@ -456,7 +582,8 @@ function connectMidi() {
       else if (command === 0x80 || (command === 0x90 && value === 0)) worker.postMessage({ type: 'note-off', source: 'midi', channel, note });
       else if (command === 0xb0) {
         if (bytes[1] === 64) slots.forEach(s => worker.postMessage({ type: 'control', channel: s.channel, controller: 64, value }));
-        if (bytes[1] === 1) slots.forEach(s => worker.postMessage({ type: 'control', channel: s.channel, controller: 1, value }));
+        if (bytes[1] === 1) slots.filter(s => s.loaded && s.modulationEnabled)
+          .forEach(s => worker.postMessage({ type: 'control', channel: s.channel, controller: 1, value }));
         if (midiLearnChannel !== null) {
           slots[midiLearnChannel].midiVolumeCC = bytes[1];
           status.setText(`CC ${bytes[1]} associado ao volume da parte ${midiLearnChannel + 1}.`);
@@ -490,32 +617,101 @@ function refreshScenes(selectName) {
   }
 }
 function writeScenes(scenes) { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(SCENE_FILE, JSON.stringify(scenes, null, 2)); }
+function resetSceneUi() {
+  midiLearnChannel = null;
+  ensureSlotCount(1);
+  resetSlotUi(slots[0]);
+  sceneName.setText('');
+  sceneList.setCurrentIndex(-1);
+}
+function beginSceneOperation(operation, message) {
+  if (clearingScene) return;
+  midiLearnChannel = null;
+  sceneOperation = operation;
+  clearingScene = true;
+  newSceneButton.setEnabled(false);
+  updateSlotToolbar();
+  status.setText(message);
+  window.setEnabled(false);
+  worker.postMessage({ type: 'clear-all' });
+}
+function startNewScene() {
+  beginSceneOperation({ kind: 'new' }, 'Limpando os SoundFonts e preparando uma nova cena...');
+}
 function saveScene() {
   const name = sceneName.text().trim(); if (!name) { status.setText('Informe um nome para a cena.'); return; }
   const scenes = readScenes();
-  const data = { name, slots: slots.map(({ channel, ...slot }) => ({ channel, ...slot })) };
+  const data = {
+    name,
+    slotCount: slots.length,
+    slots: slots.map(({ channel, file, bank, program, volume, reverb, chorus, modulationEnabled, midiVolumeCC }) => ({
+      channel, file, bank, program, volume, reverb, chorus, modulationEnabled, midiVolumeCC
+    }))
+  };
   const existing = scenes.findIndex(scene => scene.name === name);
   if (existing < 0) scenes.push(data); else scenes[existing] = data;
   writeScenes(scenes); refreshScenes(name); status.setText(`Cena “${name}” salva.`);
 }
 function loadScene() {
+  if (clearingScene) return;
   const scene = readScenes()[sceneList.currentIndex()]; if (!scene) return;
-  scene.slots.forEach(saved => {
-    const slot = slots[saved.channel]; if (!slot) return;
-    Object.assign(slot, saved);
-    slot.loaded = false;
+  beginSceneOperation({ kind: 'load', scene }, `Descarregando timbres anteriores para abrir a cena “${scene.name}”...`);
+}
+function applyScene(scene) {
+  const storedSlots = Array.isArray(scene.slots) ? scene.slots.slice(0, CHANNELS) : [];
+  let slotCount = Number.isInteger(scene.slotCount)
+    ? Math.max(1, Math.min(CHANNELS, scene.slotCount))
+    : storedSlots.length;
+  if (!Number.isInteger(scene.slotCount)) {
+    while (slotCount > 0 && !storedSlots[slotCount - 1]?.file) slotCount--;
+    slotCount = Math.max(1, slotCount);
+  }
+  const savedSlots = storedSlots.slice(0, slotCount);
+  ensureSlotCount(Math.max(1, savedSlots.length));
+  let missingFiles = 0;
+  slots.forEach((slot, index) => {
+    const saved = savedSlots[index] || {};
+    Object.assign(slot, makeSlotState(index), saved, {
+      channel: index,
+      loaded: false,
+      programs: [],
+      modulationEnabled: Boolean(saved.modulationEnabled)
+    });
+    slot.bank = Number.isInteger(slot.bank) && slot.bank >= 0 ? slot.bank : 0;
+    slot.program = Number.isInteger(slot.program) && slot.program >= 0 ? slot.program : 0;
+    slot.volume = Number.isFinite(slot.volume) ? Math.max(0, Math.min(100, slot.volume)) : 85;
+    slot.reverb = Number.isFinite(slot.reverb) ? Math.max(0, Math.min(100, slot.reverb)) : 0;
+    slot.chorus = Number.isFinite(slot.chorus) ? Math.max(0, Math.min(100, slot.chorus)) : 0;
+
+    const row = rows[index];
     slot.syncingPreset = true;
-    rows[slot.channel].bank.setText(String(slot.bank)); rows[slot.channel].program.setText(String(slot.program));
+    row.bank.setText(String(slot.bank));
+    row.test.setEnabled(false);
+    row.name.setText(slot.file ? path.basename(slot.file) : 'Sem SF2');
+    setProgramOptions(slot, [], slot.bank, slot.program, slot.file ? 'Lendo presets...' : 'Sem presets');
+    slot.syncingControls = true;
+    row.volumeControl.setValue(slot.volume); row.volumeLabel.setText(`Vol ${slot.volume}%`);
+    row.reverb.setValue(slot.reverb); row.chorus.setValue(slot.chorus);
+    slot.syncingControls = false;
+    slot.syncingModulation = true;
+    row.modulation.setChecked(slot.modulationEnabled);
+    row.modulation.setEnabled(audioReady && Boolean(slot.file));
+    slot.syncingModulation = false;
     slot.syncingPreset = false;
-    rows[slot.channel].test.setEnabled(false);
-    rows[slot.channel].name.setText(slot.file ? path.basename(slot.file) : 'Sem SF2');
-    rows[slot.channel].volumeControl.setValue(slot.volume); rows[slot.channel].volumeLabel.setText(`Vol ${slot.volume}%`);
-    rows[slot.channel].reverb.setValue(slot.reverb); rows[slot.channel].chorus.setValue(slot.chorus);
-    if (slot.file && fs.existsSync(slot.file)) worker.postMessage({ type: 'load-soundfont', channel: slot.channel, file: slot.file, bank: slot.bank, program: slot.program });
-    worker.postMessage({ type: 'volume', channel: slot.channel, value: slot.volume });
-    worker.postMessage({ type: 'effects', channel: slot.channel, reverb: slot.reverb, chorus: slot.chorus });
+
+    worker.postMessage({ type: 'modulation-enabled', channel: index, enabled: slot.modulationEnabled });
+    if (slot.file && fs.existsSync(slot.file)) {
+      worker.postMessage({ type: 'load-soundfont', channel: index, file: slot.file, bank: slot.bank, program: slot.program });
+    } else if (slot.file) {
+      missingFiles++;
+      row.name.setText(`${path.basename(slot.file)} · arquivo ausente`);
+    }
+    worker.postMessage({ type: 'volume', channel: index, value: slot.volume });
+    worker.postMessage({ type: 'effects', channel: index, reverb: slot.reverb, chorus: slot.chorus });
   });
-  status.setText(`Cena “${scene.name}” carregada.`);
+  status.setText(missingFiles
+    ? `Cena “${scene.name}” carregada; ${missingFiles} arquivo(s) SF2 não encontrado(s).`
+    : `Cena “${scene.name}” carregada com ${slots.length} parte(s).`);
 }
 function deleteScene() {
   const index = sceneList.currentIndex(); const scenes = readScenes(); if (index < 0) return;
@@ -573,6 +769,21 @@ function downloadSoundFont() {
 }
 
 worker.on('message', message => {
+  if (message.type === 'cleared' || message.type === 'clear-error') {
+    const operation = sceneOperation;
+    if (operation?.kind === 'load') applyScene(operation.scene);
+    else resetSceneUi();
+    sceneOperation = null;
+    clearingScene = false;
+    newSceneButton.setEnabled(true);
+    updateSlotToolbar();
+    window.setEnabled(true);
+    if (message.type === 'clear-error') {
+      status.setText(`${status.text()} Falha ao descarregar alguns timbres: ${message.message}`);
+    } else if (operation?.kind !== 'load') {
+      status.setText('Nova cena pronta; todos os timbres carregados foram removidos.');
+    }
+  }
   if (message.type === 'audio-stage') {
     audioStartupStage = message.stage;
     writeAudioWorkerLog(`AUDIO STAGE: ${message.stage}`);
@@ -581,6 +792,7 @@ worker.on('message', message => {
   if (message.type === 'error' && message.channel === undefined) clearTimeout(audioStartupTimer);
   if (message.type === 'audio-output-error') {
     audioReady = false;
+    slots.forEach(slot => rows[slot.channel].modulation.setEnabled(false));
     audioStartupStage = `Erro ao abrir áudio: ${message.message}`;
     writeAudioWorkerLog(`AUDIO OUTPUT ERROR: ${message.message}`);
     clearTimeout(audioStartupTimer);
@@ -588,6 +800,10 @@ worker.on('message', message => {
   }
   if (message.type === 'ready') {
     audioReady = true;
+    slots.forEach(slot => {
+      rows[slot.channel].modulation.setEnabled(Boolean(slot.file));
+      rows[slot.channel].program.setEnabled(Boolean(slot.file) && slot.programs.length > 0);
+    });
     audioStartupStage = `FluidSynth pronto em ${message.label}.`;
     writeAudioWorkerLog(`AUDIO READY: ${message.backend} ${message.label}`);
     clearTimeout(audioStartupTimer);
@@ -597,15 +813,17 @@ worker.on('message', message => {
   }
   if (message.type === 'loaded') {
     const slot = slots[message.channel];
+    if (!slot || !rows[message.channel]) return;
     slot.bank = message.bank;
     slot.program = message.program;
     slot.presetName = message.presetName;
     slot.syncingPreset = true;
     rows[message.channel].bank.setText(String(message.bank));
-    rows[message.channel].program.setText(String(message.program));
     slot.syncingPreset = false;
+    setProgramOptions(slot, message.presets, message.bank, message.program);
     slot.loaded = true;
     rows[message.channel].test.setEnabled(true);
+    rows[message.channel].modulation.setEnabled(audioReady);
     rows[message.channel].name.setText(`${message.name} · ${message.presetName}`);
     status.setText(message.usedFallback
       ? `Parte ${message.channel + 1}: ${message.name} não tem banco ${message.requestedBank}/preset ${message.requestedProgram}; selecionado ${message.bank}/${message.program} · ${message.presetName}.`
@@ -625,9 +843,20 @@ worker.on('message', message => {
   }
   if (message.type === 'error') {
     audioStartupStage = `Erro no motor de áudio${message.operation ? ` (${message.operation})` : ''}: ${message.message}`;
+    if (message.operation === 'clear-all') {
+      clearingScene = false;
+      sceneOperation = null;
+      newSceneButton.setEnabled(true);
+      updateSlotToolbar();
+      window.setEnabled(true);
+    }
     if (message.operation === 'load-soundfont' && Number.isInteger(message.channel)) {
-      slots[message.channel].loaded = false;
-      rows[message.channel].test.setEnabled(false);
+      const slot = slots[message.channel];
+      if (slot && rows[message.channel]) {
+        slot.loaded = false;
+        rows[message.channel].test.setEnabled(false);
+        rows[message.channel].modulation.setEnabled(false);
+      }
     }
     status.setText(message.channel === undefined
       ? audioStartupStage
@@ -639,6 +868,13 @@ let workerCloseTimer = null;
 worker.on('error', error => {
   audioWorkerOnline = false;
   audioReady = false;
+  if (clearingScene) {
+    clearingScene = false;
+    sceneOperation = null;
+    newSceneButton.setEnabled(true);
+    updateSlotToolbar();
+    window.setEnabled(true);
+  }
   audioWorkerFailure = { message: error.message, stack: error.stack || error.message };
   const logFile = writeAudioWorkerLog(`WORKER ERROR\n${audioWorkerFailure.stack}`);
   audioStartupStage = `Falha na thread local de áudio: ${error.message}`;
@@ -650,6 +886,13 @@ worker.on('exit', code => {
   if (!appClosing) {
     audioWorkerOnline = false;
     audioReady = false;
+    if (clearingScene) {
+      clearingScene = false;
+      sceneOperation = null;
+      newSceneButton.setEnabled(true);
+      updateSlotToolbar();
+      window.setEnabled(true);
+    }
     pendingAudioOutput = null;
     clearTimeout(audioStartupTimer);
     const lastStage = audioStartupStage;

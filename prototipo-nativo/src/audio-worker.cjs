@@ -7,6 +7,8 @@ const SAMPLE_RATE = 44100;
 const soundFonts = new Map();
 const channelPresets = new Map();
 const channelVolumes = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 85]));
+const channelModulationEnabled = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, false]));
+const channelModulationValues = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 0]));
 const activeKeyboardNotes = new Map();
 const activeMidiNotes = new Map();
 let audioDevice = null;
@@ -120,14 +122,14 @@ function parsePresets(output) {
   for (const line of output.split(/\r?\n/)) {
     // FluidSynth 2.2 prints `000-000 Name`; Zynthian/other releases may print
     // `000 000: Name`. Accept both spellings from `inst <sfont-id>`.
-    const match = line.match(/^\s*(\d{1,3})\s*[-\s]\s*(\d{1,3})\s*:?\s+(.+?)\s*$/);
+    const match = line.match(/^\s*(\d{1,5})\s*[-\s]\s*(\d{1,3})\s*:?\s+(.+?)\s*$/);
     if (!match) continue;
     const bank = Number.parseInt(match[1], 10);
     const program = Number.parseInt(match[2], 10);
     const name = match[3].trim();
     if (Number.isInteger(bank) && Number.isInteger(program) && name) presets.push({ bank, program, name });
   }
-  return presets;
+  return presets.sort((a, b) => a.bank - b.bank || a.program - b.program);
 }
 
 function audioDriverArgs(target) {
@@ -265,7 +267,10 @@ async function loadSoundFont(channel, file, requestedBank = 0, requestedProgram 
     stage: `Parte ${channel + 1}: ${entry ? 'selecionando preset de' : 'carregando'} ${path.basename(filename)}...`
   });
   if (!entry) {
-    const output = await command(`load ${fluidQuote(filename)}`, 60000);
+    // Avoid FluidSynth's default preset refresh across every MIDI channel.
+    // Loading a second SF2 with refresh enabled can replace the first channel's
+    // selected preset when both fonts contain the same bank/program.
+    const output = await command(`load ${fluidQuote(filename)} 0`, 60000);
     const idMatch = output.match(/loaded SoundFont has ID\s+(\d+)/i);
     if (!idMatch) throw new Error(`FluidSynth não confirmou a carga do SF2 “${path.basename(filename)}”. ${output.slice(-1000)}`);
     const id = Number(idMatch[1]);
@@ -285,9 +290,11 @@ async function loadSoundFont(channel, file, requestedBank = 0, requestedProgram 
   await command(`select ${channel} ${entry.id} ${preset.bank} ${preset.program}`);
   channelPresets.set(channel, { file: filename, bank: preset.bank, program: preset.program, presetName: preset.name });
   await sendMidi('cc', channel, 7, Math.round((channelVolumes.get(channel) ?? 85) * 127 / 100));
+  await sendMidi('cc', channel, 1, channelModulationEnabled.get(channel) ? channelModulationValues.get(channel) ?? 0 : 0);
   parentPort.postMessage({
     type: 'loaded', channel, file: filename, name: path.basename(filename), id: entry.id,
     bank: preset.bank, program: preset.program, presetName: preset.name,
+    presets: entry.presets,
     requestedBank: bank, requestedProgram: program,
     usedFallback: !requested
   });
@@ -374,7 +381,24 @@ async function handleMessage(message) {
       return;
     }
     if (message.type === 'control' && fluidsynth) {
+      if (message.controller === 1) {
+        if (!channelModulationEnabled.get(message.channel)) return;
+        channelModulationValues.set(message.channel, message.value);
+      }
       await sendMidi('cc', message.channel, message.controller, message.value);
+      return;
+    }
+    if (message.type === 'modulation-enabled') {
+      if (!Number.isInteger(message.channel) || message.channel < 0 || message.channel >= CHANNELS) {
+        throw new Error('Canal de modulação inválido.');
+      }
+      const enabled = Boolean(message.enabled);
+      channelModulationEnabled.set(message.channel, enabled);
+      if (!enabled) channelModulationValues.set(message.channel, 0);
+      if (fluidsynth) {
+        const value = enabled ? channelModulationValues.get(message.channel) ?? 0 : 0;
+        await sendMidi('cc', message.channel, 1, value);
+      }
       return;
     }
     if (message.type === 'pitch-bend' && fluidsynth) {
@@ -401,6 +425,51 @@ async function handleMessage(message) {
       const part = channelPresets.get(message.channel);
       if (!part) throw new Error('Carregue primeiro um SoundFont neste canal.');
       await loadSoundFont(message.channel, part.file, message.bank, message.program);
+      return;
+    }
+    if (message.type === 'clear-all') {
+      const failures = [];
+      const loadedFonts = [...soundFonts.values()];
+      if (fluidsynth) {
+        for (let channel = 0; channel < CHANNELS; channel++) {
+          for (const controller of [64, 91, 93, 120, 121, 123]) {
+            try { await sendMidi('cc', channel, controller, 0); }
+            catch (error) { failures.push(error.message); }
+          }
+          try { await command(`pitch_bend ${channel} 0`); }
+          catch (error) { failures.push(error.message); }
+        }
+        for (const effect of ['reverb', 'chorus']) {
+          try { await command(`set synth.${effect}.active 0`); }
+          catch (error) { failures.push(error.message); }
+        }
+        const fontIds = new Set(loadedFonts.map(font => font.id));
+        try {
+          const fonts = await command('fonts');
+          for (const line of fonts.split(/\r?\n/)) {
+            const match = line.match(/^\s*(\d+)\s+\S/);
+            if (match) fontIds.add(Number(match[1]));
+          }
+        } catch (error) {
+          failures.push(`Não foi possível listar os SoundFonts do FluidSynth: ${error.message}`);
+        }
+        for (const id of fontIds) {
+          try { await command(`unload ${id}`, 30000); }
+          catch (error) { failures.push(`SF2 ID ${id}: ${error.message}`); }
+        }
+      }
+      soundFonts.clear();
+      channelPresets.clear();
+      activeKeyboardNotes.clear();
+      activeMidiNotes.clear();
+      for (let channel = 0; channel < CHANNELS; channel++) {
+        channelVolumes.set(channel, 85);
+        channelModulationEnabled.set(channel, false);
+        channelModulationValues.set(channel, 0);
+      }
+      parentPort.postMessage(failures.length
+        ? { type: 'clear-error', message: failures.join('\n') }
+        : { type: 'cleared', unloaded: loadedFonts.length });
       return;
     }
     if (message.type === 'global-effects' && fluidsynth) {

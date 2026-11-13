@@ -6,14 +6,15 @@ O Qode integra os loops de eventos do Node e do Qt. O app não deve chamar `app.
 
 ## Recursos implementados
 
-- Oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset e volume por canal FluidSynth.
+- Até oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset escolhido pelo nome e volume por canal FluidSynth. O app começa com um slot e o botão “Adicionar slot” cria os demais conforme necessário.
 - Teclado gráfico de duas oitavas e notas de teste por parte.
 - Detecção de saídas ALSA presentes por `aplay -l` e de sinks ativos PulseAudio/PipeWire por `pactl`; não mostra aliases ALSA sem dispositivo presente.
 - Teste direto de saída com onda senoidal de 440 Hz e duração fixa: envia PCM por `paplay` no PulseAudio/PipeWire ou `aplay` no ALSA, isolado do FluidSynth, SoundFont e MIDI.
-- Entrada MIDI selecionável, notas, sustain, modulação, pitch bend e MIDI Learn para associar CC ao volume de uma parte. O controlador toca todas as partes carregadas por padrão; o seletor MIDI permite usar apenas a parte correspondente ao canal transmitido.
+- Entrada MIDI selecionável, notas, sustain, modulação CC1 por parte, pitch bend e MIDI Learn para associar CC ao volume de uma parte. A modulação começa desativada em cada parte e só recebe CC1 quando “Permitir modulação neste slot” estiver marcado. O controlador toca todas as partes carregadas por padrão; o seletor MIDI permite usar apenas a parte correspondente ao canal transmitido.
 - Biblioteca local de SoundFonts, importação de SF2 e catálogo online inicial com nove instrumentos.
 - Cenas salvas em `~/.samnat-synth/scenes.json` (no Windows, na pasta de usuário correspondente).
-- Motor de áudio em thread separada, com uma instância nativa do FluidSynth compartilhada pelos oito canais e abertura direta do driver de áudio escolhido.
+- Cada cena carrega exatamente seus próprios slots: timbres da cena anterior são descarregados e slots excedentes são ocultados. “Nova Cena” descarrega os SoundFonts, limpa a sessão e deixa um slot vazio; as cenas salvas permanecem disponíveis.
+- Motor de áudio em thread separada, com uma instância nativa do FluidSynth compartilhada pelas partes ativas e abertura direta do driver de áudio escolhido.
 
 ## Executar
 
@@ -39,4 +40,4 @@ O AppImage é específico para Linux x86_64 e precisa de FUSE para abrir diretam
 
 ## Escopo ainda pendente
 
-O catálogo local embarcado é uma seleção inicial, não todo o catálogo Angular. Também faltam login/cadastro e integração com API, presets enumerados por nome (o protótipo usa número de banco/preset), equalizador e filtros por parte, exportação/importação de cenas e polimento de estados de erro/instalação. O catálogo remoto depende do endpoint público já usado pelo app e requer conexão com a internet.
+O catálogo local embarcado é uma seleção inicial, não todo o catálogo Angular. Também faltam login/cadastro e integração com API, equalizador e filtros por parte, exportação/importação de cenas e polimento de estados de erro/instalação. O catálogo remoto depende do endpoint público já usado pelo app e requer conexão com a internet.

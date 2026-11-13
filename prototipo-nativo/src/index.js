@@ -418,6 +418,10 @@ sceneLine.addWidget(button('Carregar cena', () => loadScene()));
 sceneLine.addWidget(button('Excluir cena', () => deleteScene()));
 const midiLine = horizontal(toolsLayout);
 const midiList = new QComboBox(); midiLine.addWidget(midiList);
+const midiRouting = new QComboBox();
+midiRouting.addItem(undefined, 'Controlador: todas as partes');
+midiRouting.addItem(undefined, 'Controlador: canal correspondente');
+midiLine.addWidget(midiRouting);
 midiLine.addWidget(button('Atualizar MIDI', refreshMidi));
 midiLine.addWidget(button('Conectar MIDI', connectMidi));
 layout.addWidget(label(`Biblioteca local: ${SF_DIR}`, 'color: #9ca3af; padding: 4px;'));
@@ -447,8 +451,9 @@ function connectMidi() {
       const command = bytes[0] & 0xf0;
       const note = bytes[1]; const value = bytes[2] || 0;
       const channel = (bytes[0] & 0x0f) % CHANNELS;
-      if (command === 0x90 && value > 0) worker.postMessage({ type: 'note-on', channel, note, velocity: value });
-      else if (command === 0x80 || (command === 0x90 && value === 0)) worker.postMessage({ type: 'note-off', channel, note });
+      const route = midiRouting.currentIndex() === 0 ? 'all' : 'channel';
+      if (command === 0x90 && value > 0) worker.postMessage({ type: 'note-on', source: 'midi', route, channel, note, velocity: value });
+      else if (command === 0x80 || (command === 0x90 && value === 0)) worker.postMessage({ type: 'note-off', source: 'midi', channel, note });
       else if (command === 0xb0) {
         if (bytes[1] === 64) slots.forEach(s => worker.postMessage({ type: 'control', channel: s.channel, controller: 64, value }));
         if (bytes[1] === 1) slots.forEach(s => worker.postMessage({ type: 'control', channel: s.channel, controller: 1, value }));

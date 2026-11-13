@@ -6,7 +6,9 @@ const CHANNELS = 8;
 const SAMPLE_RATE = 44100;
 const soundFonts = new Map();
 const channelPresets = new Map();
+const channelVolumes = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 85]));
 const activeKeyboardNotes = new Map();
+const activeMidiNotes = new Map();
 let audioDevice = null;
 let fluidsynth = null;
 let fluidsynthStderr = '';
@@ -282,6 +284,7 @@ async function loadSoundFont(channel, file, requestedBank = 0, requestedProgram 
   parentPort.postMessage({ type: 'audio-stage', stage: `Parte ${channel + 1}: selecionando ${preset.name} (${preset.bank}/${preset.program})...` });
   await command(`select ${channel} ${entry.id} ${preset.bank} ${preset.program}`);
   channelPresets.set(channel, { file: filename, bank: preset.bank, program: preset.program, presetName: preset.name });
+  await sendMidi('cc', channel, 7, Math.round((channelVolumes.get(channel) ?? 85) * 127 / 100));
   parentPort.postMessage({
     type: 'loaded', channel, file: filename, name: path.basename(filename), id: entry.id,
     bank: preset.bank, program: preset.program, presetName: preset.name,
@@ -341,10 +344,12 @@ async function handleMessage(message) {
       return;
     }
     if (message.type === 'note-on' && fluidsynth) {
-      const channels = channelsFor(message.channel);
-      if (Number.isInteger(message.channel) && !channelPresets.has(message.channel)) channels.push(message.channel);
+      const isLayered = message.source === 'keyboard' || (message.source === 'midi' && message.route === 'all');
+      const channels = isLayered ? channelsFor() : channelsFor(message.channel);
+      if (!isLayered && Number.isInteger(message.channel) && !channelPresets.has(message.channel)) channels.push(message.channel);
       for (const channel of channels) await sendMidi('noteon', channel, message.note, message.velocity || 100);
       if (message.source === 'keyboard') activeKeyboardNotes.set(message.note, channels);
+      if (message.source === 'midi') activeMidiNotes.set(`${message.channel}:${message.note}`, channels);
       parentPort.postMessage({
         type: 'note-dispatched', action: 'on', note: message.note, channels,
         hasSoundFont: channels.some(channel => channelPresets.has(channel))
@@ -352,11 +357,15 @@ async function handleMessage(message) {
       return;
     }
     if (message.type === 'note-off' && fluidsynth) {
+      const midiKey = `${message.channel}:${message.note}`;
       const channels = message.source === 'keyboard' && activeKeyboardNotes.has(message.note)
         ? activeKeyboardNotes.get(message.note)
-        : channelsFor(message.channel);
+        : message.source === 'midi' && activeMidiNotes.has(midiKey)
+          ? activeMidiNotes.get(midiKey)
+          : channelsFor(message.channel);
       for (const channel of channels) await sendMidi('noteoff', channel, message.note);
       if (message.source === 'keyboard') activeKeyboardNotes.delete(message.note);
+      if (message.source === 'midi') activeMidiNotes.delete(midiKey);
       parentPort.postMessage({ type: 'note-dispatched', action: 'off', note: message.note, channels });
       return;
     }
@@ -372,8 +381,13 @@ async function handleMessage(message) {
       await sendMidi('pitch_bend', message.channel, message.value - 8192);
       return;
     }
-    if (message.type === 'volume' && fluidsynth) {
-      await sendMidi('cc', message.channel, 7, Math.round(message.value * 127 / 100));
+    if (message.type === 'volume') {
+      const value = Math.max(0, Math.min(100, Number(message.value)));
+      if (!Number.isInteger(message.channel) || message.channel < 0 || message.channel >= CHANNELS || !Number.isFinite(value)) {
+        throw new Error('Valor ou canal de volume inválido.');
+      }
+      channelVolumes.set(message.channel, value);
+      if (fluidsynth) await sendMidi('cc', message.channel, 7, Math.round(value * 127 / 100));
       return;
     }
     if (message.type === 'effects' && fluidsynth) {

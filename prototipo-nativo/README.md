@@ -6,11 +6,11 @@ O Qode integra os loops de eventos do Node e do Qt. O app não deve chamar `app.
 
 ## Recursos implementados
 
-- Oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset, volume, reverb e chorus.
+- Oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset e volume por canal FluidSynth.
 - Teclado gráfico de duas oitavas e notas de teste por parte.
 - Detecção de saídas ALSA presentes por `aplay -l` e de sinks ativos PulseAudio/PipeWire por `pactl`; não mostra aliases ALSA sem dispositivo presente.
 - Teste direto de saída com onda senoidal de 440 Hz e duração fixa: envia PCM por `paplay` no PulseAudio/PipeWire ou `aplay` no ALSA, isolado do FluidSynth, SoundFont e MIDI.
-- Entrada MIDI selecionável, notas, sustain, modulação, pitch bend e MIDI Learn para associar CC ao volume de uma parte.
+- Entrada MIDI selecionável, notas, sustain, modulação, pitch bend e MIDI Learn para associar CC ao volume de uma parte. O controlador toca todas as partes carregadas por padrão; o seletor MIDI permite usar apenas a parte correspondente ao canal transmitido.
 - Biblioteca local de SoundFonts, importação de SF2 e catálogo online inicial com nove instrumentos.
 - Cenas salvas em `~/.samnat-synth/scenes.json` (no Windows, na pasta de usuário correspondente).
 - Motor de áudio em thread separada, com uma instância nativa do FluidSynth compartilhada pelos oito canais e abertura direta do driver de áudio escolhido.

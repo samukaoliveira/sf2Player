@@ -11,13 +11,10 @@
     "start": "qode src/index.js",
     "pack:init": "nodegui-packer --init SamnatSynthNative",
     "prepare:linux": "node scripts/prepare-linux.cjs",
-    "pack:linux": "npm run prepare:linux && QT_INSTALL_DIR=./build-linux/node_modules/@nodegui/nodegui/miniqt/6.4.1/gcc_64 nodegui-packer --pack ./build-linux"
+    "pack:linux": "npm run prepare:linux && node scripts/pack-linux.cjs"
   },
   "dependencies": {
     "@nodegui/nodegui": "0.58.0",
-    "js-synthesizer": "1.13.0"
-  },
-  "optionalDependencies": {
     "midi": "^2.0.0"
   },
   "devDependencies": {

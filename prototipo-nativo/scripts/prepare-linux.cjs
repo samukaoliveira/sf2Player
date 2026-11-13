@@ -11,6 +11,12 @@ const deployQtDir = path.join(root, 'build-linuxdeployqt');
 if (!fs.existsSync(path.join(modules, '@nodegui', 'nodegui', 'build', 'Release', 'nodegui_core.node'))) {
   throw new Error('NodeGui addon is missing. Run npm install before packaging.');
 }
+for (const required of [
+  path.join(modules, 'midi', 'build', 'Release', 'midi.node'),
+  path.join(modules, 'file-uri-to-path', 'index.js')
+]) {
+  if (!fs.existsSync(required)) throw new Error(`Required MIDI runtime dependency is missing: ${required}. Install ALSA development headers and run npm install.`);
+}
 
 fs.rmSync(output, { recursive: true, force: true });
 fs.mkdirSync(output, { recursive: true });
@@ -49,20 +55,21 @@ function includeRuntimePath(sourcePath) {
   }
   return true;
 }
-fs.cpSync(modules, path.join(output, 'node_modules'), { recursive: true, filter: includeRuntimePath });
+fs.cpSync(modules, path.join(output, 'node_modules'), {
+  recursive: true,
+  dereference: true,
+  filter: includeRuntimePath
+});
 
-// Packer's linuxdeployqt comes as an AppImage. Extract it so builds also work on
-// CI/containers where FUSE is unavailable, then give Packer a small launcher.
+// Extract AppImage tooling without requiring FUSE on the build host.
 fs.mkdirSync(deployQtDir, { recursive: true });
-const launcher = `#!/bin/sh\nexec "${path.join(deployQtDir, 'squashfs-root', 'AppRun')}" "$@"\n`;
-const current = fs.readFileSync(packerQt, 'utf8').slice(0, 32);
-if (!current.startsWith('#!/bin/sh')) {
+const originalPackerQt = `${packerQt}.appimage`;
+if (fs.existsSync(originalPackerQt)) fs.copyFileSync(originalPackerQt, packerQt);
+if (!fs.existsSync(path.join(deployQtDir, 'squashfs-root', 'usr', 'bin', 'appimagetool'))) {
   const { spawnSync } = require('child_process');
   fs.rmSync(path.join(deployQtDir, 'squashfs-root'), { recursive: true, force: true });
   const extraction = spawnSync(packerQt, ['--appimage-extract'], { cwd: deployQtDir, stdio: 'inherit' });
-  if (extraction.status !== 0) throw new Error('Could not extract Packer linuxdeployqt for a FUSE-free build.');
-  fs.renameSync(packerQt, `${packerQt}.appimage`);
-  fs.writeFileSync(packerQt, launcher, { mode: 0o755 });
+  if (extraction.status !== 0) throw new Error('Could not extract Packer AppImage tools for a FUSE-free build.');
 }
 
 console.log(`Linux bundle staging ready at ${output}`);

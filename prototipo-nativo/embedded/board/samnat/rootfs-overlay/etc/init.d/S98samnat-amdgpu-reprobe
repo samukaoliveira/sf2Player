@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# AMDGPU is built into the kernel, so its first probe can happen before the
+# real root filesystem (and /lib/firmware) is mounted. Retry after root mount.
+
+case "$1" in
+	start) ;;
+	stop|restart) exit 0 ;;
+	*) echo "Usage: $0 {start|stop|restart}" >&2; exit 1 ;;
+esac
+
+DRIVERS_PROBE=/sys/bus/pci/drivers_probe
+FIRMWARE=/lib/firmware/amdgpu/renoir_asd.bin
+
+[ -w "$DRIVERS_PROBE" ] || exit 0
+[ -r "$FIRMWARE" ] || {
+	logger -t samnat-amdgpu "Renoir firmware is not readable at $FIRMWARE"
+	exit 0
+}
+
+for device in /sys/bus/pci/devices/*; do
+	[ -r "$device/vendor" ] || continue
+	[ "$(cat "$device/vendor")" = 0x1002 ] || continue
+	class=$(cat "$device/class" 2>/dev/null || true)
+	case "$class" in
+		0x03*) ;;
+		*) continue ;;
+	esac
+	[ -L "$device/driver" ] && continue
+	address=${device##*/}
+	logger -t samnat-amdgpu "Retrying AMD display probe for $address after root mount"
+	printf '%s\n' "$address" > "$DRIVERS_PROBE" 2>/dev/null || true
+done
+
+if command -v udevadm >/dev/null 2>&1; then
+	udevadm settle --timeout=5 2>/dev/null || true
+fi
+
+if [ -e /dev/dri/card0 ]; then
+	logger -t samnat-amdgpu "DRM device is ready at /dev/dri/card0"
+else
+	logger -t samnat-amdgpu "DRM device is still unavailable after reprobe"
+fi
+
+exit 0

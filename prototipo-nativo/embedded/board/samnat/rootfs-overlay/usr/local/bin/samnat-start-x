@@ -1,0 +1,18 @@
+#!/bin/sh
+
+case " $(cat /proc/cmdline) " in
+	*" samnat.install=1 "*) exec /usr/local/sbin/samnat-install ;;
+esac
+
+# Prefer the native DRM driver. If X cannot initialize it, retry with the
+# firmware-provided EFI framebuffer so the appliance remains usable.
+/usr/bin/xinit /usr/local/bin/samnat-session -- :0 vt1 -keeptty -nolisten tcp
+status=$?
+
+if [ "$status" -eq 0 ] || [ ! -c /dev/fb0 ]; then
+	exit "$status"
+fi
+
+logger -t samnat "DRM Xorg startup failed; retrying with EFI framebuffer"
+export LIBGL_ALWAYS_SOFTWARE=1
+exec /usr/bin/xinit /usr/local/bin/samnat-session -- :0 vt1 -keeptty -nolisten tcp -config /etc/X11/xorg-fbdev.conf

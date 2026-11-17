@@ -125,12 +125,50 @@ function audioProcessEnv() {
   return env;
 }
 let audioTester = null;
+let audioTestRequestId = 0;
+let pendingAudioTest = null;
+
+function finishAudioTest(result, resumeError = '') {
+  const pending = pendingAudioTest;
+  if (!pending) return;
+  if (pending.wasRunning && !resumeError) {
+    pending.result = result;
+    pending.phase = 'resuming';
+    status.setText('Teste terminado; reabrindo FluidSynth e restaurando os timbres...');
+    worker.postMessage({
+      type: 'resume-audio-after-test',
+      requestId: pending.requestId,
+      wasRunning: true
+    });
+    return;
+  }
+
+  pendingAudioTest = null;
+  audioDeviceList.setEnabled(audioDevices.length > 0);
+  testAudioButton.setEnabled(audioDevices.length > 0);
+  if (resumeError) {
+    audioReady = false;
+    status.setText(`O teste terminou, mas o FluidSynth não reabriu: ${resumeError}`);
+  } else {
+    status.setText(`${result}${pending.wasRunning ? ' FluidSynth e os timbres foram restaurados.' : ''}`);
+  }
+}
+
 function testAudioOutput(output) {
   if (!output) return;
-  if (audioTester) {
+  if (audioTester || pendingAudioTest) {
     status.setText('O teste de áudio já está em execução.');
     return;
   }
+  const requestId = ++audioTestRequestId;
+  pendingAudioTest = { requestId, output, phase: 'pausing', wasRunning: false };
+  audioDeviceList.setEnabled(false);
+  testAudioButton.setEnabled(false);
+  status.setText(`Liberando a saída ${output.label} para o teste ALSA...`);
+  worker.postMessage({ type: 'pause-audio-for-test', requestId });
+}
+
+function startAudioOutputTest(output) {
   const pulseSink = typeof output.sink === 'string' && output.sink.length > 0;
   const backend = pulseSink ? 'ALSA → PulseAudio/PipeWire' : 'ALSA direto';
   const command = pulseSink ? 'paplay' : 'aplay';
@@ -155,7 +193,7 @@ function testAudioOutput(output) {
       env: { ...audioProcessEnv(), LC_ALL: 'C', ...(output.env || {}) }
     });
   } catch (error) {
-    status.setText(`Não foi possível iniciar ${command}: ${error.message}`);
+    finishAudioTest(`Não foi possível iniciar ${command}: ${error.message}`);
     return;
   }
   audioTester = tester;
@@ -171,13 +209,12 @@ function testAudioOutput(output) {
     clearTimeout(watchdog);
     clearTimeout(forceKill);
     audioTester = null;
-    testAudioButton.setEnabled(audioDevices.length > 0);
     const detail = [error, outputText.trim()].filter(Boolean).join('\n').slice(-1200);
-    status.setText(code === 0 && !timedOut
+    const result = code === 0 && !timedOut
       ? `Teste por ${backend} terminou sem erro em ${output.label}. Se ficou mudo, a rota abriu; confira mixer/saída física.`
-      : `Falha no teste direto por ${backend} em ${output.label} (código ${code === null ? 1 : code}): ${detail || `${signal || command} terminou sem detalhes.`}`);
+      : `Falha no teste direto por ${backend} em ${output.label} (código ${code === null ? 1 : code}): ${detail || `${signal || command} terminou sem detalhes.`}`;
+    finishAudioTest(result);
   };
-  testAudioButton.setEnabled(false);
   watchdog = setTimeout(() => {
     timedOut = true;
     status.setText(`O teste excedeu 6 segundos; encerrando ${command}...`);
@@ -213,6 +250,9 @@ function detectAudioDevices() {
         env: {}
       });
     }
+    // On the embedded laptop, the analog ALC257 device drives the built-in
+    // speakers and headphone jack. Prefer it over HDMI during first startup.
+    devices.sort((a, b) => Number(/ALC257|analog/i.test(b.label)) - Number(/ALC257|analog/i.test(a.label)));
   }
 
   const sinks = spawnSync('pactl', ['list', 'short', 'sinks'], { encoding: 'utf8', timeout: 2500, env: audioProcessEnv() });
@@ -769,6 +809,24 @@ function downloadSoundFont() {
 }
 
 worker.on('message', message => {
+  if (message.type === 'audio-test-paused' && pendingAudioTest?.requestId === message.requestId) {
+    pendingAudioTest.wasRunning = Boolean(message.wasRunning);
+    pendingAudioTest.phase = 'playing';
+    startAudioOutputTest(pendingAudioTest.output);
+  }
+  if (message.type === 'audio-test-resumed' && pendingAudioTest?.requestId === message.requestId) {
+    const pending = pendingAudioTest;
+    pendingAudioTest = null;
+    audioDeviceList.setEnabled(audioDevices.length > 0);
+    testAudioButton.setEnabled(audioDevices.length > 0);
+    status.setText(`${pending.result} FluidSynth e os timbres foram restaurados.`);
+  }
+  if (message.type === 'audio-test-resume-error' && pendingAudioTest?.requestId === message.requestId) {
+    finishAudioTest(pendingAudioTest.result, message.message);
+  }
+  if (message.type === 'error' && message.operation === 'pause-audio-for-test' && pendingAudioTest?.requestId === message.requestId) {
+    finishAudioTest(`Não foi possível liberar a saída para o teste: ${message.message}`);
+  }
   if (message.type === 'cleared' || message.type === 'clear-error') {
     const operation = sceneOperation;
     if (operation?.kind === 'load') applyScene(operation.scene);

@@ -24,6 +24,7 @@ let shellReady = Promise.resolve();
 let shellIsReady = false;
 let messageQueue = Promise.resolve();
 let closing = false;
+let audioTestAssignments = null;
 
 parentPort.postMessage({ type: 'audio-stage', stage: 'Preparando FluidSynth nativo...' });
 
@@ -341,6 +342,41 @@ async function selectAudioDevice(target) {
 
 async function handleMessage(message) {
   try {
+    if (message.type === 'pause-audio-for-test') {
+      const wasRunning = Boolean(fluidsynth && fluidsynth.exitCode === null);
+      audioTestAssignments = wasRunning
+        ? [...channelPresets.entries()].map(([channel, part]) => [channel, { ...part }])
+        : null;
+      if (wasRunning) {
+        await stopEngine();
+        soundFonts.clear();
+        channelPresets.clear();
+      }
+      parentPort.postMessage({ type: 'audio-test-paused', requestId: message.requestId, wasRunning });
+      return;
+    }
+    if (message.type === 'resume-audio-after-test') {
+      try {
+        if (message.wasRunning) {
+          if (!audioDevice) throw new Error('A saída ALSA/PulseAudio anterior não está mais selecionada.');
+          const assignments = audioTestAssignments || [];
+          soundFonts.clear();
+          channelPresets.clear();
+          await startEngine(audioDevice);
+          for (const [channel, part] of assignments) {
+            await loadSoundFont(channel, part.file, part.bank, part.program);
+          }
+        }
+        audioTestAssignments = null;
+        parentPort.postMessage({ type: 'audio-test-resumed', requestId: message.requestId });
+      } catch (error) {
+        audioTestAssignments = null;
+        lastAudioError = error.message;
+        await stopEngine();
+        parentPort.postMessage({ type: 'audio-test-resume-error', requestId: message.requestId, message: error.message });
+      }
+      return;
+    }
     if (message.type === 'audio-device') {
       await selectAudioDevice(message.output);
       return;
@@ -483,12 +519,12 @@ async function handleMessage(message) {
       parentPort.postMessage({ type: 'closed' });
     }
   } catch (error) {
-    parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, message: error.message });
+    parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, requestId: message.requestId, message: error.message });
   }
 }
 
 parentPort.on('message', message => {
   messageQueue = messageQueue.then(() => handleMessage(message)).catch(error => {
-    parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, message: error.message });
+    parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, requestId: message.requestId, message: error.message });
   });
 });

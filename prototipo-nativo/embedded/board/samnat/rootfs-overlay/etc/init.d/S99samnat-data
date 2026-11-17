@@ -6,7 +6,7 @@ case "$1" in
 		if command -v udevadm >/dev/null 2>&1; then
 			udevadm settle --timeout=10
 		fi
-		mount -t ext4 -o noatime /dev/disk/by-partuuid/3b816b4b-8a8e-41ab-9d0d-000000000002 /data
+		mount -t ext4 -o noatime /dev/disk/by-partuuid/53414d4e-03 /data
 		;;
 	stop)
 		umount /data 2>/dev/null || true

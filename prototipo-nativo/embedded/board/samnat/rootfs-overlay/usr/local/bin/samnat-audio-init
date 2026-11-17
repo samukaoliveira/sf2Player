@@ -1,0 +1,32 @@
+#!/bin/sh
+
+LOG=/data/home/.samnat-synth/audio-hw.log
+mkdir -p "$(dirname "$LOG")"
+
+{
+	date -Is
+	echo "=== ALSA cards ==="
+	cat /proc/asound/cards 2>&1 || true
+	echo "=== playback devices ==="
+	/usr/bin/aplay -l 2>&1 || true
+
+	CARD=$(/usr/bin/aplay -l 2>/dev/null | awk '/ALC257/ { card=$2; sub(/:$/, "", card); print card; exit }')
+	if [ -z "$CARD" ]; then
+		echo "ALC257 playback device not found; mixer unchanged."
+	else
+		echo "=== unmute playback controls on ALSA card $CARD ==="
+		for CONTROL in Master Speaker Headphone PCM Front; do
+			if /usr/bin/amixer -c "$CARD" sset "$CONTROL" 85% unmute; then
+				:
+			else
+				echo "Control '$CONTROL' is absent or not adjustable."
+			fi
+		done
+		echo "=== resulting mixer controls ==="
+		/usr/bin/amixer -c "$CARD" scontents 2>&1 || true
+	fi
+	echo "=== HDA diagnostic ==="
+	dmesg 2>/dev/null | grep -iE 'ALC257|speaker_outs|hp_outs|snd_hda|HD-Audio' | tail -80 || true
+} >>"$LOG" 2>&1
+
+exit 0

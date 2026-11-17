@@ -1,0 +1,233 @@
+#!/bin/sh
+set -eu
+
+OLD_DISK_ID=53414d4e
+DISK_LIST=/tmp/samnat-install-disks.$$
+MOUNT_ROOT=/tmp/samnat-install-root.$$
+MOUNT_EFI=/tmp/samnat-install-efi.$$
+
+on_error() {
+	status=$?
+	trap - EXIT
+	if [ "$status" -ne 0 ]; then
+		printf '\nA instalação parou com erro (código %s). Pressione Enter para reiniciar.\n' "$status"
+		read -r _ || true
+		reboot -f || reboot || true
+		while :; do sleep 3600; done
+	fi
+}
+trap on_error EXIT
+
+need() {
+	command -v "$1" >/dev/null 2>&1 || {
+		printf 'Ferramenta necessária ausente: %s\n' "$1" >&2
+		exit 1
+	}
+}
+
+part_path() {
+	case "$1" in
+		*[0-9]) printf '%sp%s\n' "$1" "$2" ;;
+		*) printf '%s%s\n' "$1" "$2" ;;
+	esac
+}
+
+restart_live() {
+	trap - EXIT
+	printf '\nPressione Enter para reiniciar.\n'
+	read -r _ || true
+	reboot -f || reboot || true
+	while :; do sleep 3600; done
+}
+
+need awk
+need blockdev
+need dd
+need e2fsck
+need grep
+need lsblk
+need mount
+need od
+need readlink
+need resize2fs
+need sed
+need sfdisk
+need sync
+need umount
+
+printf '\nSamNat Synth · instalação no SSD interno\n'
+printf 'A instalação apaga o disco de destino inteiro e usa todo o espaço disponível.\n\n'
+
+ROOT_LINK="/dev/disk/by-partuuid/${OLD_DISK_ID}-02"
+if [ ! -b "$ROOT_LINK" ]; then
+	printf 'Não encontrei a mídia USB de instalação (%s).\n' "$ROOT_LINK" >&2
+	printf 'Inicie pelo pendrive e escolha novamente a opção de instalação.\n' >&2
+	exit 1
+fi
+
+source_root=$(readlink -f "$ROOT_LINK")
+source_parent=$(lsblk -no PKNAME "$source_root" | sed -n '1p')
+case "$source_parent" in
+	/dev/*) source_disk=$source_parent ;;
+	'') printf 'Não consegui identificar o disco USB de origem.\n' >&2; exit 1 ;;
+	*) source_disk="/dev/$source_parent" ;;
+esac
+source_data=$(part_path "$source_disk" 3)
+[ -b "$source_data" ] || { printf 'A partição de dados da mídia USB não foi encontrada.\n' >&2; exit 1; }
+
+: > "$DISK_LIST"
+lsblk -dnpo NAME,TYPE,RM,SIZE,MODEL | while read -r name type removable size model; do
+	[ "$type" = disk ] || continue
+	[ "$removable" = 0 ] || continue
+	[ "$name" != "$source_disk" ] || continue
+	[ -b "$name" ] || continue
+	printf '%s|%s|%s\n' "$name" "$size" "$model" >> "$DISK_LIST"
+done
+
+disk_count=$(wc -l < "$DISK_LIST" | tr -d ' ')
+if [ "$disk_count" -eq 0 ]; then
+	printf 'Nenhum disco interno disponível foi detectado.\n' >&2
+	exit 1
+fi
+
+printf 'USB de origem: %s\n' "$source_disk"
+printf 'Discos internos disponíveis:\n'
+index=0
+while IFS='|' read -r name size model; do
+	index=$((index + 1))
+	printf '  %s) %s · %s · %s\n' "$index" "$name" "$size" "${model:-modelo não informado}"
+done < "$DISK_LIST"
+
+printf '\nDigite o número do SSD de destino (0 cancela): '
+read -r choice
+case "$choice" in
+	0) restart_live ;;
+	*[!0-9]*|'') printf 'Seleção inválida.\n' >&2; exit 1 ;;
+esac
+[ "$choice" -le "$disk_count" ] || { printf 'Seleção inválida.\n' >&2; exit 1; }
+
+target=$(awk -F '|' -v choice="$choice" 'NR == choice { print $1 }' "$DISK_LIST")
+[ -b "$target" ] || { printf 'O disco escolhido não está disponível.\n' >&2; exit 1; }
+[ "$target" != "$source_disk" ] || { printf 'O USB de origem não pode ser o destino.\n' >&2; exit 1; }
+
+if lsblk -nrpo MOUNTPOINT "$target" | grep -q .; then
+	printf 'O destino tem uma partição montada ou em uso. Reinicie sem usá-lo e tente novamente.\n' >&2
+	exit 1
+fi
+
+printf '\nDESTINO: %s\n' "$target"
+lsblk -dno SIZE,MODEL "$target"
+printf 'Isto apagará todas as partições e todos os arquivos desse disco.\n'
+printf 'Para confirmar, digite APAGAR: '
+read -r confirmation
+[ "$confirmation" = APAGAR ] || restart_live
+
+layout=$(sfdisk --dump "$source_disk" | awk -F '[:,= ]+' -v data="$source_data" '
+	/^\/dev\// {
+		start = 0
+		size = 0
+		for (i = 1; i <= NF; i++) {
+			if ($i == "start") start = $(i + 1)
+			if ($i == "size") size = $(i + 1)
+		}
+		if (size > 0) {
+			if (start + size > last_end) last_end = start + size
+			if ($1 == data) data_start = start
+		}
+	}
+	END {
+		if (last_end > 0 && data_start > 0) printf "%.0f %.0f\n", last_end, data_start
+		else exit 1
+	}')
+set -- $layout
+image_sectors=$1
+data_start=$2
+target_sectors=$(blockdev --getsz "$target")
+if [ "$target_sectors" -le "$image_sectors" ]; then
+	printf 'O destino é menor que a imagem de instalação; nada foi gravado.\n' >&2
+	exit 1
+fi
+
+printf '\nDesmontando /data e protegendo a origem contra gravação...\n'
+sync
+umount /data
+mount -o remount,ro /
+
+copy_blocks=$((image_sectors / 8192))
+copied_sectors=$((copy_blocks * 8192))
+tail_sectors=$((image_sectors - copied_sectors))
+printf 'Copiando a imagem do USB para %s (%s setores)...\n' "$target" "$image_sectors"
+if [ "$copy_blocks" -gt 0 ]; then
+	dd if="$source_disk" of="$target" bs=4M count="$copy_blocks" conv=notrunc status=progress
+fi
+if [ "$tail_sectors" -gt 0 ]; then
+	dd if="$source_disk" of="$target" bs=512 skip="$copied_sectors" seek="$copied_sectors" count="$tail_sectors" conv=notrunc status=progress
+fi
+sync
+
+printf 'Expandindo a partição de dados até o fim do SSD...\n'
+data_size=$((target_sectors - data_start))
+printf 'start=%s, size=%s\n' "$data_start" "$data_size" | sfdisk --force -N 3 "$target"
+disk_id=$(od -An -N4 -tx4 /dev/urandom | tr -d ' \n')
+while [ "$disk_id" = 00000000 ] || [ "$disk_id" = "$OLD_DISK_ID" ]; do
+	disk_id=$(od -An -N4 -tx4 /dev/urandom | tr -d ' \n')
+done
+sfdisk --disk-id "$target" "0x$disk_id"
+blockdev --rereadpt "$target"
+udevadm settle
+
+target_root=$(part_path "$target" 2)
+target_data=$(part_path "$target" 3)
+[ -b "$target_root" ] || { printf 'A partição raiz do SSD não apareceu após atualizar a tabela.\n' >&2; exit 1; }
+[ -b "$target_data" ] || { printf 'A partição de dados do SSD não apareceu após atualizar a tabela.\n' >&2; exit 1; }
+
+if e2fsck -f -p "$target_data"; then
+	fsck_status=0
+else
+	fsck_status=$?
+fi
+[ "$fsck_status" -le 1 ] || { printf 'A verificação da partição de dados falhou.\n' >&2; exit 1; }
+resize2fs "$target_data"
+
+mkdir -p "$MOUNT_ROOT" "$MOUNT_EFI"
+mount -t ext4 "$target_root" "$MOUNT_ROOT"
+for file in \
+	"$MOUNT_ROOT/etc/fstab" \
+	"$MOUNT_ROOT/etc/init.d/S99samnat-data" \
+	"$MOUNT_ROOT/boot/grub/grub.cfg"; do
+	[ -f "$file" ] || { printf 'Arquivo de inicialização ausente na imagem: %s\n' "$file" >&2; exit 1; }
+	sed -i "s/$OLD_DISK_ID/$disk_id/g" "$file"
+done
+
+EFI_GRUB=""
+if [ -b "$(part_path "$target" 1)" ]; then
+	mount -t vfat "$(part_path "$target" 1)" "$MOUNT_EFI"
+	EFI_GRUB="$MOUNT_EFI/EFI/BOOT/grub.cfg"
+	[ -f "$EFI_GRUB" ] || { printf 'Configuração UEFI ausente na imagem.\n' >&2; exit 1; }
+	sed -i "s/$OLD_DISK_ID/$disk_id/g" "$EFI_GRUB"
+fi
+
+for file in "$MOUNT_ROOT/boot/grub/grub.cfg" "$EFI_GRUB"; do
+	[ -n "$file" ] || continue
+	awk '
+		/^menuentry "Install SamNat Synth to internal SSD"/ { skip = 1; next }
+		skip && /^}/ { skip = 0; next }
+		!skip { print }
+	' "$file" > "$file.samnat"
+	mv "$file.samnat" "$file"
+	sed -i 's/^set timeout=5$/set timeout=0/' "$file"
+done
+
+sync
+umount "$MOUNT_EFI" 2>/dev/null || true
+umount "$MOUNT_ROOT"
+rm -f "$DISK_LIST"
+trap - EXIT
+
+printf '\nInstalação concluída em %s.\n' "$target"
+printf 'O sistema já usa todo o espaço do SSD para /data.\n'
+printf 'Remova o pendrive e pressione Enter para iniciar pelo SSD.\n'
+read -r _ || true
+sync
+reboot -f || reboot || true
+while :; do sleep 3600; done

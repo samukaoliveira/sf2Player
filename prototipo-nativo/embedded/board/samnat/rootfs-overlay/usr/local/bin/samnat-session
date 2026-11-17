@@ -11,4 +11,5 @@ export SAMNAT_KIOSK=1
 export QT_QPA_PLATFORM=xcb
 mkdir -p "$HOME/.samnat-synth/soundfonts"
 chmod 0755 "$HOME" "$HOME/.samnat-synth" "$HOME/.samnat-synth/soundfonts"
+/usr/local/bin/samnat-audio-init || true
 exec /opt/samnat-synth/AppRun

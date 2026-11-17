@@ -45,7 +45,7 @@ function includeRuntimePath(sourcePath) {
       const pluginGroup = relative[pluginsIndex + 1];
       if (pluginGroup !== 'platforms') return false;
       if (fs.statSync(sourcePath).isDirectory()) return true;
-      if (file !== 'libqxcb.so' && file !== 'libqoffscreen.so') return false;
+      if (file !== 'libqxcb.so' && file !== 'libqoffscreen.so' && file !== 'libqlinuxfb.so') return false;
     }
     if (relative.includes('include') || relative.includes('doc') || relative.includes('mkspecs') ||
         relative.includes('libexec') || relative.includes('translations')) return false;

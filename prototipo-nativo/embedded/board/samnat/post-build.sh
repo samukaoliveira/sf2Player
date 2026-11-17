@@ -46,8 +46,25 @@ mkdir -p "$TARGET_DIR/opt/samnat-synth"
 cp -a "$SAMNAT_APPDIR/." "$TARGET_DIR/opt/samnat-synth/"
 chmod 0755 "$TARGET_DIR/usr/local/bin/samnat-session"
 chmod 0755 "$TARGET_DIR/usr/local/bin/samnat-start-x"
+chmod 0755 "$TARGET_DIR/usr/local/bin/samnat-audio-init"
+chmod 0755 "$TARGET_DIR/usr/local/bin/samnat-volume"
 chmod 0755 "$TARGET_DIR/usr/local/sbin/samnat-install"
 chmod 0755 "$TARGET_DIR/etc/init.d/S99samnat-data"
+chmod 0755 "$TARGET_DIR/etc/init.d/S00samnat-splash"
+chmod 0755 "$TARGET_DIR/etc/init.d/S20samnat-pointer"
+rm -f "$TARGET_DIR/etc/init.d/S40xorg"
+LINUXFB_PLUGIN="$TARGET_DIR/opt/samnat-synth/dist/node_modules/@nodegui/nodegui/miniqt/6.4.1/gcc_64/plugins/platforms/libqlinuxfb.so"
+if [ ! -f "$LINUXFB_PLUGIN" ]; then
+	echo "LinuxFB Qt plugin is missing from the packaged app: $LINUXFB_PLUGIN" >&2
+	exit 1
+fi
+APP_AUDIO_LIB_DIR="$TARGET_DIR/opt/samnat-synth/lib/audio"
+for runtime_library in libGLX.so.0 libGLdispatch.so.0 libOpenGL.so.0 libgthread-2.0.so.0; do
+	if [ ! -f "$APP_AUDIO_LIB_DIR/$runtime_library" ]; then
+		echo "Required LinuxFB runtime library is missing from the packaged app: $APP_AUDIO_LIB_DIR/$runtime_library" >&2
+		exit 1
+	fi
+done
 mkdir -p "$TARGET_DIR/data"
 
 DEFAULT_SF2=${SAMNAT_DEFAULT_SF2:-${HOME:-}/.samnat-synth/soundfonts/k-pc88.sf2}
@@ -59,5 +76,5 @@ else
 	echo "No default SF2 found at $DEFAULT_SF2; the first app slot will start empty." >&2
 fi
 
-# The app's Qt xcb plugin loads Mesa/OpenGL and X11 from this root filesystem.
-# The app itself, its Qode runtime, ALSA clients, and FluidSynth stay in AppDir.
+# The app ships its Qt LinuxFB plugin and audio runtime in the AppDir. The
+# appliance boots directly to the framebuffer without starting Xorg.

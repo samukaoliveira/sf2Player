@@ -1,6 +1,6 @@
 # Imagem embarcada SamNat Synth (x86_64)
 
-Esta configuração gera um disco MBR inicializável por BIOS legado e UEFI para PC x86_64. Ao iniciar, o sistema abre Xorg/Mesa e executa o app em tela cheia sem iniciar um desktop. O Xorg tenta primeiro o vídeo DRM/AMDGPU; se ele não iniciar e o firmware expuser `/dev/fb0`, tenta o framebuffer EFI com renderização por software. O app usa FluidSynth, ALSA e o módulo MIDI que já vêm no AppDir. O kernel inclui sequenciador ALSA, áudio HDA/HDMI/USB, vídeo AMD/Intel e rede cabeada Realtek. A partição `/data` mantém cenas e SF2 entre reinicializações e inclui os SoundFonts de `prototipo-nativo/soundfonts` na biblioteca do app. Na imagem USB, `/data` é dimensionada pelo conteúdo; a instalação expande a partição para ocupar o SSD.
+Esta configuração gera um disco MBR inicializável por BIOS legado e UEFI para PC x86_64. Ao iniciar, o sistema abre o app em tela cheia diretamente pelo framebuffer LinuxFB, sem Xorg ou desktop. A imagem inclui o plugin Qt LinuxFB e suas bibliotecas OpenGL; o ponteiro usa libinput com suporte a mouse USB conectado depois do boot. O app usa FluidSynth, ALSA e o módulo MIDI que já vêm no AppDir. O kernel inclui sequenciador ALSA, áudio HDA/HDMI/USB, vídeo AMD/Intel e rede cabeada Realtek. A partição `/data` mantém cenas, associações MIDI dos pads e SF2 entre reinicializações, além de incluir os SoundFonts de `prototipo-nativo/soundfonts` na biblioteca do app. Na imagem USB, `/data` é dimensionada pelo conteúdo; a instalação expande a partição para ocupar o SSD.
 
 ## Gerar
 
@@ -30,6 +30,8 @@ Troque `/dev/sdX` pelo disco USB inteiro, não por uma partição. No PC, seleci
 - Conecte um controlador MIDI USB; o kernel fornece `/dev/snd/seq` para o módulo `midi`.
 - Conecte Ethernet para acessar e baixar SoundFonts do catálogo online. O DHCP inicia em segundo plano no boot, sem atrasar a abertura do app.
 - Cenas e SoundFonts ficam em `/data/home/.samnat-synth` e sobrevivem ao desligamento.
+- Cada cena aparece como um pad de acionamento; `MIDI Learn` associa uma nota ou CC MIDI do controlador à cena.
+- O cabeçalho mostra o uso de CPU e memória RAM, atualizado a cada cinco segundos.
 - Os SF2 incluídos ficam em `/data/home/.samnat-synth/soundfonts` e aparecem ao abrir `Abrir SF2`.
 - Se a máquina que compila tiver `~/.samnat-synth/soundfonts/k-pc88.sf2`, esse banco é incluído como timbre inicial; use `SAMNAT_DEFAULT_SF2=/caminho/arquivo.sf2` para escolher outro.
 - Um console de manutenção fica disponível em `Ctrl+Alt+F2`; `Ctrl+Alt+F1` retorna ao app.

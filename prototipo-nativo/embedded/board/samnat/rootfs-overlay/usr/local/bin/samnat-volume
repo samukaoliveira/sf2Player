@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+ACTION=${1:-}
+TARGET=${2:-}
+STEP=5
+
+case "$ACTION" in
+	up|down|mute) ;;
+	*) echo "Uso: samnat-volume {up|down|mute} [dispositivo]" >&2; exit 2 ;;
+esac
+
+if [ "$TARGET" = pulse ] && [ -x /opt/samnat-synth/bin/pactl ]; then
+	SINK=${3:-}
+	[ -n "$SINK" ] || SINK=$(/opt/samnat-synth/bin/pactl get-default-sink 2>/dev/null || true)
+	[ -n "$SINK" ] || { echo "Nenhuma saída PulseAudio/PipeWire selecionada." >&2; exit 1; }
+	case "$ACTION" in
+		up) /opt/samnat-synth/bin/pactl set-sink-volume "$SINK" +"$STEP"% ;;
+		down) /opt/samnat-synth/bin/pactl set-sink-volume "$SINK" -"$STEP"% ;;
+		mute) /opt/samnat-synth/bin/pactl set-sink-mute "$SINK" toggle ;;
+	esac
+	exit 0
+fi
+
+CARD=
+case "$TARGET" in
+	plughw:*|hw:*) CARD=${TARGET#*:}; CARD=${CARD%%,*} ;;
+esac
+if [ -z "$CARD" ]; then
+	CARD=$(/usr/bin/aplay -l 2>/dev/null | awk '/ALC257/ { card=$2; sub(/:$/, "", card); print card; exit }')
+fi
+[ -n "$CARD" ] || CARD=0
+
+for CONTROL in Master Speaker Headphone PCM Front; do
+	/usr/bin/amixer -c "$CARD" sget "$CONTROL" >/dev/null 2>&1 || continue
+	case "$ACTION" in
+		up) /usr/bin/amixer -c "$CARD" sset "$CONTROL" "$STEP"%+ unmute ;;
+		down) /usr/bin/amixer -c "$CARD" sset "$CONTROL" "$STEP"%- unmute ;;
+		mute) /usr/bin/amixer -c "$CARD" sset "$CONTROL" toggle ;;
+	esac
+	exit 0
+done
+
+echo "Nenhum controle de volume disponível na placa ALSA $CARD." >&2
+exit 1

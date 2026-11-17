@@ -438,7 +438,8 @@ async function handleMessage(message) {
       return;
     }
     if (message.type === 'pitch-bend' && fluidsynth) {
-      await sendMidi('pitch_bend', message.channel, message.value - 8192);
+      const value = Math.max(0, Math.min(16383, Math.round(Number(message.value))));
+      await sendMidi('pitch_bend', message.channel, value);
       return;
     }
     if (message.type === 'volume') {
@@ -472,7 +473,7 @@ async function handleMessage(message) {
             try { await sendMidi('cc', channel, controller, 0); }
             catch (error) { failures.push(error.message); }
           }
-          try { await command(`pitch_bend ${channel} 0`); }
+          try { await command(`pitch_bend ${channel} 8192`); }
           catch (error) { failures.push(error.message); }
         }
         for (const effect of ['reverb', 'chorus']) {

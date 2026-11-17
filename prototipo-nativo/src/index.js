@@ -8,7 +8,7 @@ const { Worker } = require('worker_threads');
 const {
   QApplication, QMainWindow, QWidget, QBoxLayout, Direction, QLabel,
   QPushButton, QSlider, QCheckBox, QFileDialog, FileMode, Orientation, QComboBox,
-  QScrollArea, QLineEdit
+  QScrollArea, QLineEdit, QShortcut, QKeySequence
 } = require('@nodegui/nodegui');
 
 const CHANNELS = 8;
@@ -25,7 +25,9 @@ window.setMinimumSize(760, 700);
 const central = new QWidget();
 const layout = new QBoxLayout(Direction.TopToBottom);
 central.setLayout(layout);
-central.setInlineStyle('background-color: #111827; color: #f9fafb; padding: 14px;');
+layout.setContentsMargins(18, 14, 18, 14);
+layout.setSpacing(12);
+central.setInlineStyle('background-color: #f7f8fa; color: #1c1e21;');
 window.setCentralWidget(central);
 
 function label(text, style) {
@@ -37,7 +39,9 @@ function label(text, style) {
 function button(text, handler) {
   const widget = new QPushButton();
   widget.setText(text);
-  widget.addEventListener('clicked', handler);
+  widget.setMinimumHeight(38);
+  widget.setInlineStyle('padding: 8px 12px; border: 1px solid #d8dee8; border-radius: 8px; background: #ffffff; color: #1c1e21; font-weight: 600;');
+  if (handler) widget.addEventListener('clicked', handler);
   return widget;
 }
 function slider(min, max, value, handler) {
@@ -53,13 +57,122 @@ function horizontal(parent) {
   const line = new QWidget();
   const lineLayout = new QBoxLayout(Direction.LeftToRight);
   line.setLayout(lineLayout);
+  lineLayout.setContentsMargins(0, 0, 0, 0);
+  lineLayout.setSpacing(9);
   parent.addWidget(line);
   return lineLayout;
 }
 
-layout.addWidget(label('SamNat Synth · até 8 partes · FluidSynth nativo', 'font-size: 22px; font-weight: 700; padding: 6px;'));
-const status = label('Inicializando áudio...', 'color: #93c5fd; padding: 4px 6px;');
+const header = new QWidget();
+const headerLayout = new QBoxLayout(Direction.LeftToRight);
+header.setLayout(headerLayout);
+headerLayout.setContentsMargins(16, 10, 16, 10);
+headerLayout.setSpacing(12);
+header.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 12px;');
+const titleBlock = new QWidget();
+const titleLayout = new QBoxLayout(Direction.TopToBottom);
+titleBlock.setLayout(titleLayout);
+titleLayout.setContentsMargins(0, 0, 0, 0);
+titleLayout.setSpacing(2);
+titleLayout.addWidget(label('SamNat Synth', 'font-size: 22px; font-weight: 700; color: #1c1e21;'));
+titleLayout.addWidget(label('Mixer MIDI · FluidSynth nativo · até 8 partes', 'font-size: 12px; color: #65676b;'));
+const systemUsageLabel = label('CPU -- · RAM --', 'font-size: 11px; color: #475467;');
+titleLayout.addWidget(systemUsageLabel);
+let previousCpuTimes = null;
+function updateSystemUsage() {
+  try {
+    const cpuLine = fs.readFileSync('/proc/stat', 'utf8').split('\n', 1)[0].trim().split(/\s+/);
+    const times = cpuLine.slice(1).map(Number);
+    const total = times.reduce((sum, value) => sum + value, 0);
+    const idle = (times[3] || 0) + (times[4] || 0);
+    let cpuText = '--';
+    if (previousCpuTimes) {
+      const totalDelta = total - previousCpuTimes.total;
+      const idleDelta = idle - previousCpuTimes.idle;
+      if (totalDelta > 0) cpuText = String(Math.round((1 - idleDelta / totalDelta) * 100));
+    }
+    previousCpuTimes = { total, idle };
+    const memory = fs.readFileSync('/proc/meminfo', 'utf8');
+    const totalKb = Number(memory.match(/^MemTotal:\s+(\d+)/m)?.[1] || 0);
+    const availableKb = Number(memory.match(/^MemAvailable:\s+(\d+)/m)?.[1] || 0);
+    const usedMb = Math.max(0, Math.round((totalKb - availableKb) / 1024));
+    const totalMb = Math.round(totalKb / 1024);
+    const ramPercent = totalKb > 0 ? Math.round((totalKb - availableKb) * 100 / totalKb) : 0;
+    systemUsageLabel.setText(`CPU ${cpuText}% · RAM ${usedMb}/${totalMb} MiB (${ramPercent}%)`);
+  } catch (_) {
+    const totalMb = Math.round(os.totalmem() / 1048576);
+    const usedMb = Math.round((os.totalmem() - os.freemem()) / 1048576);
+    const ramPercent = totalMb > 0 ? Math.round(usedMb * 100 / totalMb) : 0;
+    systemUsageLabel.setText(`CPU -- · RAM ${usedMb}/${totalMb} MiB (${ramPercent}%)`);
+  }
+}
+updateSystemUsage();
+const systemUsageTimer = setInterval(updateSystemUsage, 5000);
+headerLayout.addWidget(titleBlock, 1);
+const shutdownButton = button('Desligar');
+shutdownButton.setInlineStyle('padding: 8px 16px; border: 1px solid #d92d20; border-radius: 8px; background: #fff5f4; color: #a12622; font-weight: 700;');
+let shutdownArmed = false;
+let shutdownTimer = null;
+shutdownButton.addEventListener('clicked', () => {
+  if (!shutdownArmed) {
+    shutdownArmed = true;
+    shutdownButton.setText('Confirmar desligamento');
+    status.setText('Toque novamente em até 4 segundos para desligar o SamNat com segurança.');
+    clearTimeout(shutdownTimer);
+    shutdownTimer = setTimeout(() => {
+      shutdownArmed = false;
+      shutdownButton.setText('Desligar');
+    }, 4000);
+    return;
+  }
+  clearTimeout(shutdownTimer);
+  shutdownArmed = false;
+  shutdownButton.setEnabled(false);
+  shutdownButton.setText('Desligando…');
+  status.setText('Encerrando o sistema…');
+  const poweroff = spawn('/sbin/poweroff', [], { detached: true, stdio: 'ignore' });
+  poweroff.once('error', error => {
+    shutdownButton.setEnabled(true);
+    shutdownButton.setText('Desligar');
+    status.setText(`Não foi possível desligar: ${error.message}`);
+  });
+  poweroff.unref();
+});
+headerLayout.addWidget(shutdownButton);
+layout.addWidget(header);
+const status = label('Inicializando áudio...', 'color: #165dba; padding: 10px 12px; background: #e7f3ff; border: 1px solid #cfe4ff; border-radius: 9px;');
 layout.addWidget(status);
+
+const audioPanel = new QWidget();
+const audioPanelLayout = new QBoxLayout(Direction.TopToBottom);
+audioPanel.setLayout(audioPanelLayout);
+audioPanelLayout.setContentsMargins(12, 8, 12, 8);
+audioPanelLayout.setSpacing(6);
+audioPanel.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 11px;');
+audioPanelLayout.addWidget(label('Saída e teste de áudio', 'font-size: 13px; font-weight: 700; color: #344054;'));
+layout.addWidget(audioPanel);
+
+const workspace = new QWidget();
+const workspaceLayout = new QBoxLayout(Direction.LeftToRight);
+workspace.setLayout(workspaceLayout);
+workspaceLayout.setContentsMargins(0, 0, 0, 0);
+workspaceLayout.setSpacing(12);
+layout.addWidget(workspace, 1);
+const sidePanel = new QWidget();
+const sideLayout = new QBoxLayout(Direction.TopToBottom);
+sidePanel.setLayout(sideLayout);
+sideLayout.setContentsMargins(12, 12, 12, 12);
+sideLayout.setSpacing(10);
+sidePanel.setMinimumWidth(285);
+sidePanel.setMaximumWidth(390);
+sidePanel.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 12px;');
+workspaceLayout.addWidget(sidePanel);
+const mixerPanel = new QWidget();
+const mixerLayout = new QBoxLayout(Direction.TopToBottom);
+mixerPanel.setLayout(mixerLayout);
+mixerLayout.setContentsMargins(0, 0, 0, 0);
+mixerLayout.setSpacing(10);
+workspaceLayout.addWidget(mixerPanel, 1);
 
 // The AppImage launcher is a Qode preload and contains process.chdir(). Qode
 // inherits that preload into worker threads unless startup args are cleared;
@@ -297,7 +410,7 @@ function refreshAudioDevices() {
 const audioLine = new QWidget();
 const audioLineLayout = new QBoxLayout(Direction.LeftToRight);
 audioLine.setLayout(audioLineLayout);
-audioLineLayout.addWidget(label('Saída de áudio'));
+audioLineLayout.addWidget(label('Dispositivo', 'font-size: 12px; font-weight: 700; color: #65676b;'));
 audioLineLayout.addWidget(audioDeviceList);
 audioLineLayout.addWidget(button('Atualizar saídas', refreshAudioDevices));
 const testAudioButton = button('Teste direto de som (440 Hz)', () => {
@@ -307,7 +420,41 @@ const testAudioButton = button('Teste direto de som (440 Hz)', () => {
   testAudioOutput(output);
 });
 audioLineLayout.addWidget(testAudioButton);
-layout.addWidget(audioLine);
+audioLineLayout.addWidget(label('Volume: Ctrl + F11 (−) · Ctrl + F12 (+) · teclas Fn', 'font-size: 11px; color: #65676b; padding-left: 5px;'));
+audioPanelLayout.addWidget(audioLine);
+
+function adjustSystemVolume(action) {
+  const output = audioDevices[audioDeviceList.currentIndex()];
+  const target = output ? (output.sink ? 'pulse' : output.device) : '';
+  const sink = output?.sink || '';
+  const helper = '/usr/local/bin/samnat-volume';
+  if (!fs.existsSync(helper)) {
+    status.setText('Atalhos de volume disponíveis na imagem embarcada.');
+    return;
+  }
+  const result = spawnSync(helper, [action, target, sink], { encoding: 'utf8', timeout: 2000, env: audioProcessEnv() });
+  const detail = (result.stdout || result.stderr || '').trim().split(/\r?\n/).slice(-1)[0];
+  status.setText(result.status === 0
+    ? (detail || `Volume ${action === 'up' ? 'aumentado' : action === 'down' ? 'reduzido' : 'alternado'}.`)
+    : `Não foi possível ajustar o volume${detail ? `: ${detail}` : '.'}`);
+}
+const volumeShortcuts = [];
+function addVolumeShortcut(sequence, action) {
+  try {
+    const shortcut = new QShortcut(window);
+    shortcut.setKey(new QKeySequence(sequence));
+    shortcut.setAutoRepeat(true);
+    shortcut.addEventListener('activated', () => adjustSystemVolume(action));
+    volumeShortcuts.push(shortcut);
+  } catch (error) {
+    writeAudioWorkerLog(`SHORTCUT unavailable (${sequence}): ${error.message}`);
+  }
+}
+addVolumeShortcut('Ctrl+F11', 'down');
+addVolumeShortcut('Ctrl+F12', 'up');
+addVolumeShortcut('Volume Up', 'up');
+addVolumeShortcut('Volume Down', 'down');
+addVolumeShortcut('Volume Mute', 'mute');
 audioDeviceList.addEventListener('currentIndexChanged', index => {
   if (refreshingAudioDevices) return;
   const output = audioDevices[index];
@@ -331,9 +478,13 @@ let addSlotButton = null;
 const rowHost = new QWidget();
 const rowLayout = new QBoxLayout(Direction.TopToBottom);
 rowHost.setLayout(rowLayout);
+rowLayout.setContentsMargins(8, 8, 8, 8);
+rowLayout.setSpacing(8);
+rowHost.setInlineStyle('background: #f7f8fa;');
 const scroll = new QScrollArea();
 scroll.setWidget(rowHost);
 scroll.setWidgetResizable(true);
+scroll.setInlineStyle('border: 1px solid #e1e5eb; border-radius: 10px; background: #f7f8fa;');
 
 function makeSlotState(channel) {
   return {
@@ -346,7 +497,7 @@ function makeSlotState(channel) {
 }
 
 function updateSlotToolbar() {
-  if (slotCountLabel) slotCountLabel.setText(`Partes ativas: ${slots.length}/${CHANNELS}`);
+  if (slotCountLabel) slotCountLabel.setText(`Instrumentos · ${slots.length}/${CHANNELS} partes`);
   if (addSlotButton) addSlotButton.setEnabled(!clearingScene && slots.length < CHANNELS);
 }
 
@@ -360,7 +511,7 @@ function resetSlotUi(slot) {
   row.name.setText('Sem SF2');
   row.test.setEnabled(false);
   row.volumeControl.setValue(85);
-  row.volumeLabel.setText('Vol 85%');
+  row.volumeLabel.setText('Volume 85%');
   row.reverb.setValue(0);
   row.chorus.setValue(0);
   setProgramOptions(slot, [], 0, 0);
@@ -449,12 +600,16 @@ function makeSlot(slot) {
   const row = new QWidget();
   const stack = new QBoxLayout(Direction.TopToBottom);
   row.setLayout(stack);
-  row.setInlineStyle('background-color: #1f2937; border: 1px solid #374151; border-radius: 7px; margin: 3px; padding: 6px;');
+  stack.setContentsMargins(11, 9, 11, 9);
+  stack.setSpacing(8);
+  row.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 10px;');
   const sourceLine = horizontal(stack);
-  sourceLine.addWidget(label(`PARTE ${slot.channel + 1}`, 'font-weight: 700;'));
-  const name = label('Sem SF2', 'color: #d1d5db;');
-  sourceLine.addWidget(name);
-  sourceLine.addWidget(button('Abrir SF2', () => chooseSoundFont(slot.channel)));
+  sourceLine.addWidget(label(`PARTE ${slot.channel + 1}`, 'font-weight: 700; color: #0866ff; min-width: 64px;'));
+  const name = label('Sem SF2', 'color: #65676b;');
+  sourceLine.addWidget(name, 1);
+  const openSoundFontButton = button('Abrir SF2', () => chooseSoundFont(slot.channel));
+  openSoundFontButton.setMinimumWidth(105);
+  sourceLine.addWidget(openSoundFontButton);
   const bank = new QLineEdit(); bank.setPlaceholderText('Banco'); bank.setText('0'); bank.setMaximumWidth(58);
   bank.addEventListener('textChanged', value => {
     const n = Number(value);
@@ -479,26 +634,28 @@ function makeSlot(slot) {
     slot.syncingPreset = false;
     if (slot.file && slot.loaded) worker.postMessage({ type: 'program', channel: slot.channel, bank: slot.bank, program: slot.program });
   });
-  sourceLine.addWidget(program);
+  program.setMinimumWidth(170);
+  sourceLine.addWidget(program, 2);
   const mixLine = horizontal(stack);
-  const volumeLabel = label(`Vol ${slot.volume}%`, 'min-width: 62px;');
+  const volumeLabel = label(`Volume ${slot.volume}%`, 'min-width: 86px; color: #344054; font-weight: 600;');
   mixLine.addWidget(volumeLabel);
   const volumeControl = slider(0, 100, slot.volume, value => {
     if (slot.syncingControls) return;
-    slot.volume = value; volumeLabel.setText(`Vol ${value}%`);
+    slot.volume = value; volumeLabel.setText(`Volume ${value}%`);
     worker.postMessage({ type: 'volume', channel: slot.channel, value });
   });
+  volumeControl.setMinimumWidth(130);
   mixLine.addWidget(volumeControl);
   const reverb = slider(0, 100, slot.reverb, value => {
     if (slot.syncingControls) return;
     slot.reverb = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: value, chorus: slot.chorus });
   });
-  reverb.setMaximumWidth(90); mixLine.addWidget(label('Rev')); mixLine.addWidget(reverb);
+  reverb.setMaximumWidth(110); mixLine.addWidget(label('Reverb', 'color: #65676b;')); mixLine.addWidget(reverb);
   const chorus = slider(0, 100, slot.chorus, value => {
     if (slot.syncingControls) return;
     slot.chorus = value; worker.postMessage({ type: 'effects', channel: slot.channel, reverb: slot.reverb, chorus: value });
   });
-  chorus.setMaximumWidth(90); mixLine.addWidget(label('Cho')); mixLine.addWidget(chorus);
+  chorus.setMaximumWidth(110); mixLine.addWidget(label('Chorus', 'color: #65676b;')); mixLine.addWidget(chorus);
   const test = button('C4', () => {
     if (!slot.loaded) {
       status.setText(`Carregue um SF2 na parte ${slot.channel + 1} antes de testar C4.`);
@@ -536,63 +693,120 @@ if (systemSoundFont) {
 }
 
 const keyboard = new QWidget();
-const keyboardLayout = new QBoxLayout(Direction.TopToBottom); keyboard.setLayout(keyboardLayout);
-layout.addWidget(label('Teclado de duas oitavas · notas nas partes carregadas'));
-const keyRows = [horizontal(keyboardLayout), horizontal(keyboardLayout)];
+const keyboardLayout = new QBoxLayout(Direction.TopToBottom);
+keyboard.setLayout(keyboardLayout);
+keyboardLayout.setContentsMargins(12, 10, 12, 10);
+keyboardLayout.setSpacing(7);
+keyboard.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 11px;');
+keyboardLayout.addWidget(label('Teclado virtual · duas oitavas', 'font-size: 14px; font-weight: 700; color: #344054;'));
+const keyRow = horizontal(keyboardLayout);
 for (let note = 48; note <= 72; note++) {
   const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const key = button(`${names[note % 12]}${Math.floor(note / 12) - 1}`, () => {
+  const pitch = names[note % 12];
+  const key = button(`${pitch}${Math.floor(note / 12) - 1}`, () => {
     worker.postMessage({ type: 'note-on', source: 'keyboard', note, velocity: 100 });
     setTimeout(() => worker.postMessage({ type: 'note-off', source: 'keyboard', note }), 250);
   });
-  key.setMinimumWidth(42);
-  keyRows[note <= 60 ? 0 : 1].addWidget(key);
+  key.setMinimumSize(40, 54);
+  key.setInlineStyle(pitch.includes('#')
+    ? 'min-width: 34px; background: #253041; border: 1px solid #172033; border-radius: 6px; color: #ffffff; font-size: 10px;'
+    : 'background: #ffffff; border: 1px solid #cbd3df; border-radius: 6px; color: #344054; font-size: 10px;');
+  keyRow.addWidget(key, 1);
 }
-layout.addWidget(keyboard);
-const slotsToolbar = horizontal(layout);
-slotCountLabel = label('Partes ativas: 1/8', 'font-weight: 700; padding: 4px;');
+const slotsToolbar = horizontal(mixerLayout);
+slotCountLabel = label('Instrumentos · 1/8 partes', 'font-size: 16px; font-weight: 700; color: #344054;');
 slotsToolbar.addWidget(slotCountLabel);
+slotsToolbar.addStretch(1);
 addSlotButton = button('+ Adicionar slot', addSlot);
 slotsToolbar.addWidget(addSlotButton);
 updateSlotToolbar();
-scroll.setMaximumHeight(310);
-layout.addWidget(scroll);
+scroll.setMinimumHeight(240);
+mixerLayout.addWidget(scroll, 1);
+mixerLayout.addWidget(keyboard);
 
-const tools = new QWidget(); const toolsLayout = new QBoxLayout(Direction.TopToBottom); tools.setLayout(toolsLayout); layout.addWidget(tools);
-const libraryLine = horizontal(toolsLayout);
-libraryLine.addWidget(button('Importar SF2 para biblioteca', () => importSoundFont()));
+const tools = new QWidget();
+const toolsLayout = new QBoxLayout(Direction.TopToBottom);
+tools.setLayout(toolsLayout);
+toolsLayout.setContentsMargins(0, 0, 0, 0);
+toolsLayout.setSpacing(12);
+sideLayout.addWidget(tools, 1);
+
+function sectionPanel(parent, titleText) {
+  const panel = new QWidget();
+  const panelLayout = new QBoxLayout(Direction.TopToBottom);
+  panel.setLayout(panelLayout);
+  panelLayout.setContentsMargins(11, 10, 11, 10);
+  panelLayout.setSpacing(8);
+  panel.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 10px;');
+  panelLayout.addWidget(label(titleText, 'font-size: 14px; font-weight: 700; color: #344054;'));
+  parent.addWidget(panel);
+  return panelLayout;
+}
+
+const scenePanelLayout = sectionPanel(toolsLayout, 'Cenas');
+const sceneName = new QLineEdit();
+sceneName.setPlaceholderText('Nome da cena');
+sceneName.setMinimumHeight(36);
+scenePanelLayout.addWidget(sceneName);
+const sceneSaveLine = horizontal(scenePanelLayout);
+sceneSaveLine.addWidget(button('Salvar cena', () => saveScene()), 1);
+const newSceneButton = button('Nova Cena', startNewScene);
+sceneSaveLine.addWidget(newSceneButton, 1);
+scenePanelLayout.addWidget(label('Pads para trocar de cena', 'font-size: 12px; font-weight: 700; color: #475467;'));
+const scenePadHost = new QWidget();
+const scenePadLayout = new QBoxLayout(Direction.TopToBottom);
+scenePadHost.setLayout(scenePadLayout);
+scenePadLayout.setContentsMargins(0, 0, 0, 0);
+scenePadLayout.setSpacing(5);
+const scenePadArea = new QScrollArea();
+scenePadArea.setWidget(scenePadHost);
+scenePadArea.setWidgetResizable(true);
+scenePadArea.setMinimumHeight(88);
+scenePadArea.setMaximumHeight(172);
+scenePadArea.setInlineStyle('border: 0; background: transparent;');
+scenePanelLayout.addWidget(scenePadArea);
+let scenePadRows = [];
+const sceneList = new QComboBox();
+sceneList.setMinimumHeight(36);
+scenePanelLayout.addWidget(sceneList);
+const sceneLoadLine = horizontal(scenePanelLayout);
+sceneLoadLine.addWidget(button('Carregar', () => loadScene()), 1);
+sceneLoadLine.addWidget(button('Excluir', () => deleteScene()), 1);
+
+const libraryPanelLayout = sectionPanel(toolsLayout, 'SoundFonts');
+libraryPanelLayout.addWidget(button('Importar SF2 para biblioteca', () => importSoundFont()));
 const catalog = require('./soundfont-catalog.json');
-const sfUrl = new QLineEdit(); sfUrl.setPlaceholderText('URL direta de um arquivo SF2'); sfUrl.setMinimumWidth(280);
+const sfUrl = new QLineEdit();
+sfUrl.setPlaceholderText('URL direta de um arquivo SF2');
+sfUrl.setMinimumHeight(36);
 const catalogList = new QComboBox();
 catalog.items.forEach(item => catalogList.addItem(undefined, `${item.category} · ${item.name}`));
 catalogList.addEventListener('currentIndexChanged', index => {
   const item = catalog.items[index];
   if (item) sfUrl.setText(`${catalog.baseUrl}${item.file.split('/').map(encodeURIComponent).join('/')}`);
 });
-libraryLine.addWidget(catalogList);
-libraryLine.addWidget(sfUrl);
-libraryLine.addWidget(button('Baixar SF2', () => downloadSoundFont()));
-const sceneLine = horizontal(toolsLayout);
-const sceneName = new QLineEdit(); sceneName.setPlaceholderText('Nome da cena');
-sceneLine.addWidget(sceneName);
-sceneLine.addWidget(button('Salvar cena', () => saveScene()));
-const newSceneButton = button('Nova Cena', startNewScene);
-sceneLine.addWidget(newSceneButton);
-const sceneList = new QComboBox(); sceneLine.addWidget(sceneList);
-sceneLine.addWidget(button('Carregar cena', () => loadScene()));
-sceneLine.addWidget(button('Excluir cena', () => deleteScene()));
-const midiLine = horizontal(toolsLayout);
-const midiList = new QComboBox(); midiLine.addWidget(midiList);
+libraryPanelLayout.addWidget(catalogList);
+libraryPanelLayout.addWidget(sfUrl);
+libraryPanelLayout.addWidget(button('Baixar SF2', () => downloadSoundFont()));
+libraryPanelLayout.addWidget(label(`Biblioteca local: ${SF_DIR}`, 'font-size: 10px; color: #65676b;'));
+
+const midiPanelLayout = sectionPanel(toolsLayout, 'Controlador MIDI');
+const midiList = new QComboBox();
+midiList.setMinimumHeight(36);
+midiPanelLayout.addWidget(midiList);
 const midiRouting = new QComboBox();
 midiRouting.addItem(undefined, 'Controlador: todas as partes');
 midiRouting.addItem(undefined, 'Controlador: canal correspondente');
-midiLine.addWidget(midiRouting);
-midiLine.addWidget(button('Atualizar MIDI', refreshMidi));
-midiLine.addWidget(button('Conectar MIDI', connectMidi));
-layout.addWidget(label(`Biblioteca local: ${SF_DIR}`, 'color: #9ca3af; padding: 4px;'));
+midiRouting.setMinimumHeight(36);
+midiPanelLayout.addWidget(midiRouting);
+const midiLine = horizontal(midiPanelLayout);
+midiLine.addWidget(button('Atualizar', refreshMidi), 1);
+midiLine.addWidget(button('Conectar', connectMidi), 1);
 
 let midiInput = null;
 let midi;
+let pendingSceneMidiLearn = null;
+const midiCcState = new Map();
 function refreshMidi() {
   try {
     midi = require('midi');
@@ -605,6 +819,74 @@ function refreshMidi() {
       : 'MIDI carregado; nenhum dispositivo encontrado. Conecte o controlador e atualize a lista.');
   } catch (error) { status.setText(`Falha ao carregar MIDI: ${error.message}`); }
 }
+function midiTriggerLabel(trigger) {
+  if (!trigger) return 'MIDI Learn';
+  const source = trigger.type === 'note' ? `Nota ${trigger.data1}` : `CC ${trigger.data1}`;
+  return `${source} · CH ${trigger.channel + 1}`;
+}
+function startSceneMidiLearn(sceneName) {
+  if (!midiInput) {
+    status.setText('Conecte o controlador MIDI antes de associar um pad à cena.');
+    return;
+  }
+  pendingSceneMidiLearn = sceneName;
+  status.setText(`MIDI Learn para “${sceneName}”: toque um pad ou mova o controle que deseja associar.`);
+}
+function saveSceneMidiTrigger(sceneName, trigger) {
+  const scenes = readScenes();
+  const scene = scenes.find(item => item.name === sceneName);
+  if (!scene) {
+    pendingSceneMidiLearn = null;
+    status.setText(`A cena “${sceneName}” não existe mais.`);
+    return;
+  }
+  const conflict = scenes.find(item => item.name !== sceneName && item.midiTrigger &&
+    item.midiTrigger.type === trigger.type && item.midiTrigger.channel === trigger.channel &&
+    item.midiTrigger.data1 === trigger.data1);
+  if (conflict) {
+    status.setText(`Esse pad já aciona “${conflict.name}”. Escolha outro pad para “${sceneName}”.`);
+    return;
+  }
+  scene.midiTrigger = trigger;
+  writeScenes(scenes);
+  pendingSceneMidiLearn = null;
+  refreshScenes(sceneName);
+  status.setText(`Pad MIDI associado à cena “${sceneName}”: ${midiTriggerLabel(trigger)}.`);
+}
+function findSceneForMidiTrigger(type, channel, data1) {
+  return readScenes().find(scene => scene.midiTrigger && scene.midiTrigger.type === type &&
+    scene.midiTrigger.channel === channel && scene.midiTrigger.data1 === data1);
+}
+function handleSceneMidiEvent(command, channel, data1, value) {
+  const learningType = command === 0x90 && value > 0 ? 'note' : command === 0xb0 ? 'cc' : null;
+  if (pendingSceneMidiLearn && learningType) {
+    saveSceneMidiTrigger(pendingSceneMidiLearn, { type: learningType, channel, data1 });
+    return true;
+  }
+  if (command === 0x90 && value > 0) {
+    const scene = findSceneForMidiTrigger('note', channel, data1);
+    if (scene) {
+      loadSceneByName(scene.name);
+      return true;
+    }
+  }
+  if (command === 0x80 || (command === 0x90 && value === 0)) {
+    return Boolean(findSceneForMidiTrigger('note', channel, data1));
+  }
+  if (command === 0xb0) {
+    const key = `${channel}:${data1}`;
+    const previousValue = midiCcState.get(key) ?? 0;
+    midiCcState.set(key, value);
+    if (previousValue === 0 && value > 0) {
+      const scene = findSceneForMidiTrigger('cc', channel, data1);
+      if (scene) {
+        loadSceneByName(scene.name);
+        return true;
+      }
+    }
+  }
+  return false;
+}
 function connectMidi() {
   try {
     if (!midi) midi = require('midi');
@@ -616,7 +898,9 @@ function connectMidi() {
       if (clearingScene) return;
       const command = bytes[0] & 0xf0;
       const note = bytes[1]; const value = bytes[2] || 0;
-      const channel = (bytes[0] & 0x0f) % CHANNELS;
+      const midiChannel = bytes[0] & 0x0f;
+      if (handleSceneMidiEvent(command, midiChannel, note, value)) return;
+      const channel = midiChannel % CHANNELS;
       const route = midiRouting.currentIndex() === 0 ? 'all' : 'channel';
       if (command === 0x90 && value > 0) worker.postMessage({ type: 'note-on', source: 'midi', route, channel, note, velocity: value });
       else if (command === 0x80 || (command === 0x90 && value === 0)) worker.postMessage({ type: 'note-off', source: 'midi', channel, note });
@@ -632,7 +916,7 @@ function connectMidi() {
           slots.filter(s => s.midiVolumeCC === bytes[1]).forEach(s => {
             s.volume = Math.round(value * 100 / 127);
             rows[s.channel].volumeControl.setValue(s.volume);
-            rows[s.channel].volumeLabel.setText(`Vol ${s.volume}%`);
+            rows[s.channel].volumeLabel.setText(`Volume ${s.volume}%`);
           });
         }
       } else if (command === 0xe0) {
@@ -648,9 +932,41 @@ function connectMidi() {
 function readScenes() {
   try { return JSON.parse(fs.readFileSync(SCENE_FILE, 'utf8')); } catch (_) { return []; }
 }
+function refreshScenePads(scenes) {
+  scenePadRows.forEach(row => {
+    scenePadLayout.removeWidget(row);
+    row.hide();
+    row.deleteLater();
+  });
+  scenePadRows = [];
+  scenes.forEach(scene => {
+    const row = new QWidget();
+    const rowLayout = new QBoxLayout(Direction.LeftToRight);
+    row.setLayout(rowLayout);
+    rowLayout.setContentsMargins(0, 0, 0, 0);
+    rowLayout.setSpacing(5);
+    const launch = button(scene.name, () => loadSceneByName(scene.name));
+    launch.setMinimumHeight(42);
+    launch.setInlineStyle('padding: 8px 10px; border: 1px solid #b8c9e2; border-radius: 8px; background: #edf4ff; color: #174ea6; font-weight: 700;');
+    const learn = button(midiTriggerLabel(scene.midiTrigger), () => startSceneMidiLearn(scene.name));
+    learn.setMinimumWidth(110);
+    learn.setMaximumWidth(142);
+    learn.setMinimumHeight(42);
+    learn.setInlineStyle(scene.midiTrigger
+      ? 'padding: 6px 8px; border: 1px solid #c9b6e4; border-radius: 8px; background: #f4edff; color: #6236a0; font-size: 10px; font-weight: 700;'
+      : 'padding: 6px 8px; border: 1px solid #d8dee8; border-radius: 8px; background: #ffffff; color: #475467; font-size: 10px; font-weight: 600;');
+    rowLayout.addWidget(launch, 1);
+    rowLayout.addWidget(learn);
+    scenePadLayout.addWidget(row);
+    scenePadRows.push(row);
+  });
+  scenePadHost.adjustSize();
+  scenePadArea.setVisible(scenes.length > 0);
+}
 function refreshScenes(selectName) {
   const scenes = readScenes(); sceneList.clear();
   scenes.forEach(scene => sceneList.addItem(undefined, scene.name));
+  refreshScenePads(scenes);
   if (selectName) {
     const index = scenes.findIndex(scene => scene.name === selectName);
     if (index >= 0) sceneList.setCurrentIndex(index);
@@ -666,6 +982,7 @@ function resetSceneUi() {
 }
 function beginSceneOperation(operation, message) {
   if (clearingScene) return;
+  pendingSceneMidiLearn = null;
   midiLearnChannel = null;
   sceneOperation = operation;
   clearingScene = true;
@@ -681,21 +998,35 @@ function startNewScene() {
 function saveScene() {
   const name = sceneName.text().trim(); if (!name) { status.setText('Informe um nome para a cena.'); return; }
   const scenes = readScenes();
+  const existing = scenes.findIndex(scene => scene.name === name);
   const data = {
     name,
+    midiTrigger: existing >= 0 ? scenes[existing].midiTrigger || null : null,
     slotCount: slots.length,
     slots: slots.map(({ channel, file, bank, program, volume, reverb, chorus, modulationEnabled, midiVolumeCC }) => ({
       channel, file, bank, program, volume, reverb, chorus, modulationEnabled, midiVolumeCC
     }))
   };
-  const existing = scenes.findIndex(scene => scene.name === name);
   if (existing < 0) scenes.push(data); else scenes[existing] = data;
   writeScenes(scenes); refreshScenes(name); status.setText(`Cena “${name}” salva.`);
+}
+function loadSceneByName(name) {
+  if (clearingScene) return;
+  const scenes = readScenes();
+  const index = scenes.findIndex(item => item.name === name);
+  const scene = scenes[index];
+  if (!scene) {
+    status.setText(`A cena “${name}” não foi encontrada.`);
+    refreshScenes();
+    return;
+  }
+  sceneList.setCurrentIndex(index);
+  beginSceneOperation({ kind: 'load', scene }, `Descarregando timbres anteriores para abrir a cena “${scene.name}”...`);
 }
 function loadScene() {
   if (clearingScene) return;
   const scene = readScenes()[sceneList.currentIndex()]; if (!scene) return;
-  beginSceneOperation({ kind: 'load', scene }, `Descarregando timbres anteriores para abrir a cena “${scene.name}”...`);
+  loadSceneByName(scene.name);
 }
 function applyScene(scene) {
   const storedSlots = Array.isArray(scene.slots) ? scene.slots.slice(0, CHANNELS) : [];
@@ -730,7 +1061,7 @@ function applyScene(scene) {
     row.name.setText(slot.file ? path.basename(slot.file) : 'Sem SF2');
     setProgramOptions(slot, [], slot.bank, slot.program, slot.file ? 'Lendo presets...' : 'Sem presets');
     slot.syncingControls = true;
-    row.volumeControl.setValue(slot.volume); row.volumeLabel.setText(`Vol ${slot.volume}%`);
+    row.volumeControl.setValue(slot.volume); row.volumeLabel.setText(`Volume ${slot.volume}%`);
     row.reverb.setValue(slot.reverb); row.chorus.setValue(slot.chorus);
     slot.syncingControls = false;
     slot.syncingModulation = true;
@@ -755,6 +1086,7 @@ function applyScene(scene) {
 }
 function deleteScene() {
   const index = sceneList.currentIndex(); const scenes = readScenes(); if (index < 0) return;
+  if (pendingSceneMidiLearn === scenes[index]?.name) pendingSceneMidiLearn = null;
   scenes.splice(index, 1); writeScenes(scenes); refreshScenes(); status.setText('Cena removida.');
 }
 function importSoundFont() {
@@ -970,13 +1302,19 @@ refreshScenes();
 refreshMidi();
 app.addEventListener('aboutToQuit', () => {
   appClosing = true;
+  clearInterval(systemUsageTimer);
   if (audioTester) audioTester.kill('SIGTERM');
   if (midiInput) midiInput.closePort();
   worker.postMessage({ type: 'close' });
   workerCloseTimer = setTimeout(() => worker.terminate(), 3000);
 });
-if (process.env.SAMNAT_KIOSK === '1') window.showFullScreen();
-else window.show();
+if (process.env.SAMNAT_KIOSK === '1') {
+  window.showFullScreen();
+  setTimeout(() => {
+    const splash = spawn('/usr/bin/psplash-write', ['QUIT'], { stdio: 'ignore' });
+    splash.on('error', () => undefined);
+  }, 600);
+} else window.show();
 // Qode injects Qt's event loop into Node's loop. Calling app.exec() here
 // starts a blocking Qt-only loop, which starves Node timers, Worker messages,
 // and child-process events (including FluidSynth and the direct audio test).

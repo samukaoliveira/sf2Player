@@ -16,6 +16,11 @@ const aplayLookup = spawnSync('sh', ['-c', 'command -v aplay'], { encoding: 'utf
 const paplayLookup = spawnSync('sh', ['-c', 'command -v paplay'], { encoding: 'utf8' });
 const pactlLookup = spawnSync('sh', ['-c', 'command -v pactl'], { encoding: 'utf8' });
 const fluidsynthLookup = spawnSync('sh', ['-c', 'command -v fluidsynth'], { encoding: 'utf8' });
+const linkerCache = spawnSync('ldconfig', ['-p'], { encoding: 'utf8' });
+const openGlLibrary = linkerCache.stdout && linkerCache.stdout.match(/libOpenGL\.so\.0\s+\([^)]*\)\s+=>\s+(\S+)/);
+const linuxfbPlugin = path.join(
+  stage, 'node_modules', '@nodegui', 'nodegui', 'miniqt', '6.4.1', 'gcc_64', 'plugins', 'platforms', 'libqlinuxfb.so'
+);
 
 if (process.platform !== 'linux' || process.arch !== 'x64') {
   throw new Error('This build script produces a Linux x86_64 AppImage.');
@@ -32,10 +37,13 @@ if (pactlLookup.status !== 0 || !pactlLookup.stdout.trim()) {
 if (fluidsynthLookup.status !== 0 || !fluidsynthLookup.stdout.trim()) {
   throw new Error('Could not find the native fluidsynth executable required by the app audio engine.');
 }
+if (!openGlLibrary) {
+  throw new Error('Could not find libOpenGL.so.0 in the build host linker cache; the embedded LinuxFB app requires it.');
+}
 if (!fs.existsSync(pulseAlsaPlugin)) {
   throw new Error(`Could not find the ALSA PulseAudio plugin required by the direct output test: ${pulseAlsaPlugin}`);
 }
-for (const required of [stage, qode, appImageTool, aplayLookup.stdout && aplayLookup.stdout.trim(), paplayLookup.stdout && paplayLookup.stdout.trim(), pactlLookup.stdout && pactlLookup.stdout.trim(), fluidsynthLookup.stdout && fluidsynthLookup.stdout.trim()]) {
+for (const required of [stage, qode, appImageTool, linuxfbPlugin, aplayLookup.stdout && aplayLookup.stdout.trim(), paplayLookup.stdout && paplayLookup.stdout.trim(), pactlLookup.stdout && pactlLookup.stdout.trim(), fluidsynthLookup.stdout && fluidsynthLookup.stdout.trim()]) {
   if (!fs.existsSync(required)) throw new Error(`Missing build input: ${required}`);
 }
 
@@ -45,7 +53,6 @@ fs.cpSync(path.join(root, 'deploy', 'linux', appName), appDir, { recursive: true
 fs.cpSync(stage, path.join(appDir, 'dist'), { recursive: true, dereference: true });
 fs.copyFileSync(qode, path.join(appDir, 'qode'));
 fs.chmodSync(path.join(appDir, 'qode'), 0o755);
-const linkerCache = spawnSync('ldconfig', ['-p'], { encoding: 'utf8' });
 const alsaLibrary = linkerCache.stdout && linkerCache.stdout.match(/libasound\.so\.2\s+\([^)]*\)\s+=>\s+(\S+)/);
 if (!alsaLibrary) throw new Error('Could not find the system ALSA runtime library required by MIDI.');
 fs.mkdirSync(path.join(appDir, 'lib'), { recursive: true });
@@ -62,14 +69,14 @@ fs.chmodSync(path.join(appDir, 'bin', 'fluidsynth'), 0o755);
 fs.cpSync('/usr/share/alsa', path.join(appDir, 'share', 'alsa'), { recursive: true });
 fs.cpSync(alsaPluginDir, path.join(appDir, 'lib', 'alsa-lib'), { recursive: true });
 
-// Bundle FluidSynth and the client-side audio libraries used by paplay, pactl,
-// and ALSA's Pulse plugin. Keep glibc from the host to preserve AppImage ABI.
+// Bundle FluidSynth, the audio client libraries, and LinuxFB's OpenGL runtime.
+// Keep glibc from the host to preserve AppImage ABI.
 const audioLibDir = path.join(appDir, 'lib', 'audio');
 fs.mkdirSync(audioLibDir, { recursive: true });
 const glibcRuntime = /^(?:lib(?:c|m|pthread|dl|rt|resolv|util|anl|nsl)\.so(?:\.|$)|ld-linux)/;
 const audioBinaries = [
   fluidsynthLookup.stdout.trim(), aplayLookup.stdout.trim(), paplayLookup.stdout.trim(),
-  pactlLookup.stdout.trim(), pulseAlsaPlugin
+  pactlLookup.stdout.trim(), pulseAlsaPlugin, linuxfbPlugin, openGlLibrary[1]
 ];
 const copiedLibraries = new Set();
 for (const binary of audioBinaries) {
@@ -90,11 +97,12 @@ for (const binary of audioBinaries) {
     copiedLibraries.add(filename);
   }
 }
+fs.copyFileSync(openGlLibrary[1], path.join(audioLibDir, 'libOpenGL.so.0'));
 
 const appRun = `#!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
 QT_HOME="$HERE/dist/node_modules/@nodegui/nodegui/miniqt/6.4.1/gcc_64"
-export LD_LIBRARY_PATH="$QT_HOME/lib:$HERE/lib:\${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$QT_HOME/lib:$HERE/lib/audio:$HERE/lib:\${LD_LIBRARY_PATH:-}"
 export PATH="$HERE/bin:\${PATH:-/usr/bin:/bin}"
 export ALSA_CONFIG_PATH="$HERE/share/alsa/alsa.conf"
 export ALSA_PLUGIN_DIR="$HERE/lib/alsa-lib"

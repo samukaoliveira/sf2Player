@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+case " $(cat /proc/cmdline) " in
+	*" samnat.install=1 "*) exec /usr/local/sbin/samnat-install ;;
+esac
+
 if ! grep -qE '^[^ ]+ /data ext4 ' /proc/mounts; then
 	logger -t samnat "persistent data partition is not mounted; refusing to start without persistent user data"
 	exit 1
@@ -8,7 +12,32 @@ fi
 
 export HOME=/data/home
 export SAMNAT_KIOSK=1
-export QT_QPA_PLATFORM=xcb
+export QT_QPA_PLATFORM=linuxfb
+export QT_QPA_FONTDIR=/usr/share/fonts/dejavu
+export QT_AUTO_SCREEN_SCALE_FACTOR=0
+export QT_SCALE_FACTOR=1
+export QT_ENABLE_HIGHDPI_SCALING=0
+export QT_DEVICE_PIXEL_RATIO=1
+export LD_LIBRARY_PATH="/opt/samnat-synth/lib/audio:${LD_LIBRARY_PATH:-}"
+MOUSE_EVENT=$(cat /run/samnat-pointer/mouse-event 2>/dev/null || true)
+if [ -n "$MOUSE_EVENT" ]; then
+	export QT_QPA_EVDEV_MOUSE_PARAMETERS="$MOUSE_EVENT"
+else
+	unset QT_QPA_EVDEV_MOUSE_PARAMETERS || true
+fi
+# Pin LinuxFB to one physical keyboard node. Qt otherwise discovers every
+# keyboard-capable event node, which can duplicate key presses on some laptops.
+KEYBOARD_EVENT=
+for candidate in /dev/input/by-path/platform-i8042-serio-0-event-kbd /dev/input/by-path/*-event-kbd /dev/input/by-id/*-event-kbd; do
+	[ -e "$candidate" ] || continue
+	KEYBOARD_EVENT=$candidate
+	break
+done
+if [ -n "$KEYBOARD_EVENT" ]; then
+	export QT_QPA_EVDEV_KEYBOARD_PARAMETERS="$KEYBOARD_EVENT:repeat-delay=600:repeat-rate=25"
+else
+	unset QT_QPA_EVDEV_KEYBOARD_PARAMETERS || true
+fi
 mkdir -p "$HOME/.samnat-synth/soundfonts"
 chmod 0755 "$HOME" "$HOME/.samnat-synth" "$HOME/.samnat-synth/soundfonts"
 /usr/local/bin/samnat-audio-init || true

@@ -119,3 +119,13 @@ Arquivos de ambiente e segredos
 # Cache
 .cache/
 electron-builder-cache/
+prototipo-nativo/soundfonts/
+
+# Artefatos grandes e regeneráveis do protótipo nativo
+/prototipo-nativo/build-linux/
+/prototipo-nativo/build-linuxdeployqt/
+/prototipo-nativo/deploy/linux/build/
+/prototipo-nativo/release-linux/
+/prototipo-nativo/embedded/output/
+/temp-spessa/
+/spessasynth_lib-4.0.0.tgz

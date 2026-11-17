@@ -1,0 +1,43 @@
+#!/bin/sh
+
+PIDFILE=/run/samnat-pointer.pid
+EVENT_FILE=/run/samnat-pointer/mouse-event
+
+case "$1" in
+	start)
+		[ -x /usr/bin/samnat-pointer ] || exit 0
+		mkdir -p /run/samnat-pointer
+		start-stop-daemon --start --background --make-pidfile --pidfile "$PIDFILE" \
+			--exec /usr/bin/samnat-pointer
+		status=$?
+		if [ "$status" -ne 0 ]; then
+			logger -t samnat-pointer "Could not start the pointer bridge (status $status)"
+			exit 0
+		fi
+		attempt=0
+		while [ "$attempt" -lt 50 ] && [ ! -s "$EVENT_FILE" ]; do
+			sleep 0.1
+			attempt=$((attempt + 1))
+		done
+		if [ -s "$EVENT_FILE" ]; then
+			logger -t samnat-pointer "Qt pointer device ready: $(cat "$EVENT_FILE")"
+		else
+			logger -t samnat-pointer "Pointer bridge did not publish an event device; Qt will use its default input discovery"
+		fi
+		;;
+	stop)
+		start-stop-daemon --stop --retry TERM/3/KILL/2 --pidfile "$PIDFILE" \
+			--exec /usr/bin/samnat-pointer >/dev/null 2>&1 || true
+		rm -f "$PIDFILE" "$EVENT_FILE"
+		;;
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}" >&2
+		exit 1
+		;;
+esac
+
+exit 0

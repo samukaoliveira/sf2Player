@@ -18,11 +18,11 @@ set default=0
 set timeout=5
 
 menuentry "Start SamNat Synth (USB)" {
-    linux /bzImage root=PARTUUID=53414d4e-02 rootwait rootfstype=ext4 rw console=tty1 loglevel=3
+    linux /bzImage root=PARTUUID=53414d4e-02 rootwait rootfstype=ext4 rw console=tty1 quiet loglevel=3 logo.nologo vt.global_cursor_default=0
 }
 
 menuentry "Install SamNat Synth to internal SSD" {
-    linux /bzImage root=PARTUUID=53414d4e-02 rootwait rootfstype=ext4 rw console=tty1 loglevel=3 samnat.install=1
+    linux /bzImage root=PARTUUID=53414d4e-02 rootwait rootfstype=ext4 rw console=tty1 quiet loglevel=3 logo.nologo vt.global_cursor_default=0 samnat.install=1
 }
 EOF
 

@@ -16,7 +16,10 @@ mkdir -p "$(dirname "$LOG")"
 	else
 		echo "=== unmute playback controls on ALSA card $CARD ==="
 		for CONTROL in Master Speaker Headphone PCM Front; do
-			if /usr/bin/amixer -c "$CARD" sset "$CONTROL" 85% unmute; then
+			LEVEL=30
+			# Keep the digital PCM stage at unity so 30% is not applied twice.
+			[ "$CONTROL" != PCM ] || LEVEL=100
+			if /usr/bin/amixer -c "$CARD" sset "$CONTROL" "$LEVEL"% unmute; then
 				:
 			else
 				echo "Control '$CONTROL' is absent or not adjustable."

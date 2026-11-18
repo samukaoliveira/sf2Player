@@ -2,7 +2,7 @@
 # SamNat pointer bridge
 ################################################################################
 
-SAMNAT_POINTER_VERSION = 1.0
+SAMNAT_POINTER_VERSION = 1.2
 SAMNAT_POINTER_SITE = $(BR2_EXTERNAL_SAMNAT_PATH)/package/samnat-pointer/src
 SAMNAT_POINTER_SITE_METHOD = local
 SAMNAT_POINTER_DEPENDENCIES = libinput libudev

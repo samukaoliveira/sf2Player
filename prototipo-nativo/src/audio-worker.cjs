@@ -1,9 +1,14 @@
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const { parentPort } = require('worker_threads');
 
 const CHANNELS = 8;
 const SAMPLE_RATE = 44100;
+// FluidSynth shares this voice pool across all loaded MIDI parts. The app's
+// default MIDI route layers each incoming note across those parts, so 128
+// voices were exhausted too easily with several SF2s loaded.
+const SYNTH_POLYPHONY = 256;
 const soundFonts = new Map();
 const channelPresets = new Map();
 const channelVolumes = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 85]));
@@ -118,6 +123,43 @@ function fluidQuote(value) {
   return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
+function fluidSynthResidentBytes(pid) {
+  if (!pid) return null;
+  try {
+    const status = fs.readFileSync(`/proc/${pid}/status`, 'utf8');
+    const residentKb = Number(status.match(/^VmRSS:\s+(\d+)\s+kB$/m)?.[1]);
+    return Number.isFinite(residentKb) ? residentKb * 1024 : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function loadSoundFontCommand(channel, filename) {
+  const child = fluidsynth;
+  let expectedBytes = 0;
+  try { expectedBytes = fs.statSync(filename).size; } catch (_) {}
+  const initialResidentBytes = fluidSynthResidentBytes(child?.pid);
+  let lastProgress = 0;
+  const reportProgress = () => {
+    const residentBytes = fluidSynthResidentBytes(child?.pid);
+    if (initialResidentBytes === null || residentBytes === null || expectedBytes <= 0) return;
+    const addedBytes = Math.max(0, residentBytes - initialResidentBytes);
+    const progress = Math.max(lastProgress, Math.min(99, Math.floor(addedBytes * 100 / expectedBytes)));
+    if (progress === lastProgress) return;
+    lastProgress = progress;
+    parentPort.postMessage({
+      type: 'soundfont-progress', channel, progress,
+      residentBytes: addedBytes, expectedBytes
+    });
+  };
+  const timer = setInterval(reportProgress, 150);
+  try {
+    return await command(`load ${fluidQuote(filename)} 0`, 60000);
+  } finally {
+    clearInterval(timer);
+  }
+}
+
 function parsePresets(output) {
   const presets = [];
   for (const line of output.split(/\r?\n/)) {
@@ -165,7 +207,7 @@ async function startEngine(target) {
   const args = [
     ...audio.args,
     '-n', '-K', '16', '-r', String(SAMPLE_RATE), '-g', '1', '-C', '0', '-R', '0',
-    '-o', 'synth.polyphony=128',
+    '-o', `synth.polyphony=${SYNTH_POLYPHONY}`,
     '-o', 'synth.reverb.active=0',
     '-o', 'synth.chorus.active=0'
   ];
@@ -271,7 +313,7 @@ async function loadSoundFont(channel, file, requestedBank = 0, requestedProgram 
     // Avoid FluidSynth's default preset refresh across every MIDI channel.
     // Loading a second SF2 with refresh enabled can replace the first channel's
     // selected preset when both fonts contain the same bank/program.
-    const output = await command(`load ${fluidQuote(filename)} 0`, 60000);
+    const output = await loadSoundFontCommand(channel, filename);
     const idMatch = output.match(/loaded SoundFont has ID\s+(\d+)/i);
     if (!idMatch) throw new Error(`FluidSynth não confirmou a carga do SF2 “${path.basename(filename)}”. ${output.slice(-1000)}`);
     const id = Number(idMatch[1]);
@@ -281,6 +323,8 @@ async function loadSoundFont(channel, file, requestedBank = 0, requestedProgram 
     if (!presets.length) throw new Error(`FluidSynth carregou “${path.basename(filename)}”, mas não encontrou presets.`);
     entry = { id, presets };
     soundFonts.set(key, entry);
+  } else {
+    parentPort.postMessage({ type: 'soundfont-progress', channel, progress: 100, cached: true });
   }
 
   const bank = Number.isInteger(Number(requestedBank)) ? Number(requestedBank) : 0;

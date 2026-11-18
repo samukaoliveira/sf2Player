@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+
+case "${1:-}" in
+	down|up) action=$1 ;;
+	*) echo "Uso: samnat-brightness {down|up}" >&2; exit 2 ;;
+esac
+
+for device in /sys/class/backlight/amdgpu_bl* /sys/class/backlight/acpi_video* /sys/class/backlight/*; do
+	[ -r "$device/max_brightness" ] || continue
+	[ -r "$device/brightness" ] && [ -w "$device/brightness" ] || continue
+
+	max=$(cat "$device/max_brightness")
+	current=$(cat "$device/brightness")
+	case "$max:$current" in
+		*[!0-9:]*|:*|*:) continue ;;
+	esac
+	[ "$max" -gt 0 ] || continue
+
+	step=$(((max + 19) / 20))
+	[ "$step" -gt 0 ] || step=1
+	if [ "$action" = down ]; then
+		next=$((current - step))
+		[ "$next" -ge 0 ] || next=0
+	else
+		next=$((current + step))
+		[ "$next" -le "$max" ] || next=$max
+	fi
+
+	if printf '%s\n' "$next" > "$device/brightness"; then
+		percent=$(((next * 100 + max / 2) / max))
+		echo "Brilho ${percent}% ($(basename "$device"))."
+		exit 0
+	fi
+done
+
+echo "Nenhum controle de brilho compatível foi encontrado em /sys/class/backlight." >&2
+exit 1

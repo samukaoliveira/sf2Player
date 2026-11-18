@@ -7,7 +7,7 @@ O Qode integra os loops de eventos do Node e do Qt. O app não deve chamar `app.
 ## Recursos implementados
 
 - Até oito partes MIDI independentes, cada uma com arquivo SF2, banco, preset escolhido pelo nome e volume por canal FluidSynth. O app começa com um slot e o botão “Adicionar slot” cria os demais conforme necessário.
-- Teclado gráfico de duas oitavas e notas de teste por parte.
+- Teclado gráfico de cinco oitavas e notas de teste por parte.
 - Detecção de saídas ALSA presentes por `aplay -l` e de sinks ativos PulseAudio/PipeWire por `pactl`; não mostra aliases ALSA sem dispositivo presente.
 - Teste direto de saída com onda senoidal de 440 Hz e duração fixa: envia PCM por `paplay` no PulseAudio/PipeWire ou `aplay` no ALSA, isolado do FluidSynth, SoundFont e MIDI.
 - Entrada MIDI selecionável, notas, sustain, modulação CC1 por parte, pitch bend e MIDI Learn para associar CC ao volume de uma parte. A modulação começa desativada em cada parte e só recebe CC1 quando “Permitir modulação neste slot” estiver marcado. O controlador toca todas as partes carregadas por padrão; o seletor MIDI permite usar apenas a parte correspondente ao canal transmitido.
@@ -15,6 +15,7 @@ O Qode integra os loops de eventos do Node e do Qt. O app não deve chamar `app.
 - Cenas salvas em `~/.samnat-synth/scenes.json` (no Windows, na pasta de usuário correspondente).
 - Cada cena carrega exatamente seus próprios slots: timbres da cena anterior são descarregados e slots excedentes são ocultados. “Nova Cena” descarrega os SoundFonts, limpa a sessão e deixa um slot vazio; as cenas salvas permanecem disponíveis.
 - Motor de áudio em thread separada, com uma instância nativa do FluidSynth compartilhada pelas partes ativas e abertura direta do driver de áudio escolhido.
+- Polifonia máxima configurada em 512 vozes globais, compartilhadas entre as partes carregadas.
 
 ## Executar
 
@@ -26,7 +27,7 @@ npm install
 npm start
 ```
 
-Na primeira execução, o app carrega automaticamente `FluidR3_GM.sf2` se estiver instalado em um caminho padrão. Caso contrário, baixe/import um SF2 e selecione-o em uma parte; toque no teclado virtual de duas oitavas. O MIDI é procurado ao iniciar; conecte o controlador e use “Atualizar MIDI” para atualizar a lista.
+Na primeira execução, o app carrega automaticamente `FluidR3_GM.sf2` se estiver instalado em um caminho padrão. Caso contrário, baixe/import um SF2 e selecione-o em uma parte; toque no teclado virtual de cinco oitavas. O controlador MIDI é conectado automaticamente quando detectado; a lista é atualizada periodicamente e também pode ser atualizada pelo botão.
 
 ## Empacotar no Linux x86_64
 
@@ -40,7 +41,7 @@ O AppImage é específico para Linux x86_64 e precisa de FUSE para abrir diretam
 
 ## Imagem Linux embarcada x86_64
 
-O diretório `embedded/` contém a configuração Buildroot e os scripts para gerar uma imagem UEFI inicializável, com boot direto para a interface, ALSA/MIDI, Xorg/Mesa e uma partição `/data` persistente para cenas e SoundFonts. Consulte `embedded/README.md` para compilar e gravar a imagem.
+O diretório `embedded/` contém a configuração Buildroot e os scripts para gerar uma imagem BIOS/UEFI inicializável, com boot direto para a interface via LinuxFB, ALSA/MIDI e uma partição `/data` persistente para cenas e SoundFonts. Consulte `embedded/README.md` para compilar e gravar a imagem.
 
 ## Escopo ainda pendente
 

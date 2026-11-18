@@ -27,24 +27,45 @@ menuentry "Install SamNat Synth to internal SSD" {
 EOF
 
 ROOTPATH_TMP=$(mktemp -d)
-trap 'rm -rf "$ROOTPATH_TMP"' EXIT
+GENIMAGE_CFG_TMP=$(mktemp "$BINARIES_DIR/genimage-samnat.XXXXXX.cfg")
+trap 'rm -rf "$ROOTPATH_TMP"; rm -f "$GENIMAGE_CFG_TMP"' EXIT
 SOUNDFONTS_DIR="$PROJECT_ROOT/soundfonts"
 DATA_SOUNDFONTS="$ROOTPATH_TMP/data/home/.samnat-synth/soundfonts"
 mkdir -p "$DATA_SOUNDFONTS"
-set -- "$SOUNDFONTS_DIR"/*.sf2
-if [ ! -f "$1" ]; then
+
+sf2_count=$(find "$SOUNDFONTS_DIR" -type f -iname '*.sf2' -print | wc -l | tr -d ' ')
+if [ "$sf2_count" -eq 0 ]; then
 	echo "No SF2 files found in $SOUNDFONTS_DIR" >&2
 	exit 1
 fi
-for sf2 in "$@"; do
-	cp -p "$sf2" "$DATA_SOUNDFONTS/"
-done
-sf2_count=$(find "$DATA_SOUNDFONTS" -maxdepth 1 -type f -name '*.sf2' | wc -l | tr -d ' ')
-echo "Bundled $sf2_count SF2 files into the data partition."
+sf2_bytes=$(find "$SOUNDFONTS_DIR" -type f -iname '*.sf2' -exec stat -c '%s' {} + | awk '{ total += $1 } END { printf "%.0f\n", total }')
+sf2_mib=$(((sf2_bytes + 1048575) / 1048576))
+# Keep at least 1 GiB available after the SF2 files, including ext4's
+# default 5% reserved blocks, filesystem metadata, and user scene data.
+data_size_mib=$(( ((sf2_mib + 1024) * 100 + 94) / 95 + 128 ))
+
+find "$SOUNDFONTS_DIR" -type f -iname '*.sf2' -exec sh -c '
+	root=$1
+	destination=$2
+	shift 2
+	for sf2 do
+		relative=${sf2#"$root"/}
+		target="$destination/$relative"
+		mkdir -p "$(dirname "$target")"
+		cp -p "$sf2" "$target"
+	done
+' sh "$SOUNDFONTS_DIR" "$DATA_SOUNDFONTS" {} +
+echo "Bundled $sf2_count SF2 files into the data partition (subdirectories preserved)."
+if ! grep -Fq 'size = "120%"' "$GENIMAGE_CFG"; then
+	echo "Could not find the dynamic data partition size in $GENIMAGE_CFG" >&2
+	exit 1
+fi
+sed "s/size = \"120%\"/size = ${data_size_mib}M/" "$GENIMAGE_CFG" > "$GENIMAGE_CFG_TMP"
+echo "Data partition target size: ${data_size_mib} MiB (SF2 payload: ${sf2_mib} MiB plus at least 1 GiB free)."
 
 genimage \
 	--rootpath "$ROOTPATH_TMP" \
 	--tmppath "$BUILD_DIR/genimage.tmp" \
 	--inputpath "$BINARIES_DIR" \
 	--outputpath "$BINARIES_DIR" \
-	--config "$GENIMAGE_CFG"
+	--config "$GENIMAGE_CFG_TMP"

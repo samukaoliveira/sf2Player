@@ -1,6 +1,8 @@
 config BR2_PACKAGE_SAMNAT_POINTER
 	bool "samnat pointer bridge"
 	depends on BR2_PACKAGE_LIBINPUT
+	depends on BR2_PACKAGE_HAS_LIBUDEV
 	help
 	  Use libinput for the built-in touchpad and hot-pluggable USB mice,
-	  then expose one stable evdev pointer to the Qt LinuxFB application.
+	  then expose one stable evdev pointer to the Qt LinuxFB application and
+	  handle ACPI brightness keys from keyboard event devices.

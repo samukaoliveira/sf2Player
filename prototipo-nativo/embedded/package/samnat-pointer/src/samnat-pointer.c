@@ -15,6 +15,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
@@ -239,73 +240,145 @@ static void handle_pointer_event(struct libinput_event *event)
 	}
 }
 
+static void handle_brightness_key(struct libinput_event *event)
+{
+	struct libinput_event_keyboard *keyboard = libinput_event_get_keyboard_event(event);
+	if (libinput_event_keyboard_get_key_state(keyboard) != LIBINPUT_KEY_STATE_PRESSED)
+		return;
+	const uint32_t key = libinput_event_keyboard_get_key(keyboard);
+	const char *action = key == KEY_BRIGHTNESSDOWN ? "down" :
+		key == KEY_BRIGHTNESSUP ? "up" : NULL;
+	if (!action)
+		return;
+	pid_t child = fork();
+	if (child == 0) {
+		int null_fd = open("/dev/null", O_WRONLY | O_CLOEXEC);
+		if (null_fd >= 0) {
+			dup2(null_fd, STDOUT_FILENO);
+			dup2(null_fd, STDERR_FILENO);
+			if (null_fd > STDERR_FILENO)
+				close(null_fd);
+		}
+		execl("/usr/local/bin/samnat-brightness", "samnat-brightness", action, (char *)NULL);
+		_exit(127);
+	}
+	if (child < 0)
+		syslog(LOG_WARNING, "cannot start brightness adjustment: %s", strerror(errno));
+}
+
+static void configure_pointer_device(struct libinput_device *device)
+{
+	if (!libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER))
+		return;
+	/* Enable tap-to-click on touchpads, so clicks work away from their button strip. */
+	if (libinput_device_config_tap_get_finger_count(device) <= 0)
+		return;
+	const uint32_t accel_profiles = libinput_device_config_accel_get_profiles(device);
+	if (accel_profiles & LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT) {
+		enum libinput_config_status accel_status = libinput_device_config_accel_set_profile(
+			device, LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT);
+		if (accel_status == LIBINPUT_CONFIG_STATUS_SUCCESS) {
+			libinput_device_config_accel_set_speed(device, 0.0);
+			syslog(LOG_INFO, "flat pointer motion enabled for touchpad: %s", libinput_device_get_name(device));
+		} else {
+			syslog(LOG_WARNING, "could not set flat pointer motion for %s (status %d)",
+				libinput_device_get_name(device), accel_status);
+		}
+	}
+	enum libinput_config_status status = libinput_device_config_tap_set_enabled(
+		device, LIBINPUT_CONFIG_TAP_ENABLED);
+	if (status == LIBINPUT_CONFIG_STATUS_SUCCESS)
+		syslog(LOG_INFO, "tap-to-click enabled for touchpad: %s", libinput_device_get_name(device));
+	else
+		syslog(LOG_WARNING, "could not enable tap-to-click for %s (status %d)",
+			libinput_device_get_name(device), status);
+}
+
+static struct libinput *create_udev_context(struct udev *udev)
+{
+	struct libinput *input = libinput_udev_create_context(&input_interface, NULL, udev);
+	if (!input) {
+		syslog(LOG_ERR, "cannot initialize libinput udev context");
+		return NULL;
+	}
+	libinput_log_set_priority(input, LIBINPUT_LOG_PRIORITY_ERROR);
+	if (libinput_udev_assign_seat(input, "seat0") != 0) {
+		syslog(LOG_ERR, "cannot assign libinput to seat0");
+		libinput_unref(input);
+		return NULL;
+	}
+	return input;
+}
+
+static void process_libinput_events(struct libinput *input)
+{
+	if (libinput_dispatch(input) != 0) {
+		syslog(LOG_WARNING, "libinput dispatch failed: %s", strerror(errno));
+		return;
+	}
+	struct libinput_event *event;
+	while ((event = libinput_get_event(input)) != NULL) {
+		enum libinput_event_type type = libinput_event_get_type(event);
+		if (type == LIBINPUT_EVENT_POINTER_MOTION || type == LIBINPUT_EVENT_POINTER_BUTTON ||
+		    type == LIBINPUT_EVENT_POINTER_SCROLL_WHEEL || type == LIBINPUT_EVENT_POINTER_SCROLL_FINGER ||
+		    type == LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS) {
+			handle_pointer_event(event);
+		} else if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
+			struct libinput_device *device = libinput_event_get_device(event);
+			if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER)) {
+				configure_pointer_device(device);
+				syslog(LOG_INFO, "pointer attached: %s", libinput_device_get_name(device));
+			}
+		} else if (type == LIBINPUT_EVENT_DEVICE_REMOVED) {
+			struct libinput_device *device = libinput_event_get_device(event);
+			if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER))
+				syslog(LOG_INFO, "pointer removed: %s", libinput_device_get_name(device));
+		} else if (type == LIBINPUT_EVENT_KEYBOARD_KEY) {
+			handle_brightness_key(event);
+		}
+		libinput_event_destroy(event);
+	}
+}
+
 int main(void)
 {
 	openlog("samnat-pointer", LOG_PID, LOG_DAEMON);
 	signal(SIGTERM, handle_signal);
 	signal(SIGINT, handle_signal);
-
-	struct udev *udev = udev_new();
-	if (!udev) {
-		syslog(LOG_ERR, "cannot create udev context");
-		return 1;
-	}
-	struct libinput *input = libinput_udev_create_context(&input_interface, NULL, udev);
-	if (!input) {
-		syslog(LOG_ERR, "cannot initialize libinput");
-		udev_unref(udev);
-		return 1;
-	}
-	libinput_log_set_priority(input, LIBINPUT_LOG_PRIORITY_ERROR);
+	signal(SIGCHLD, SIG_IGN);
 
 	if (create_virtual_pointer() != 0 || publish_pointer_event_path() != 0) {
-		libinput_unref(input);
-		udev_unref(udev);
 		if (uinput_fd >= 0)
 			close(uinput_fd);
 		return 1;
 	}
-	if (libinput_udev_assign_seat(input, "seat0") != 0) {
-		syslog(LOG_ERR, "cannot assign libinput seat0: %s", strerror(errno));
+	struct udev *udev = udev_new();
+	if (!udev) {
+		syslog(LOG_ERR, "cannot initialize udev");
 		ioctl(uinput_fd, UI_DEV_DESTROY);
 		close(uinput_fd);
-		libinput_unref(input);
-		udev_unref(udev);
 		return 1;
 	}
-	if (libinput_dispatch(input) != 0)
-		syslog(LOG_WARNING, "initial libinput dispatch failed: %s", strerror(errno));
-
-	syslog(LOG_INFO, "libinput pointer bridge started; USB mouse hotplug is active");
-	struct pollfd descriptor = {.fd = libinput_get_fd(input), .events = POLLIN};
+	struct libinput *input = create_udev_context(udev);
+	if (!input) {
+		udev_unref(udev);
+		ioctl(uinput_fd, UI_DEV_DESTROY);
+		close(uinput_fd);
+		return 1;
+	}
+	syslog(LOG_INFO, "libinput udev pointer bridge started; USB mouse hotplug enabled on seat0");
+	process_libinput_events(input);
 	while (!stopping) {
-		int result = poll(&descriptor, 1, 250);
+		struct pollfd descriptor = {.fd = libinput_get_fd(input), .events = POLLIN};
+		int result = poll(&descriptor, 1, -1);
 		if (result < 0) {
 			if (errno == EINTR)
 				continue;
 			syslog(LOG_ERR, "poll failed: %s", strerror(errno));
 			break;
 		}
-		if (result == 0)
-			continue;
-		if (libinput_dispatch(input) != 0) {
-			syslog(LOG_WARNING, "libinput dispatch failed: %s", strerror(errno));
-			continue;
-		}
-		struct libinput_event *event;
-		while ((event = libinput_get_event(input)) != NULL) {
-			enum libinput_event_type type = libinput_event_get_type(event);
-			if (type == LIBINPUT_EVENT_POINTER_MOTION || type == LIBINPUT_EVENT_POINTER_BUTTON ||
-			    type == LIBINPUT_EVENT_POINTER_SCROLL_WHEEL || type == LIBINPUT_EVENT_POINTER_SCROLL_FINGER ||
-			    type == LIBINPUT_EVENT_POINTER_SCROLL_CONTINUOUS)
-				handle_pointer_event(event);
-			else if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
-				struct libinput_device *device = libinput_event_get_device(event);
-				if (libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_POINTER))
-					syslog(LOG_INFO, "pointer attached: %s", libinput_device_get_name(device));
-			}
-			libinput_event_destroy(event);
-		}
+		if (result > 0 && descriptor.revents)
+			process_libinput_events(input);
 	}
 
 	syslog(LOG_INFO, "stopping libinput pointer bridge");

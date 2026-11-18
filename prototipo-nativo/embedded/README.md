@@ -1,6 +1,6 @@
 # Imagem embarcada SamNat Synth (x86_64)
 
-Esta configuração gera um disco MBR inicializável por BIOS legado e UEFI para PC x86_64. Ao iniciar, o sistema abre o app em tela cheia diretamente pelo framebuffer LinuxFB, sem Xorg ou desktop. A imagem inclui o plugin Qt LinuxFB e suas bibliotecas OpenGL; o ponteiro usa libinput com suporte a mouse USB conectado depois do boot. O app usa FluidSynth, ALSA e o módulo MIDI que já vêm no AppDir. O kernel inclui sequenciador ALSA, áudio HDA/HDMI/USB, vídeo AMD/Intel e rede cabeada Realtek. A partição `/data` mantém cenas, associações MIDI dos pads e SF2 entre reinicializações, além de incluir os SoundFonts de `prototipo-nativo/soundfonts` na biblioteca do app. Na imagem USB, `/data` é dimensionada pelo conteúdo; a instalação expande a partição para ocupar o SSD.
+Esta configuração gera um disco MBR inicializável por BIOS legado e UEFI para PC x86_64. Ao iniciar, o sistema abre o app em tela cheia diretamente pelo framebuffer LinuxFB, sem Xorg ou desktop. A imagem inclui o plugin Qt LinuxFB e suas bibliotecas OpenGL; o ponteiro examina os dispositivos de entrada continuamente, deixa o movimento do touchpad linear, habilita toque para clicar em toda a superfície e incorpora mouse USB conectado depois do boot. O app usa FluidSynth, ALSA e o módulo MIDI que já vêm no AppDir. O controlador MIDI conecta automaticamente quando aparece, com nova busca a cada dois segundos. O kernel inclui sequenciador ALSA, áudio HDA/HDMI/USB, vídeo AMD/Intel e rede cabeada Realtek. A partição `/data` mantém cenas, associações MIDI dos pads e SF2 entre reinicializações, além de incluir os SoundFonts de `prototipo-nativo/soundfonts` na biblioteca do app. Na imagem USB, `/data` reserva pelo menos 1 GiB disponível além dos SF2 incluídos; a instalação expande a partição para ocupar o SSD.
 
 ## Gerar
 
@@ -31,8 +31,11 @@ Troque `/dev/sdX` pelo disco USB inteiro, não por uma partição. No PC, seleci
 - Conecte Ethernet para acessar e baixar SoundFonts do catálogo online. O DHCP inicia em segundo plano no boot, sem atrasar a abertura do app.
 - Cenas e SoundFonts ficam em `/data/home/.samnat-synth` e sobrevivem ao desligamento.
 - Cada cena aparece como um pad de acionamento; `MIDI Learn` associa uma nota ou CC MIDI do controlador à cena.
-- O cabeçalho mostra o uso de CPU e memória RAM, atualizado a cada cinco segundos.
-- Os SF2 incluídos ficam em `/data/home/.samnat-synth/soundfonts` e aparecem ao abrir `Abrir SF2`.
+- O cabeçalho mostra CPU e RAM ao lado do botão de desligar, com texto ampliado e atualização a cada cinco segundos. A bateria aparece junto deles, mostra o nível e indica quando está carregando; abaixo de 20%, o nível fica vermelho e aparece um aviso para conectar o carregador.
+- O volume mestre ALSA começa em 30%. F11 e Ctrl+F11 diminuem, F12 e Ctrl+F12 aumentam; as teclas físicas de volume também são aceitas.
+- FluidSynth usa até 512 vozes simultâneas compartilhadas entre os timbres carregados.
+- O app habilita toque para clicar no touchpad, inclusive na região central, e usa movimento linear sem aceleração variável para melhorar a previsibilidade do ponteiro.
+- Os SF2 de `prototipo-nativo/soundfonts` são incluídos recursivamente em `/data/home/.samnat-synth/soundfonts`, preservando as subpastas, e aparecem ao abrir `Abrir SF2`.
 - Se a máquina que compila tiver `~/.samnat-synth/soundfonts/k-pc88.sf2`, esse banco é incluído como timbre inicial; use `SAMNAT_DEFAULT_SF2=/caminho/arquivo.sf2` para escolher outro.
 - Um console de manutenção fica disponível em `Ctrl+Alt+F2`; `Ctrl+Alt+F1` retorna ao app.
 

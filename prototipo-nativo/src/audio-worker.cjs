@@ -9,6 +9,9 @@ const SAMPLE_RATE = 44100;
 // default MIDI route layers each incoming note across those parts, so 128
 // voices were exhausted too easily with several SF2s loaded.
 const SYNTH_POLYPHONY = 256;
+// A modest lift over unity restores output level while retaining headroom for
+// layered parts; FluidSynth applies this before sending samples to ALSA/Pulse.
+const SYNTH_MASTER_GAIN = 1.5;
 const soundFonts = new Map();
 const channelPresets = new Map();
 const channelVolumes = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 85]));
@@ -206,7 +209,7 @@ async function startEngine(target) {
   audioDriverError = '';
   const args = [
     ...audio.args,
-    '-n', '-K', '16', '-r', String(SAMPLE_RATE), '-g', '1', '-C', '0', '-R', '0',
+    '-n', '-K', '16', '-r', String(SAMPLE_RATE), '-g', String(SYNTH_MASTER_GAIN), '-C', '0', '-R', '0',
     '-o', `synth.polyphony=${SYNTH_POLYPHONY}`,
     '-o', 'synth.reverb.active=0',
     '-o', 'synth.chorus.active=0'
@@ -432,11 +435,14 @@ async function handleMessage(message) {
     }
     if (message.type === 'note-on' && fluidsynth) {
       const isLayered = message.source === 'keyboard' || (message.source === 'midi' && message.route === 'all');
-      const channels = isLayered ? channelsFor() : channelsFor(message.channel);
-      if (!isLayered && Number.isInteger(message.channel) && !channelPresets.has(message.channel)) channels.push(message.channel);
+      const selectedChannels = Array.isArray(message.channels)
+        ? [...new Set(message.channels.filter(channel => Number.isInteger(channel) && channel >= 0 && channel < CHANNELS))]
+        : null;
+      const channels = selectedChannels || (isLayered ? channelsFor() : channelsFor(message.channel));
+      if (!selectedChannels && !isLayered && Number.isInteger(message.channel) && !channelPresets.has(message.channel)) channels.push(message.channel);
       for (const channel of channels) await sendMidi('noteon', channel, message.note, message.velocity || 100);
       if (message.source === 'keyboard') activeKeyboardNotes.set(message.note, channels);
-      if (message.source === 'midi') activeMidiNotes.set(`${message.channel}:${message.note}`, channels);
+      if (message.source === 'midi') activeMidiNotes.set(`${message.inputId || 'default'}:${message.channel}:${message.note}`, channels);
       parentPort.postMessage({
         type: 'note-dispatched', action: 'on', note: message.note, channels,
         hasSoundFont: channels.some(channel => channelPresets.has(channel))
@@ -444,7 +450,7 @@ async function handleMessage(message) {
       return;
     }
     if (message.type === 'note-off' && fluidsynth) {
-      const midiKey = `${message.channel}:${message.note}`;
+      const midiKey = `${message.inputId || 'default'}:${message.channel}:${message.note}`;
       const channels = message.source === 'keyboard' && activeKeyboardNotes.has(message.note)
         ? activeKeyboardNotes.get(message.note)
         : message.source === 'midi' && activeMidiNotes.has(midiKey)

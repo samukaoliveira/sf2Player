@@ -23,6 +23,11 @@ fs.mkdirSync(output, { recursive: true });
 for (const filename of ['index.js', 'audio-worker.cjs', 'soundfont-catalog.json']) {
   fs.copyFileSync(path.join(source, filename), path.join(output, filename));
 }
+fs.cpSync(path.join(source, 'icons'), path.join(output, 'icons'), { recursive: true });
+fs.copyFileSync(
+  path.join(root, 'deploy', 'linux', 'SamnatSynthNative', 'default.png'),
+  path.join(output, 'samnat-logo.png')
+);
 
 // Packer deploys Qt libraries by scanning native addons at the dist root.
 fs.copyFileSync(
@@ -43,9 +48,14 @@ function includeRuntimePath(sourcePath) {
     if (pluginsIndex >= 0) {
       if (relative.length <= pluginsIndex + 1) return true;
       const pluginGroup = relative[pluginsIndex + 1];
-      if (pluginGroup !== 'platforms') return false;
-      if (fs.statSync(sourcePath).isDirectory()) return true;
-      if (file !== 'libqxcb.so' && file !== 'libqoffscreen.so' && file !== 'libqlinuxfb.so') return false;
+      if (fs.statSync(sourcePath).isDirectory()) return ['platforms', 'iconengines', 'imageformats'].includes(pluginGroup);
+      if (pluginGroup === 'platforms') {
+        if (file !== 'libqxcb.so' && file !== 'libqoffscreen.so' && file !== 'libqlinuxfb.so') return false;
+      } else if (pluginGroup === 'iconengines') {
+        if (file !== 'libqsvgicon.so') return false;
+      } else if (pluginGroup === 'imageformats') {
+        if (file !== 'libqsvg.so') return false;
+      } else return false;
     }
     if (relative.includes('include') || relative.includes('doc') || relative.includes('mkspecs') ||
         relative.includes('libexec') || relative.includes('translations')) return false;

@@ -6,8 +6,8 @@ TARGET=${2:-}
 STEP=5
 
 case "$ACTION" in
-	up|down|mute) ;;
-	*) echo "Uso: samnat-volume {up|down|mute} [dispositivo]" >&2; exit 2 ;;
+	up|down|mute|init) ;;
+	*) echo "Uso: samnat-volume {up|down|mute|init} [dispositivo]" >&2; exit 2 ;;
 esac
 
 if [ "$TARGET" = pulse ] && [ -x /opt/samnat-synth/bin/pactl ]; then
@@ -15,8 +15,19 @@ if [ "$TARGET" = pulse ] && [ -x /opt/samnat-synth/bin/pactl ]; then
 	[ -n "$SINK" ] || SINK=$(/opt/samnat-synth/bin/pactl get-default-sink 2>/dev/null || true)
 	[ -n "$SINK" ] || { echo "Nenhuma saída PulseAudio/PipeWire selecionada." >&2; exit 1; }
 	case "$ACTION" in
-		up) /opt/samnat-synth/bin/pactl set-sink-volume "$SINK" +"$STEP"% ;;
-		down) /opt/samnat-synth/bin/pactl set-sink-volume "$SINK" -"$STEP"% ;;
+		init)
+			/opt/samnat-synth/bin/pactl set-sink-volume "$SINK" 30%
+			/opt/samnat-synth/bin/pactl set-sink-mute "$SINK" 0
+			;;
+		up|down)
+			CURRENT=$(/opt/samnat-synth/bin/pactl get-sink-volume "$SINK" | sed -n 's/.*\/ *\([0-9][0-9]*\)% *\/.*/\1/p' | head -n 1)
+			[ -n "$CURRENT" ] || CURRENT=30
+			if [ "$ACTION" = up ]; then NEXT=$((CURRENT + STEP)); else NEXT=$((CURRENT - STEP)); fi
+			[ "$NEXT" -le 100 ] || NEXT=100
+			[ "$NEXT" -ge 0 ] || NEXT=0
+			/opt/samnat-synth/bin/pactl set-sink-volume "$SINK" "$NEXT"%
+			/opt/samnat-synth/bin/pactl set-sink-mute "$SINK" 0
+			;;
 		mute) /opt/samnat-synth/bin/pactl set-sink-mute "$SINK" toggle ;;
 	esac
 	exit 0
@@ -34,6 +45,7 @@ fi
 for CONTROL in Master Speaker Headphone PCM Front; do
 	/usr/bin/amixer -c "$CARD" sget "$CONTROL" >/dev/null 2>&1 || continue
 	case "$ACTION" in
+		init) /usr/bin/amixer -c "$CARD" sset "$CONTROL" 30% unmute ;;
 		up) /usr/bin/amixer -c "$CARD" sset "$CONTROL" "$STEP"%+ unmute ;;
 		down) /usr/bin/amixer -c "$CARD" sset "$CONTROL" "$STEP"%- unmute ;;
 		mute) /usr/bin/amixer -c "$CARD" sset "$CONTROL" toggle ;;

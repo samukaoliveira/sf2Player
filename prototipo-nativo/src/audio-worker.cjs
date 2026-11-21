@@ -9,9 +9,8 @@ const SAMPLE_RATE = 44100;
 // default MIDI route layers each incoming note across those parts, so 128
 // voices were exhausted too easily with several SF2s loaded.
 const SYNTH_POLYPHONY = 256;
-// A modest lift over unity restores output level while retaining headroom for
-// layered parts; FluidSynth applies this before sending samples to ALSA/Pulse.
-const SYNTH_MASTER_GAIN = 1.5;
+// Keep the master gain at unity to preserve headroom when MIDI parts are layered.
+const SYNTH_MASTER_GAIN = 0.4;
 const soundFonts = new Map();
 const channelPresets = new Map();
 const channelVolumes = new Map(Array.from({ length: CHANNELS }, (_, channel) => [channel, 85]));

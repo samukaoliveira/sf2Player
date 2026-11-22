@@ -1,0 +1,847 @@
+[
+  {
+    "name": "Yamaha Montage - Pianos",
+    "file": "General_Montage_Pianos.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Yamaha Concert Grand",
+    "file": "ConcertGrand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Grand Upright N",
+    "file": "Grand_Upright__N.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Kurzweil K2500",
+    "file": "Kurzweil_K2500.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Kurzweil PC88",
+    "file": "k-pc88.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Libre Digital Grand",
+    "file": "LibreDigitalGrand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "LSPModel Bosendorfer Imperial [Yamaha CP88]",
+    "file": "LSPModel_Bosendorfer_Imperial_[Yamaha_CP88].sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "MIDI Grand 2",
+    "file": "MIDIGrand_2.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Nord Imperial Grand",
+    "file": "Nord_Imperial_Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Nord Romantic Grand",
+    "file": "Nord_Romantic_Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Nord Royal Grand 3D",
+    "file": "RoyalGrand3D.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "FatBoy - Pianos",
+    "file": "FatBoy-v0_-_EPs.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Big M1 Piano 16",
+    "file": "Big_M1_piano_16.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "Custom DX EP",
+    "file": "CustomDXEP.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "Custom Libre FM EP",
+    "file": "Custom_Libre_FM_EP.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "DX7 E-Piano 1",
+    "file": "DX7_E_Piano_1.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "FM EP Layers 2x",
+    "file": "FMEP_Layers_2x.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "KORG D1 Digital Piano EPiano2 (Retro)",
+    "file": "KORG_D1_Digital_Piano_EPiano2（Retro）.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "KORG D1 Digital Piano EPiano (Solid)",
+    "file": "KORG_D1_Digital_Piano_EPiano（Solid）.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "Nord EP",
+    "file": "nord_EP.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "FatBoy - EPs",
+    "file": "FatBoy-v0_-_EPs.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "Organ ESQ-1",
+    "file": "ORGAN1__ESQ-1_.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Organ",
+    "file": "organ.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Percussion Organ",
+    "file": "Perc_Organ.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Yamaha Montage - Organs",
+    "file": "General_Montage_Organs.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Fantasia 2",
+    "file": "Fantasia_2.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Leads",
+    "file": "leads.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Sin Pad ESQ-1",
+    "file": "SINPAD__ESQ-1_.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "TBOSf",
+    "file": "TBOSf.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Yamaha Montage - Leads/Synths",
+    "file": "General_Montage_Leads.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Concert Pad Production",
+    "file": "Concert_Pad_Production.sf2",
+    "category": "Pads"
+  },
+  {
+    "name": "Yamaha Montage - Pads",
+    "file": "General_Montage_Pads.sf2",
+    "category": "Pads"
+  },
+  {
+    "name": "Strings",
+    "file": "strings.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "Strings 2",
+    "file": "strings2.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "Yamaha Montage - Strings",
+    "file": "General_Montage_Strings.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "SRX Bass",
+    "file": "srx_bass.sf2",
+    "category": "Bass"
+  },
+  {
+    "name": "Yamaha Montage - Bass",
+    "file": "General_Montage_Bass.sf2",
+    "category": "Bass"
+  },
+  {
+    "name": "91 Slow Chorus Guitar",
+    "file": "91SlowChorusGuitar.sf2",
+    "category": "Guitars"
+  },
+  {
+    "name": "Yamaha Montage - Guitars",
+    "file": "General_Montage_Guitars.sf2",
+    "category": "Guitars"
+  },
+  {
+    "name": "FatBoy - Guitars",
+    "file": "FatBoy-v0_-_Guitars.sf2",
+    "category": "Guitars"
+  },
+  {
+    "name": "Bells",
+    "file": "bells.sf2",
+    "category": "Keys & Bells"
+  },
+  {
+    "name": "Yamaha Montage - Bells",
+    "file": "General_Montage_Bells.sf2",
+    "category": "Keys & Bells"
+  },
+  {
+    "name": "FatBoy - Clavis e Bells",
+    "file": "FatBoy-v0_-_Clavis_e_Bells.sf2",
+    "category": "Keys & Bells"
+  },
+  {
+    "name": "Yamaha Montage - Flutes",
+    "file": "General_Montage_Flutes.sf2",
+    "category": "Winds"
+  },
+  {
+    "name": "Yamaha Montage - Drums",
+    "file": "General_Montage_Drums.sf2",
+    "category": "Drums"
+  },
+  {
+    "name": "Korg AG-10",
+    "file": "Korg_AG-10.sf2",
+    "category": "FX"
+  },
+  {
+    "name": "Roland U20",
+    "file": "Roland_U20.sf2",
+    "category": "FX"
+  },
+  {
+    "name": "Yamaha Montage - FX",
+    "file": "General_Montage_FX.sf2",
+    "category": "FX"
+  },
+  {
+    "name": "Yamaha Montage - World",
+    "file": "General_Montage_World.sf2",
+    "category": "World"
+  },
+  {
+    "name": "FatBoy - Leads",
+    "file": "FatBoy-v0_-_Leads.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "FatBoy - Organs",
+    "file": "FatBoy-v0_-_Organs.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "FatBoy - Strings",
+    "file": "FatBoy-v0_-_Strings.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "FatBoy - Violin",
+    "file": "FatBoy-v0-3_-_Violin.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "FatBoy - Cello",
+    "file": "FatBoy-v0-3_-_Cello.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "Roland Fantom X - So True",
+    "file": "A001_So_True....sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Concert Piano",
+    "file": "A002_ConcertPiano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Warm Piano",
+    "file": "A003_Warm_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Warm Pad Piano",
+    "file": "A004_Warm_Pad_Pno.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Warm Strings Piano",
+    "file": "A005_Warm_Str_Pno.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Beale Street Walk",
+    "file": "A006_BealeSt_Walk.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Rapsody",
+    "file": "A007_Rapsody.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - JD-800 Piano",
+    "file": "A008_JD-800_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - SA Dance Piano",
+    "file": "A009_SA_Dance_Pno.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - FS E-Grand",
+    "file": "A010_FS_E-Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - FS Blend Piano",
+    "file": "A011_FS_Blend_Pno.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - LA Piano",
+    "file": "A012_LA_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Concert Grand",
+    "file": "F001_ConcertGrand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Hall Concert",
+    "file": "F002_Hall_Concert.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Bright Tune",
+    "file": "F003_Bright_Tune.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Mellow Tune",
+    "file": "F004_Mellow_Tune.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Ultimate Grand",
+    "file": "F009_UltimatGrand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - X Pure Grand",
+    "file": "F010_X_Pure_Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Studio Grand",
+    "file": "F011_Studio_Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - 88 Concert Piano",
+    "file": "F012_88ConcertPno.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Dry Studio 88",
+    "file": "F013_DryStudio88.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - First Choice",
+    "file": "F014_First_Choice.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Rokkin' Piano",
+    "file": "F015_Rokkin'_pF.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Dark Grand",
+    "file": "F016_Dark_Grand.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Piano Oz",
+    "file": "F017_Piano_Oz.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Piano",
+    "file": "F017.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Grand Hall",
+    "file": "F018_Grand_Hall.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - X Piano + Strings",
+    "file": "F019_X_Piano_+Str.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Arie Piano",
+    "file": "F020_Arie_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Cicada Piano",
+    "file": "F021_Cicada_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Clare Voyent",
+    "file": "F022_Clare_Voyent.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - X Piano + Pad",
+    "file": "F023_X_Piano_+Pad.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - X Piano + Vox",
+    "file": "F024_X_Piano_+Vox.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - FX Piano",
+    "file": "F025_FX_Piano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - Ambient Piano",
+    "file": "F026_AmbientPiano.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Roland Fantom X - R&B TriLead",
+    "file": "C053_R&B_TriLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - PeakArpSine",
+    "file": "C054_PeakArpSine.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Theramax",
+    "file": "C055_Theramax.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS Square Lead",
+    "file": "C056_FS_Sqr_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Dawn Of Pan",
+    "file": "C057_Dawn_Of_Pan.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Square Diamond",
+    "file": "C058_Sqr_Diamond.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS SoftLead",
+    "file": "C059_FS_SoftLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mid Saw Lead",
+    "file": "C060_Mid_Saw_Ld.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS ResoLead",
+    "file": "C061_FS_ResoLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Dig-n-Duke",
+    "file": "C062_Dig-n-Duke.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Modulated Lead",
+    "file": "C063_Modulated_Ld.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Waspy Lead",
+    "file": "C064_Waspy_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mew Lead",
+    "file": "C065_Mew_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Violin Lead",
+    "file": "C066_Violin_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Oscillo Lead",
+    "file": "C067_Oscillo_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - JP Saw Lead",
+    "file": "C068_JP_Saw_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - MG Square Lead",
+    "file": "C069_MG_Sqr_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Tristar",
+    "file": "C070_Tristar.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mod Lead",
+    "file": "C071_Mod_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Digital Lead 1",
+    "file": "C072_Digital_Ld_1.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Chubby Lead",
+    "file": "C073_Chubby_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Sneaky Leady",
+    "file": "C074_Sneaky_Leady.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - SoloNzPeaker",
+    "file": "C075_SoloNzPeaker.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Clone Zone",
+    "file": "C076_Clone_Zone.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Legato Tkno",
+    "file": "C077_Legato_Tkno.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - SliCed Lead",
+    "file": "G089_SliCed_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Synthi Fizz",
+    "file": "G090_Synthi_Fizz.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mini Growl",
+    "file": "G091_Mini_Growl.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Jupiter Lead",
+    "file": "G092_Jupiter_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - X-Pulse Lead",
+    "file": "G093_X-Pulse_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Jupi Square",
+    "file": "G094_Jupi_Square.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - TriStac Lead",
+    "file": "G095_TriStac_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Modular Lead",
+    "file": "G096_Modular_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Sinetific",
+    "file": "G097_Sinetific.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Dirty D_A",
+    "file": "G098_Dirty_D_A.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - EuronalSynth",
+    "file": "G099_EuronalSynth.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Xtrem Sine",
+    "file": "G100_Xtrem_Sine.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Kurzweil K2500 - Bass",
+    "file": "Kurzweil_K2500_-_Bass.sf2",
+    "category": "Bass"
+  },
+  {
+    "name": "Kurzweil K2500 - Bells",
+    "file": "Kurzweil_K2500_-_Bells.sf2",
+    "category": "Keys & Bells"
+  },
+  {
+    "name": "Kurzweil K2500 - Brass",
+    "file": "Kurzweil_K2500_-_Brass.sf2",
+    "category": "Brass"
+  },
+  {
+    "name": "Kurzweil K2500 - Choir",
+    "file": "Kurzweil_K2500_-_Choir.sf2",
+    "category": "Choir"
+  },
+  {
+    "name": "Kurzweil K2500 - Drums",
+    "file": "Kurzweil_K2500_-_Drums.sf2",
+    "category": "Drums"
+  },
+  {
+    "name": "Kurzweil K2500 - EPianos",
+    "file": "Kurzweil_K2500_-_EPianos.sf2",
+    "category": "Electric Pianos"
+  },
+  {
+    "name": "Kurzweil K2500 - Flutes",
+    "file": "Kurzweil_K2500_-_Flutes.sf2",
+    "category": "Flutes"
+  },
+  {
+    "name": "Kurzweil K2500 - Guitars",
+    "file": "Kurzweil_K2500_-_Guitars.sf2",
+    "category": "Guitars"
+  },
+  {
+    "name": "Kurzweil K2500 - Leads",
+    "file": "Kurzweil_K2500_-_Leads.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Kurzweil K2500 - Organs",
+    "file": "Kurzweil_K2500_-_Organs.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Kurzweil K2500 - Pads",
+    "file": "Kurzweil_K2500_-_Pads.sf2",
+    "category": "Pads"
+  },
+  {
+    "name": "Kurzweil K2500 - Pianos",
+    "file": "Kurzweil_K2500_-_Pianos.sf2",
+    "category": "Pianos"
+  },
+  {
+    "name": "Kurzweil K2500 - Strings",
+    "file": "Kurzweil_K2500_-_Strings.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "Kurzweil K2500 - World",
+    "file": "Kurzweil_K2500_-_World.sf2",
+    "category": "World"
+  },
+  {
+    "name": "Roland Fantom X - R&B TriLead",
+    "file": "C053_R&B_TriLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - PeakArpSine",
+    "file": "C054_PeakArpSine.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Theramax",
+    "file": "C055_Theramax.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS Square Lead",
+    "file": "C056_FS_Sqr_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Dawn Of Pan",
+    "file": "C057_Dawn_Of_Pan.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Square Diamond",
+    "file": "C058_Sqr_Diamond.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS SoftLead",
+    "file": "C059_FS_SoftLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mid Saw Lead",
+    "file": "C060_Mid_Saw_Ld.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - FS ResoLead",
+    "file": "C061_FS_ResoLead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Dig-n-Duke",
+    "file": "C062_Dig-n-Duke.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Modulated Lead",
+    "file": "C063_Modulated_Ld.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Waspy Lead",
+    "file": "C064_Waspy_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mew Lead",
+    "file": "C065_Mew_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Violin Lead",
+    "file": "C066_Violin_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Oscillo Lead",
+    "file": "C067_Oscillo_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - JP Saw Lead",
+    "file": "C068_JP_Saw_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - MG Square Lead",
+    "file": "C069_MG_Sqr_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Tristar",
+    "file": "C070_Tristar.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Mod Lead",
+    "file": "C071_Mod_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Digital Lead 1",
+    "file": "C072_Digital_Ld_1.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Chubby Lead",
+    "file": "C073_Chubby_Lead.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Sneaky Leady",
+    "file": "C074_Sneaky_Leady.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - SoloNzPeaker",
+    "file": "C075_SoloNzPeaker.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Clone Zone",
+    "file": "C076_Clone_Zone.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Roland Fantom X - Legato Tkno",
+    "file": "C077_Legato_Tkno.sf2",
+    "category": "Leads"
+  },
+  {
+    "name": "Yamaha Montage - Warm Pad",
+    "file": "General_Montage_Pads_Warm.sf2",
+    "category": "Pads"
+  },
+  {
+    "name": "Yamaha Montage - Strings Section",
+    "file": "General_Montage_Strings_Section.sf2",
+    "category": "Strings"
+  },
+  {
+    "name": "Yamaha Montage - Drawbar Organ",
+    "file": "General_Montage_Organs_Drawbar.sf2",
+    "category": "Organs"
+  },
+  {
+    "name": "Yamaha Montage - DX7",
+    "file": "General_Montage_DX7.sf2",
+    "category": "Pianos"
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "profileVersion": 1,
+  "device": {
+    "model": "moto g52",
+    "modelNumber": "XT2221-2",
+    "deviceCodename": "rhode",
+    "product": "rhode_g",
+    "androidRelease": "13",
+    "androidApi": 33,
+    "buildId": "T2SRS33.72-22-4-11",
+    "buildFingerprint": "motorola/rhode_g/rhode:13/T2SRS33.72-22-4-11/aeff8f-599c0:user/release-keys",
+    "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
+    "bootloaderLockedAtInventory": true,
+    "verifiedBootStateAtInventory": "green"
+  },
+  "deployment": {
+    "initialMode": "apk-on-stock-motorola-rom",
+    "minSdk": 26,
+    "targetSdkForDeviceValidation": 33,
+    "nativeAbi": "arm64-v8a",
+    "soundfontStorage": "app-private-or-user-selected-storage-under-data",
+    "doNotWriteSystemPartitions": true
+  },
+  "preserveUntilOnDeviceValidation": [
+    "com.android.bluetoothmidiservice",
+    "com.google.android.documentsui",
+    "com.android.providers.media",
+    "com.google.android.providers.media.module",
+    "com.android.providers.downloads",
+    "com.android.inputdevices",
+    "com.android.systemui",
+    "com.google.android.permissioncontroller",
+    "com.motorola.systemserver",
+    "com.motorola.dynamicvolume",
+    "com.dolby.daxservice",
+    "com.motorola.dolby.dolbyui"
+  ],
+  "optionalUserPackagesFromInventory": [
+    "com.shopee.br",
+    "com.amazon.mp3",
+    "com.kwai.video",
+    "com.oakever.arrows",
+    "com.taxis99",
+    "com.inmobi.weather",
+    "com.zhiliaoapp.musically",
+    "com.facebook.katana",
+    "com.google.android.apps.fitness",
+    "com.oakever.tiletrip",
+    "com.puzzlegames.puzzlebrickslegend",
+    "pdf.pdfreader.viewer.editor.free",
+    "com.google.android.apps.docs.editors.sheets",
+    "com.google.android.apps.docs.editors.docs",
+    "com.google.android.apps.magazines",
+    "com.google.android.apps.walletnfcrel",
+    "com.google.android.apps.docs.editors.slides",
+    "com.vitastudio.mahjong",
+    "com.block.juggle",
+    "com.google.android.apps.chromecast.app",
+    "all.documentreader.filereader.office.viewer",
+    "com.linkedin.android"
+  ],
+  "notes": [
+    "Package lists are observations from one installed user profile, not a universal XT2221-2 debloat list.",
+    "Do not remove or disable system packages based only on this profile.",
+    "System and vendor partitions are not storage locations for SoundFonts."
+  ]
+}

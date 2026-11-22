@@ -1,0 +1,2 @@
+-keep class com.samnat.synth.NativeAudioEngine { *; }
+-keep class com.samnat.synth.admin.KioskAdminReceiver { *; }

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SamNat Synth</string>
+    <string name="device_admin_description">Permite manter o SamNat Synth em modo quiosque neste aparelho dedicado.</string>
+</resources>

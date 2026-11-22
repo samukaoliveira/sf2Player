@@ -1,0 +1,33 @@
+# Apêndice B — Glossário
+
+- **ABI**: contrato binário entre executáveis, bibliotecas e sistema.
+- **ALSA**: arquitetura Linux para áudio e MIDI, com componentes no kernel e bibliotecas no espaço de usuário.
+- **AppDir**: diretório organizado com binário e dependências que será empacotado em AppImage.
+- **AppImage**: formato de distribuição de aplicativos Linux em um arquivo executável.
+- **Buildroot**: sistema para construir toolchain, kernel, pacotes e imagens Linux embarcadas.
+- **Canal MIDI**: uma das 16 rotas lógicas convencionais de MIDI 1.0 por porta.
+- **Cena**: conjunto salvo de partes, timbres, controles e associações.
+- **DAC / conversor D/A**: converte amostras digitais em sinal analógico.
+- **Driver**: software que controla ou expõe um dispositivo.
+- **Ext4**: sistema de arquivos Linux usado nas partições raiz e de dados desta imagem.
+- **FluidSynth**: sintetizador por software que usa SoundFonts e produz áudio PCM.
+- **Framebuffer**: interface de memória/imagem usada para exibir pixels; no Qt, LinuxFB é um plugin de plataforma.
+- **Hotplug**: descoberta e incorporação de um dispositivo conectado após o sistema iniciar.
+- **Kernel**: núcleo privilegiado do sistema operacional.
+- **MIDI Learn**: associação de um evento/controle MIDI a um destino da aplicação.
+- **NodeGui**: bindings para criar aplicações Qt com JavaScript.
+- **PCM**: representação digital de áudio por amostras sucessivas.
+- **Preset**: timbre selecionável num banco SoundFont ou sintetizador.
+- **Qode**: runtime que integra Node.js com o ciclo de eventos Qt para aplicações NodeGui.
+- **QPA**: abstração de plataforma Qt; seleciona backend de janela/tela, como xcb ou linuxfb.
+- **Root filesystem**: árvore que se torna a raiz / do Linux.
+- **RSS**: memória residente de um processo.
+- **SF2**: SoundFont 2, formato de banco de instrumentos baseado em amostras.
+- **Slot/parte**: canal de instrumento com timbre e parâmetros individuais.
+- **SoundFont**: banco de amostras e regras para sintetizador compatível.
+- **Thread**: fluxo de execução dentro de um processo.
+- **Toolchain**: compilador, linker, headers e bibliotecas usados para criar binários para um alvo.
+- **VAST**: Variable Architecture Synthesis Technology, arquitetura de síntese/processamento associada a instrumentos Kurzweil.
+- **VIRT/VSZ**: espaço virtual reservado ou mapeado por um processo.
+- **Voice/voz**: instância sonora ativa, frequentemente iniciada por uma nota e mantida até sua liberação.
+- **Worker**: thread gerenciada pelo Node.js que executa lógica fora do loop principal.

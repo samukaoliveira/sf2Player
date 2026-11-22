@@ -77,11 +77,6 @@ export class KeyboardComponent implements OnDestroy {
 
   soundfontCatalogo = SOUNDFONT_CATALOGO;
   soundfontGrupos: SoundFontGrupo[] = [];
-  categoriasSoundFontUpload: string[] = [];
-  localSoundFontsDisponivel = false;
-  arquivoSoundFontUpload: File | null = null;
-  categoriaSoundFontUpload = '';
-  mensagemUploadSoundFont = '';
 
   soundfonts: MotorSoundFont[] = SOUNDFONTS.slice(0, 1).map(
     (sf: SoundFontMixer, index: number) => ({
@@ -138,6 +133,8 @@ export class KeyboardComponent implements OnDestroy {
     { length: 25 },
     (_, i) => 48 + i
   );
+
+  readonly tecladoVirtual = this.criarTecladoVirtual();
 
   readonly nomesNotas = [
     'C', 'C#', 'D', 'D#', 'E', 'F',
@@ -2390,15 +2387,10 @@ async conectarControladorMidi(): Promise<void> {
       categoria,
       opcoes
     }));
-    this.categoriasSoundFontUpload = Array.from(new Set([
-      ...grupos.keys(),
-      'Importados'
-    ])).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }
 
   private async carregarSoundFontsLocais(): Promise<void> {
     if (!window.sf2LocalCache) return;
-    this.localSoundFontsDisponivel = true;
     try {
       const locais = await window.sf2LocalCache.listLocal();
       const opcoes = [...SOUNDFONT_CATALOGO];
@@ -2434,54 +2426,40 @@ async conectarControladorMidi(): Promise<void> {
       this.agruparSoundFonts();
     } catch (e) {
       console.warn('Não foi possível listar SoundFonts locais:', e);
-      this.mensagemUploadSoundFont = 'Não foi possível listar os arquivos da pasta de SoundFonts.';
     }
   }
 
-  selecionarArquivoSoundFontUpload(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const arquivo = input.files && input.files[0];
-    this.arquivoSoundFontUpload = arquivo || null;
-    this.mensagemUploadSoundFont = arquivo && !/\.sf2$/i.test(arquivo.name)
-      ? 'Selecione um arquivo com extensão .sf2.'
-      : '';
-  }
+  private criarTecladoVirtual(): {
+    brancas: { nota: number; esquerda: number; largura: number }[];
+    pretas: { nota: number; esquerda: number; largura: number }[];
+  } {
+    const primeiraNota = 36; // C2
+    const ultimaNota = 95; // B6: cinco oitavas completas
+    const classesPretas = new Set([1, 3, 6, 8, 10]);
+    const notasBrancas: number[] = [];
+    const notasPretas: number[] = [];
 
-  async importarSoundFontLocal(): Promise<void> {
-    if (!window.sf2LocalCache || !this.arquivoSoundFontUpload) return;
-    if (!this.categoriaSoundFontUpload) {
-      this.mensagemUploadSoundFont = 'Escolha uma categoria para o SoundFont.';
-      return;
+    for (let nota = primeiraNota; nota <= ultimaNota; nota++) {
+      (classesPretas.has(nota % 12) ? notasPretas : notasBrancas).push(nota);
     }
-    const arquivo = this.arquivoSoundFontUpload;
-    if (!/\.sf2$/i.test(arquivo.name)) {
-      this.mensagemUploadSoundFont = 'Selecione um arquivo com extensão .sf2.';
-      return;
-    }
-    this.mensagemUploadSoundFont = 'Importando SoundFont...';
-    const leitor = new FileReader();
-    leitor.onload = async () => {
-      try {
-        const dados = leitor.result;
-        if (!(dados instanceof ArrayBuffer)) throw new Error('Não foi possível ler o arquivo selecionado.');
-        const resultado = await window.sf2LocalCache!.importLocal(
-          arquivo.name,
-          this.categoriaSoundFontUpload,
-          dados
-        );
-        if (!resultado.sucesso) throw new Error(resultado.erro || 'Falha ao importar SoundFont.');
-        this.mensagemUploadSoundFont = `${arquivo.name} importado para ${window.sf2LocalCache!.directory}.`;
-        this.arquivoSoundFontUpload = null;
-        this.categoriaSoundFontUpload = '';
-        await this.carregarSoundFontsLocais();
-      } catch (e) {
-        this.mensagemUploadSoundFont = e instanceof Error ? e.message : 'Falha ao importar SoundFont.';
-      }
-    };
-    leitor.onerror = () => {
-      this.mensagemUploadSoundFont = 'Não foi possível ler o arquivo selecionado.';
-    };
-    leitor.readAsArrayBuffer(arquivo);
+
+    const larguraBranca = 100 / notasBrancas.length;
+    const brancas = notasBrancas.map((nota, indice) => ({
+      nota,
+      esquerda: indice * larguraBranca,
+      largura: larguraBranca
+    }));
+    const pretas = notasPretas.map(nota => {
+      const limiteBranco = notasBrancas.filter(branca => branca < nota).length;
+      const largura = larguraBranca * 0.62;
+      return {
+        nota,
+        esquerda: limiteBranco * larguraBranca - largura / 2,
+        largura
+      };
+    });
+
+    return { brancas, pretas };
   }
 
 

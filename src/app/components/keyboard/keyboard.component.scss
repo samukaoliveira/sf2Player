@@ -245,13 +245,6 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .controles span { color: var(--texto-secundario); font-size: 12px; }
 
 .teclado-virtual { overflow: hidden; }
-.keybad { display: flex; width: 100%; min-width: 0; height: 124px; overflow-x: auto; overflow-y: hidden; padding: 0 0 5px; touch-action: pan-x; }
-.keybad > div { position: relative; flex: 0 0 28px; height: 112px; border: 1px solid #c7ccd4; border-radius: 0 0 5px 5px; background: #fff; cursor: pointer; touch-action: none; user-select: none; }
-.keybad > div:hover { background: var(--cor-primaria-clara); }
-.keybad > .asus, .keybad > .csus, .keybad > .dsus, .keybad > .fsus, .keybad > .gsus { z-index: 2; flex-basis: 18px; height: 72px; margin-left: -9px; margin-right: -9px; border: 1px solid #101820; border-radius: 0 0 4px 4px; background: #252a32; }
-.keybad > .asus:hover, .keybad > .csus:hover, .keybad > .dsus:hover, .keybad > .fsus:hover, .keybad > .gsus:hover { background: var(--cor-primaria); }
-.keybad > div:active { background: #b9d6ff; }
-.keybad > .asus:active, .keybad > .csus:active, .keybad > .dsus:active, .keybad > .fsus:active, .keybad > .gsus:active { background: #0049bf; }
 
 .controlador-midi { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .midi-label { margin: 0; color: var(--texto-secundario); font-size: 12px; }
@@ -272,13 +265,6 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .slot.categoria-neutro { background: #f7f8fa; }
 .efeitos-header .resetar-efeitos { min-height: 27px; padding: 4px 8px; font-size: 10px; }
 .efeitos-controles { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.soundfont-upload { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid var(--borda); border-radius: 9px; background: #f8faff; }
-.soundfont-upload-arquivo { display: flex; min-width: 180px; flex: 1 1 220px; align-items: center; gap: 7px; color: var(--texto-secundario); font-size: 11px; cursor: pointer; }
-.soundfont-upload-arquivo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.soundfont-upload-arquivo input { min-width: 0; max-width: 210px; font-size: 10px; }
-.soundfont-upload select, .soundfont-upload button { min-height: 30px; height: 30px; margin: 0; padding: 4px 8px; font-size: 10px; }
-.soundfont-upload-mensagem { flex: 1 1 100%; color: var(--texto-secundario); font-size: 10px; }
-
 @media (max-width: 1600px) {
   .slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
@@ -296,8 +282,6 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
   .painel-cenas, .controles, .teclado-virtual { padding: 14px; }
   .efeitos-controles { gap: 8px; }
   .efeito-nome { font-size: 10px; }
-  .keybad > div { flex-basis: 26px; }
-  .keybad > .asus, .keybad > .csus, .keybad > .dsus, .keybad > .fsus, .keybad > .gsus { flex-basis: 17px; margin-left: -8px; margin-right: -8px; }
 }
 @media (max-width: 480px) {
   .cenas-rapidas-grid { grid-template-columns: minmax(0, 1fr); }
@@ -339,9 +323,10 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .workspace { display: flex; min-height: 0; flex: 1 1 auto; gap: 12px; }
 .painel-cenas {
   display: flex;
-  width: 23%;
-  min-width: 250px;
-  flex: 0 0 23%;
+  width: 36%;
+  min-width: 320px;
+  max-width: 660px;
+  flex: 0 0 36%;
   flex-direction: column;
   gap: 5px;
   margin: 0;
@@ -352,9 +337,9 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .cenas-salvar, .cenas-carregar, .cenas-backup { gap: 6px; margin-bottom: 4px; }
 .cenas-salvar input, .cenas-carregar select { flex-basis: 100%; }
 .cenas-salvar button, .cenas-carregar button, .cenas-backup button, .botao-importar-cenas { min-height: 32px; padding: 6px 8px; font-size: 11px; }
-.cenas-rapidas { margin-top: 6px; padding: 9px; }
+.cenas-rapidas { min-height: 0; flex: 1 1 auto; overflow: auto; margin-top: 6px; padding: 9px; }
 .cenas-rapidas-header { margin-bottom: 7px; }
-.cenas-rapidas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.cenas-rapidas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
 .botao-cena-rapida { min-height: 38px; gap: 6px; padding: 5px; }
 .cena-rapida-numero { width: 22px; height: 22px; flex-basis: 22px; font-size: 10px; }
 .cena-rapida-nome { font-size: 10px; }
@@ -419,16 +404,51 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
 .slot-avancado .midi-learn-volume { margin-bottom: 7px; padding: 6px; }
 .teclado-virtual { flex: 0 0 auto; margin: 0; padding: 8px 12px; }
 .teclado-virtual h3 { margin: 0 0 5px; font-size: 13px; }
-.keybad { height: 95px; overflow: hidden; }
-.keybad > div { flex-basis: 20px; height: 88px; }
-.keybad > .asus, .keybad > .csus, .keybad > .dsus, .keybad > .fsus, .keybad > .gsus { flex-basis: 13px; height: 57px; margin-right: -6px; margin-left: -6px; }
+.keybad {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 128px;
+  overflow: hidden;
+  border: 1px solid #aeb8c4;
+  border-radius: 3px;
+  background: #d7dce3;
+  touch-action: none;
+}
+.keybad > button {
+  position: absolute;
+  top: 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 0 0 4px 4px;
+  touch-action: none;
+  user-select: none;
+}
+.keybad > .tecla-branca {
+  z-index: 1;
+  height: 100%;
+  border: 1px solid #aeb8c4;
+  background: #fff;
+}
+.keybad > .tecla-branca:hover { background: #eaf2ff; }
+.keybad > .tecla-branca:active { background: #b9d6ff; }
+.keybad > .tecla-preta {
+  z-index: 2;
+  height: 62%;
+  border: 1px solid #101820;
+  background: #252a32;
+}
+.keybad > .tecla-preta:hover { border-color: #0049bf; background: var(--cor-primaria); }
+.keybad > .tecla-preta:active { background: #0049bf; }
 
 @media (max-width: 1200px) {
   .keyboard-header { align-items: flex-start; }
   .keyboard-header > div:first-child { display: none; }
   .header-controls { width: auto; flex-basis: 100%; justify-content: space-between; gap: 8px; }
   .header-midi .midi-select { width: 140px; }
-  .painel-cenas { min-width: 220px; }
+  .painel-cenas { min-width: 300px; }
   .slot { grid-template-columns: 88px minmax(0, 1fr); }
   .slot-controls { grid-template-columns: minmax(125px, 2fr) 64px minmax(120px, 1.6fr) minmax(90px, 1fr) auto; }
   .slot-avancado { grid-column: 1 / -1; justify-self: end; }
@@ -437,7 +457,7 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
   :host { height: auto; }
   .keyboard-container { height: auto; min-height: 100vh; padding-top: 72px; overflow: visible; }
   .workspace { flex-direction: column; }
-  .painel-cenas { width: 100%; min-width: 0; flex-basis: auto; }
+  .painel-cenas { width: 100%; min-width: 0; max-width: none; flex-basis: auto; }
   .mixer-main { overflow: visible; }
   .slots { flex: none; }
   .slot { flex: none; grid-template-columns: 85px minmax(0, 1fr); }
@@ -449,7 +469,5 @@ input[type="range"] { width: 100%; accent-color: var(--cor-primaria); cursor: po
   .keyboard-container { gap: 6px; padding-top: 7px; padding-bottom: 7px; }
   .keyboard-header { min-height: 56px; padding: 6px 12px; }
   button { min-height: 32px; padding-top: 6px; padding-bottom: 6px; }
-  .keybad { height: 76px; }
-  .keybad > div { height: 72px; }
-  .keybad > .asus, .keybad > .csus, .keybad > .dsus, .keybad > .fsus, .keybad > .gsus { height: 48px; }
+  .keybad { height: 88px; }
 }

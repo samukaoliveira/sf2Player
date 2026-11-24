@@ -14,24 +14,52 @@ const CHANNELS = 8;
 const DATA_DIR = path.join(os.homedir(), '.samnat-synth');
 const SF_DIR = path.join(DATA_DIR, 'soundfonts');
 const SCENE_FILE = path.join(DATA_DIR, 'scenes.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const ICON_DIR = path.join(__dirname, 'icons');
 const APP_LOGO_FILE = [
   path.join(__dirname, 'samnat-logo.png'),
   path.join(__dirname, '../deploy/linux/SamnatSynthNative/default.png')
 ].find(file => fs.existsSync(file));
 const DEFAULT_SCENE_NAME = 'Cena inicial';
+const AUDIO_BUFFER_PROFILES = [
+  { id: 'native', label: 'Padrão FluidSynth · 64 × 16', periodSize: 64, periods: 16 },
+  { id: 'low', label: 'Baixa latência · 128 × 3', periodSize: 128, periods: 3 },
+  { id: 'balanced', label: 'Equilibrado · 256 × 4', periodSize: 256, periods: 4 },
+  { id: 'stable', label: 'Estável · 512 × 4', periodSize: 512, periods: 4 },
+  { id: 'safe', label: 'Muito estável · 1024 × 4', periodSize: 1024, periods: 4 }
+];
 fs.mkdirSync(SF_DIR, { recursive: true });
 
 const app = new QApplication();
+const primaryScreen = QApplication.primaryScreen();
+const screenSize = primaryScreen?.size();
+const compactScreenDetected = screenSize && screenSize.width() <= 600 && screenSize.height() <= 600;
+const COMPACT_UI = process.env.SAMNAT_DISPLAY_PROFILE === 'mpi3501' || process.env.SAMNAT_COMPACT_UI === '1' || compactScreenDetected;
+let audioBufferProfileId = COMPACT_UI ? 'stable' : 'native';
+try {
+  const savedSettings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+  if (AUDIO_BUFFER_PROFILES.some(profile => profile.id === savedSettings.audioBufferProfileId)) {
+    audioBufferProfileId = savedSettings.audioBufferProfileId;
+  }
+} catch (_) { /* First launch uses a screen-appropriate default. */ }
+function selectedAudioBufferProfile() {
+  return AUDIO_BUFFER_PROFILES.find(profile => profile.id === audioBufferProfileId) || AUDIO_BUFFER_PROFILES[COMPACT_UI ? 3 : 0];
+}
+function saveSettings() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ audioBufferProfileId }, null, 2));
+  } catch (_) { /* Settings persistence must not interrupt playing audio. */ }
+}
 const window = new QMainWindow();
 window.setWindowTitle('SamNat Synth — Nativo');
-window.resize(1050, 850);
-window.setMinimumSize(760, 700);
+window.resize(COMPACT_UI ? 480 : 1050, COMPACT_UI ? 320 : 850);
+window.setMinimumSize(COMPACT_UI ? 440 : 760, COMPACT_UI ? 280 : 700);
 const central = new QWidget();
 const layout = new QBoxLayout(Direction.TopToBottom);
 central.setLayout(layout);
-layout.setContentsMargins(18, 14, 18, 14);
-layout.setSpacing(12);
+layout.setContentsMargins(COMPACT_UI ? 3 : 18, COMPACT_UI ? 3 : 14, COMPACT_UI ? 3 : 18, COMPACT_UI ? 3 : 14);
+layout.setSpacing(COMPACT_UI ? 3 : 12);
 central.setInlineStyle('background-color: #f7f8fa; color: #1c1e21;');
 window.setCentralWidget(central);
 
@@ -88,6 +116,9 @@ function slider(min, max, value, handler) {
   widget.setValue(value);
   widget.addEventListener('valueChanged', handler);
   return widget;
+}
+function slotVolumeText(value) {
+  return COMPACT_UI ? `${value}%` : `Volume ${value}%`;
 }
 function horizontal(parent) {
   const line = new QWidget();
@@ -295,6 +326,8 @@ workspaceLayout.setStretch(1, 13);
 // process.chdir() is forbidden inside workers and aborts the audio engine.
 const audioWorkerEnv = { ...process.env };
 delete audioWorkerEnv.NODE_OPTIONS;
+audioWorkerEnv.SAMNAT_AUDIO_PERIOD_SIZE = String(selectedAudioBufferProfile().periodSize);
+audioWorkerEnv.SAMNAT_AUDIO_PERIODS = String(selectedAudioBufferProfile().periods);
 const worker = new Worker(path.join(__dirname, 'audio-worker.cjs'), {
   execArgv: [],
   env: audioWorkerEnv
@@ -345,18 +378,33 @@ worker.on('online', () => {
 });
 armAudioStartupWatchdog();
 const audioDeviceList = new QComboBox();
-audioDeviceList.setMinimumHeight(38);
-audioDeviceList.setMinimumWidth(300);
+audioDeviceList.setMinimumHeight(COMPACT_UI ? 32 : 38);
+audioDeviceList.setMinimumWidth(COMPACT_UI ? 120 : 300);
 let audioDevices = [];
 let refreshingAudioDevices = false;
 const audioDialog = new QDialog(window);
-audioDialog.setWindowTitle('Saída e teste de áudio');
-audioDialog.setMinimumWidth(560);
+audioDialog.setWindowTitle('Áudio e MIDI');
+audioDialog.setMinimumWidth(COMPACT_UI ? 440 : 560);
+if (COMPACT_UI) {
+  audioDialog.resize(470, 300);
+  audioDialog.setMaximumSize(480, 310);
+}
 const audioDialogLayout = new QBoxLayout(Direction.TopToBottom);
-audioDialogLayout.setContentsMargins(18, 16, 18, 16);
-audioDialogLayout.setSpacing(12);
+audioDialogLayout.setContentsMargins(COMPACT_UI ? 7 : 18, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 18, COMPACT_UI ? 7 : 16);
+audioDialogLayout.setSpacing(COMPACT_UI ? 5 : 12);
 audioDialog.setLayout(audioDialogLayout);
-audioDialogLayout.addWidget(label('Selecione a saída e toque um tom curto para conferir o áudio.', 'font-size: 14px; font-weight: 600; color: #344054;'));
+const audioDialogContent = new QWidget();
+const audioDialogContentLayout = new QBoxLayout(Direction.TopToBottom);
+audioDialogContent.setLayout(audioDialogContentLayout);
+audioDialogContentLayout.setContentsMargins(2, 2, 2, 2);
+audioDialogContentLayout.setSpacing(COMPACT_UI ? 5 : 12);
+const audioDialogScroll = new QScrollArea();
+audioDialogScroll.setWidget(audioDialogContent);
+audioDialogScroll.setWidgetResizable(true);
+audioDialogScroll.setMinimumHeight(COMPACT_UI ? 160 : 220);
+audioDialogScroll.setInlineStyle('border: 0; background: transparent;');
+audioDialogLayout.addWidget(audioDialogScroll, 1);
+audioDialogContentLayout.addWidget(label('Selecione a saída, o buffer e o controlador MIDI.', 'font-size: 14px; font-weight: 600; color: #344054;'));
 const audioDeviceLine = new QWidget();
 const audioDeviceLineLayout = new QBoxLayout(Direction.LeftToRight);
 audioDeviceLine.setLayout(audioDeviceLineLayout);
@@ -366,8 +414,29 @@ audioDeviceLineLayout.addWidget(label('Saída', 'font-size: 12px; font-weight: 7
 audioDeviceLineLayout.addWidget(audioDeviceList, 1);
 const refreshAudioButton = button('Atualizar', refreshAudioDevices);
 setButtonIcon(refreshAudioButton, 'refresh', 16);
+if (COMPACT_UI) refreshAudioButton.setText('');
 audioDeviceLineLayout.addWidget(refreshAudioButton);
-audioDialogLayout.addWidget(audioDeviceLine);
+audioDialogContentLayout.addWidget(audioDeviceLine);
+const audioBufferLine = new QWidget();
+const audioBufferLineLayout = new QBoxLayout(Direction.LeftToRight);
+audioBufferLine.setLayout(audioBufferLineLayout);
+audioBufferLineLayout.setContentsMargins(0, 0, 0, 0);
+audioBufferLineLayout.setSpacing(8);
+audioBufferLineLayout.addWidget(label('Buffer', 'font-size: 12px; font-weight: 700; color: #475467;'));
+const audioBufferList = new QComboBox();
+audioBufferList.setMinimumHeight(COMPACT_UI ? 32 : 38);
+AUDIO_BUFFER_PROFILES.forEach(profile => audioBufferList.addItem(undefined, profile.label));
+audioBufferList.setCurrentIndex(Math.max(0, AUDIO_BUFFER_PROFILES.findIndex(profile => profile.id === audioBufferProfileId)));
+audioBufferLineLayout.addWidget(audioBufferList, 1);
+audioDialogContentLayout.addWidget(audioBufferLine);
+audioBufferList.addEventListener('currentIndexChanged', index => {
+  const profile = AUDIO_BUFFER_PROFILES[index];
+  if (!profile || profile.id === audioBufferProfileId) return;
+  audioBufferProfileId = profile.id;
+  saveSettings();
+  worker.postMessage({ type: 'audio-buffer-profile', profile });
+  setAudioTestStatus(`Aplicando buffer ${profile.label}; o motor reiniciará e restaurará os timbres.`);
+});
 const testAudioButton = button('Teste direto de som · 440 Hz', () => {
   const output = audioDevices[audioDeviceList.currentIndex()];
   if (!output) return;
@@ -375,12 +444,13 @@ const testAudioButton = button('Teste direto de som · 440 Hz', () => {
   testAudioOutput(output);
 });
 setButtonIcon(testAudioButton, 'audio');
-audioDialogLayout.addWidget(testAudioButton);
-audioDialogLayout.addWidget(label('Atalhos: volume F11/F12 · brilho F5 (−)/F6 (+) · teclas Fn', 'font-size: 12px; color: #65676b;'));
+if (COMPACT_UI) testAudioButton.setText('Testar áudio · 440 Hz');
+audioDialogContentLayout.addWidget(testAudioButton);
+audioDialogContentLayout.addWidget(label('Atalhos: volume F11/F12 · brilho F5 (−)/F6 (+) · teclas Fn', 'font-size: 12px; color: #65676b;'));
 const audioDialogStatus = label('Pronto para testar a saída selecionada.', 'font-size: 12px; color: #165dba; padding: 8px 10px; background: #e7f3ff; border: 1px solid #cfe4ff; border-radius: 8px;');
 audioDialogStatus.setWordWrap(true);
 audioDialogStatus.setMinimumHeight(48);
-audioDialogLayout.addWidget(audioDialogStatus);
+audioDialogContentLayout.addWidget(audioDialogStatus);
 const audioDialogActions = new QWidget();
 const audioDialogActionsLayout = new QBoxLayout(Direction.LeftToRight);
 audioDialogActions.setLayout(audioDialogActionsLayout);
@@ -665,13 +735,13 @@ let addSlotButton = null;
 const rowHost = new QWidget();
 const rowLayout = new QBoxLayout(Direction.TopToBottom);
 rowHost.setLayout(rowLayout);
-rowLayout.setContentsMargins(8, 8, 8, 8);
-rowLayout.setSpacing(8);
+rowLayout.setContentsMargins(COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8);
+rowLayout.setSpacing(COMPACT_UI ? 1 : 8);
 rowHost.setInlineStyle('background: #f7f8fa;');
 const scroll = new QScrollArea();
 scroll.setWidget(rowHost);
 scroll.setWidgetResizable(true);
-scroll.setInlineStyle('border: 1px solid #e1e5eb; border-radius: 10px; background: #f7f8fa;');
+scroll.setInlineStyle(COMPACT_UI ? 'border: 0; background: #f7f8fa;' : 'border: 1px solid #e1e5eb; border-radius: 10px; background: #f7f8fa;');
 
 function makeSlotState(channel) {
   return {
@@ -702,7 +772,7 @@ function resetSlotUi(slot) {
   row.soundFontProgress.setVisible(false);
   row.test.setEnabled(false);
   row.volumeControl.setValue(85);
-  row.volumeLabel.setText('Volume 85%');
+  row.volumeLabel.setText(slotVolumeText(85));
   row.reverb.setValue(0);
   row.chorus.setValue(0);
   setProgramOptions(slot, [], 0, 0);
@@ -800,7 +870,192 @@ function setProgramOptions(slot, presets, selectedBank, selectedProgram, emptyLa
   slot.syncingPreset = false;
 }
 
+function makeCompactSlot(slot) {
+  const row = new QWidget();
+  const rowLine = new QBoxLayout(Direction.LeftToRight);
+  row.setLayout(rowLine);
+  rowLine.setContentsMargins(5, 1, 5, 1);
+  rowLine.setSpacing(4);
+  row.setFixedHeight(29);
+  row.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 6px;');
+
+  const channelLabel = label(String(slot.channel + 1), 'min-width: 13px; color: #0866ff; font-size: 10px; font-weight: 700;');
+  channelLabel.setFixedWidth(13);
+  rowLine.addWidget(channelLabel);
+  const instrumentIcon = new QLabel();
+  instrumentIcon.setFixedSize(20, 20);
+  instrumentIcon.setScaledContents(true);
+  rowLine.addWidget(instrumentIcon);
+  const name = label('Sem SF2', 'font-size: 10px; color: #344054;');
+  rowLine.addWidget(name, 1);
+  const volumeLabel = label(`${slot.volume}%`, 'min-width: 30px; color: #344054; font-size: 10px; font-weight: 700;');
+  volumeLabel.setFixedWidth(30);
+  rowLine.addWidget(volumeLabel);
+  const volumeControl = slider(0, 100, slot.volume, value => {
+    if (slot.syncingControls) return;
+    slot.volume = value;
+    volumeLabel.setText(`${value}%`);
+    worker.postMessage({ type: 'volume', channel: slot.channel, value });
+  });
+  volumeControl.setMinimumWidth(78);
+  volumeControl.setMaximumWidth(112);
+  volumeControl.setFixedHeight(22);
+  rowLine.addWidget(volumeControl);
+  const midiLearn = button('Learn', () => {
+    midiLearnChannel = slot.channel;
+    status.setText(`MIDI Learn: mova um controle para associar ao volume da parte ${slot.channel + 1}.`);
+  });
+  setButtonIcon(midiLearn, 'midi', 14);
+  midiLearn.setFixedSize(54, 26);
+  midiLearn.setInlineStyle('padding: 2px 4px; border: 1px solid #d8dee8; border-radius: 6px; background: #ffffff; color: #344054; font-size: 9px; font-weight: 700;');
+  midiLearn.setToolTip(`MIDI Learn · volume da parte ${slot.channel + 1}`);
+  rowLine.addWidget(midiLearn);
+  const settingsButton = button('', () => openSlotSettings());
+  setButtonIcon(settingsButton, 'settings', 16);
+  settingsButton.setFixedSize(28, 26);
+  settingsButton.setToolTip(`Configurações da parte ${slot.channel + 1}`);
+  rowLine.addWidget(settingsButton);
+  rowLayout.addWidget(row);
+
+  const dialog = new QDialog(window);
+  dialog.setWindowTitle(`Parte ${slot.channel + 1} · configurações`);
+  dialog.setMinimumWidth(420);
+  if (COMPACT_UI) {
+    dialog.resize(460, 300);
+    dialog.setMaximumSize(480, 310);
+  }
+  const dialogLayout = new QBoxLayout(Direction.TopToBottom);
+  dialogLayout.setContentsMargins(COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16);
+  dialogLayout.setSpacing(5);
+  dialog.setLayout(dialogLayout);
+  const detailContent = new QWidget();
+  const detailLayout = new QBoxLayout(Direction.TopToBottom);
+  detailContent.setLayout(detailLayout);
+  detailLayout.setContentsMargins(2, 2, 2, 2);
+  detailLayout.setSpacing(7);
+  const detailScroll = new QScrollArea();
+  detailScroll.setWidget(detailContent);
+  detailScroll.setWidgetResizable(true);
+  detailScroll.setInlineStyle('border: 0; background: transparent;');
+  dialogLayout.addWidget(detailScroll, 1);
+
+  const sourceLine = horizontal(detailLayout);
+  const detailName = label('Sem SF2', 'font-size: 12px; color: #344054;');
+  sourceLine.addWidget(detailName, 1);
+  const openSoundFontButton = button('Abrir SF2', () => chooseSoundFont(slot.channel));
+  setButtonIcon(openSoundFontButton, 'folder', 16);
+  sourceLine.addWidget(openSoundFontButton);
+
+  const soundFontProgress = new QProgressBar();
+  soundFontProgress.setRange(0, 100);
+  soundFontProgress.setValue(0);
+  soundFontProgress.setFormat('Timbre na memória · %p%');
+  soundFontProgress.setTextVisible(true);
+  soundFontProgress.setFixedHeight(18);
+  soundFontProgress.setInlineStyle('border: 1px solid #d0d5dd; border-radius: 5px; background: #f2f4f7; color: #344054; text-align: center;');
+  soundFontProgress.setVisible(false);
+  detailLayout.addWidget(soundFontProgress);
+
+  const presetLine = horizontal(detailLayout);
+  const bank = new QLineEdit();
+  bank.setPlaceholderText('Banco');
+  bank.setText('0');
+  bank.setMaximumWidth(64);
+  bank.addEventListener('textChanged', value => {
+    const n = Number(value);
+    if (!slot.syncingPreset && Number.isInteger(n) && n >= 0) {
+      slot.bank = n;
+      if (slot.file && slot.loaded) worker.postMessage({ type: 'program', channel: slot.channel, file: slot.file, bank: slot.bank, program: slot.program });
+    }
+  });
+  presetLine.addWidget(label('Banco', 'font-size: 11px; color: #475467;'));
+  presetLine.addWidget(bank);
+  const program = new QComboBox();
+  program.addItem(undefined, 'Sem presets');
+  program.setEnabled(false);
+  program.addEventListener('currentIndexChanged', index => {
+    if (slot.syncingPreset) return;
+    const selected = slot.programs[index];
+    if (!selected) return;
+    slot.bank = selected.bank;
+    slot.program = selected.program;
+    slot.syncingPreset = true;
+    bank.setText(String(selected.bank));
+    slot.syncingPreset = false;
+    if (slot.file && slot.loaded) worker.postMessage({ type: 'program', channel: slot.channel, bank: slot.bank, program: slot.program });
+  });
+  presetLine.addWidget(program, 1);
+
+  const effectsLine = horizontal(detailLayout);
+  const reverb = slider(0, 100, slot.reverb, value => {
+    if (slot.syncingControls) return;
+    slot.reverb = value;
+    worker.postMessage({ type: 'effects', channel: slot.channel, reverb: value, chorus: slot.chorus });
+  });
+  const chorus = slider(0, 100, slot.chorus, value => {
+    if (slot.syncingControls) return;
+    slot.chorus = value;
+    worker.postMessage({ type: 'effects', channel: slot.channel, reverb: slot.reverb, chorus: value });
+  });
+  effectsLine.addWidget(label('Reverb', 'font-size: 10px; color: #475467;'));
+  effectsLine.addWidget(reverb, 1);
+  effectsLine.addWidget(label('Chorus', 'font-size: 10px; color: #475467;'));
+  effectsLine.addWidget(chorus, 1);
+
+  const toolsLine = horizontal(detailLayout);
+  const test = button('C4', () => {
+    if (!slot.loaded) {
+      status.setText(`Carregue um SF2 na parte ${slot.channel + 1} antes de testar C4.`);
+      return;
+    }
+    worker.postMessage({ type: 'note-on', channel: slot.channel, note: 60, velocity: 100 });
+    setTimeout(() => worker.postMessage({ type: 'note-off', channel: slot.channel, note: 60 }), 350);
+  });
+  setButtonIcon(test, 'note', 14);
+  test.setEnabled(false);
+  toolsLine.addWidget(test);
+  const modulation = new QCheckBox();
+  modulation.setText('Modulação');
+  modulation.setChecked(slot.modulationEnabled);
+  modulation.setEnabled(false);
+  modulation.addEventListener('toggled', enabled => {
+    if (slot.syncingModulation) return;
+    slot.modulationEnabled = enabled;
+    worker.postMessage({ type: 'modulation-enabled', channel: slot.channel, enabled });
+  });
+  toolsLine.addWidget(modulation);
+  const midiDevice = button('MIDI · Padrão', () => openSlotMidiDialog(slot));
+  setButtonIcon(midiDevice, 'midi', 14);
+  midiDevice.setToolTip('Escolher qual controlador MIDI controla este slot');
+  toolsLine.addWidget(midiDevice, 1);
+
+  const closeLine = new QWidget();
+  const closeLayout = new QBoxLayout(Direction.LeftToRight);
+  closeLine.setLayout(closeLayout);
+  closeLayout.setContentsMargins(0, 0, 0, 0);
+  const closeButton = button('Fechar', () => dialog.reject());
+  setButtonIcon(closeButton, 'close', 14);
+  closeLayout.addStretch(1);
+  closeLayout.addWidget(closeButton);
+  dialogLayout.addWidget(closeLine);
+
+  function openSlotSettings() {
+    detailName.setText(name.text());
+    dialog.exec();
+  }
+  rows[slot.channel] = {
+    container: row, name, detailName, instrumentIcon, midiDevice, bank, program, test,
+    soundFontProgress, volumeControl, volumeLabel, reverb, chorus, midiLearn,
+    modulation, settingsButton
+  };
+  row.setVisible(true);
+}
+
 function makeSlot(slot) {
+  if (COMPACT_UI) {
+    makeCompactSlot(slot);
+    return;
+  }
   const row = new QWidget();
   const stack = new QBoxLayout(Direction.TopToBottom);
   row.setLayout(stack);
@@ -863,7 +1118,7 @@ function makeSlot(slot) {
   mixLine.addWidget(volumeLabel);
   const volumeControl = slider(0, 100, slot.volume, value => {
     if (slot.syncingControls) return;
-    slot.volume = value; volumeLabel.setText(`Volume ${value}%`);
+    slot.volume = value; volumeLabel.setText(slotVolumeText(value));
     worker.postMessage({ type: 'volume', channel: slot.channel, value });
   });
   volumeControl.setMinimumWidth(130);
@@ -931,7 +1186,9 @@ keyboardLayout.addWidget(keybed);
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const blackPitchClasses = [1, 3, 6, 8, 10];
 const whiteNotes = [];
-for (let note = 36; note <= 95; note++) {
+const keyboardLowestNote = COMPACT_UI ? 48 : 36;
+const keyboardHighestNote = COMPACT_UI ? 71 : 95;
+for (let note = keyboardLowestNote; note <= keyboardHighestNote; note++) {
   if (!blackPitchClasses.includes(note % 12)) whiteNotes.push(note);
 }
 const whiteKeys = [];
@@ -1028,16 +1285,24 @@ function resizePiano(width = keybed.width()) {
 keybed.addEventListener(WidgetEventTypes.Resize, () => resizePiano(keybed.width()), { afterDefault: true });
 resizePiano(840);
 const slotsToolbar = horizontal(mixerLayout);
-slotCountLabel = label('Instrumentos · 1/8 partes', 'font-size: 16px; font-weight: 700; color: #344054;');
+slotCountLabel = label('Instrumentos · 1/8 partes', `font-size: ${COMPACT_UI ? 11 : 16}px; font-weight: 700; color: #344054;`);
 slotsToolbar.addWidget(slotCountLabel);
 slotsToolbar.addStretch(1);
 addSlotButton = button('+ Adicionar slot', addSlot);
 setButtonIcon(addSlotButton, 'add');
+if (COMPACT_UI) {
+  slotsToolbar.setSpacing(4);
+  addSlotButton.setText('+');
+  addSlotButton.setFixedSize(28, 24);
+  addSlotButton.setToolTip('Adicionar parte');
+}
 slotsToolbar.addWidget(addSlotButton);
 updateSlotToolbar();
-scroll.setMinimumHeight(240);
+if (COMPACT_UI) slotsToolbar.setFixedHeight(26);
+scroll.setMinimumHeight(COMPACT_UI ? 0 : 240);
 mixerLayout.addWidget(scroll, 1);
 mixerLayout.addWidget(keyboard);
+if (COMPACT_UI) keyboard.setVisible(false);
 
 const tools = new QWidget();
 const toolsLayout = new QBoxLayout(Direction.TopToBottom);
@@ -1070,7 +1335,8 @@ sceneSaveLine.addWidget(saveSceneButton, 1);
 const newSceneButton = button('Nova Cena', startNewScene);
 setButtonIcon(newSceneButton, 'add');
 sceneSaveLine.addWidget(newSceneButton, 1);
-scenePanelLayout.addWidget(label('Pads para trocar de cena', 'font-size: 12px; font-weight: 700; color: #475467;'));
+const scenePadLabel = label('Pads para trocar de cena', 'font-size: 12px; font-weight: 700; color: #475467;');
+scenePanelLayout.addWidget(scenePadLabel);
 const scenePadHost = new QWidget();
 const scenePadLayout = new QBoxLayout(Direction.TopToBottom);
 scenePadHost.setLayout(scenePadLayout);
@@ -1348,7 +1614,7 @@ function handleMidiMessage(inputId, bytes) {
       targetSlots.filter(slot => slot.midiVolumeCC === bytes[1]).forEach(slot => {
         slot.volume = Math.round(value * 100 / 127);
         rows[slot.channel].volumeControl.setValue(slot.volume);
-        rows[slot.channel].volumeLabel.setText(`Volume ${slot.volume}%`);
+        rows[slot.channel].volumeLabel.setText(slotVolumeText(slot.volume));
       });
     }
   } else if (command === 0xe0) {
@@ -1552,7 +1818,7 @@ function applyScene(scene) {
     row.soundFontProgress.setVisible(false);
     setProgramOptions(slot, [], slot.bank, slot.program, slot.file ? 'Lendo presets...' : 'Sem presets');
     slot.syncingControls = true;
-    row.volumeControl.setValue(slot.volume); row.volumeLabel.setText(`Volume ${slot.volume}%`);
+    row.volumeControl.setValue(slot.volume); row.volumeLabel.setText(slotVolumeText(slot.volume));
     row.reverb.setValue(slot.reverb); row.chorus.setValue(slot.chorus);
     slot.syncingControls = false;
     slot.syncingModulation = true;
@@ -1582,7 +1848,153 @@ function deleteScene() {
   if (pendingSceneMidiLearn === scenes[index]?.name) pendingSceneMidiLearn = null;
   scenes.splice(index, 1); writeScenes(scenes); refreshScenes(); status.setText('Cena removida.');
 }
+
+let compactStatusTimer = null;
+function installCompactUi() {
+  const midiTitle = label('Controlador MIDI', 'font-size: 12px; font-weight: 700; color: #344054;');
+  const midiActions = new QWidget();
+  const midiActionsLayout = new QBoxLayout(Direction.LeftToRight);
+  midiActions.setLayout(midiActionsLayout);
+  midiActionsLayout.setContentsMargins(0, 0, 0, 0);
+  midiActionsLayout.setSpacing(6);
+  midiConnectionLayout.removeWidget(midiList);
+  midiConnectionLayout.removeWidget(midiRouting);
+  midiConnectionLayout.removeWidget(refreshMidiButton);
+  midiConnectionLayout.removeWidget(defaultMidiButton);
+  midiList.setMinimumWidth(0);
+  midiList.setMinimumHeight(32);
+  midiRouting.setMinimumWidth(0);
+  midiRouting.setMinimumHeight(32);
+  refreshMidiButton.setMinimumWidth(42);
+  refreshMidiButton.setFixedHeight(32);
+  refreshMidiButton.setText('');
+  defaultMidiButton.setMinimumWidth(110);
+  defaultMidiButton.setFixedHeight(32);
+  defaultMidiButton.setText('Usar padrão');
+  midiActionsLayout.addWidget(refreshMidiButton);
+  midiActionsLayout.addWidget(defaultMidiButton, 1);
+  audioDialogContentLayout.insertWidget(3, midiTitle);
+  audioDialogContentLayout.insertWidget(4, midiList);
+  audioDialogContentLayout.insertWidget(5, midiRouting);
+  audioDialogContentLayout.insertWidget(6, midiActions);
+  audioDialogStatus.setMinimumHeight(30);
+  midiConnectionPanel.hide();
+  audioDialog.setWindowTitle('Áudio e MIDI');
+
+  const sceneDialog = new QDialog(window);
+  sceneDialog.setWindowTitle('Cenas e pads MIDI');
+  sceneDialog.setMinimumWidth(420);
+  sceneDialog.resize(460, 300);
+  sceneDialog.setMaximumSize(480, 310);
+  const sceneDialogLayout = new QBoxLayout(Direction.TopToBottom);
+  sceneDialogLayout.setContentsMargins(7, 7, 7, 7);
+  sceneDialogLayout.setSpacing(4);
+  sceneDialog.setLayout(sceneDialogLayout);
+  const sceneContent = new QWidget();
+  const sceneContentLayout = new QBoxLayout(Direction.TopToBottom);
+  sceneContent.setLayout(sceneContentLayout);
+  sceneContentLayout.setContentsMargins(2, 2, 2, 2);
+  sceneContentLayout.setSpacing(4);
+  const sceneScroll = new QScrollArea();
+  sceneScroll.setWidget(sceneContent);
+  sceneScroll.setWidgetResizable(true);
+  sceneScroll.setInlineStyle('border: 0; background: transparent;');
+  sceneDialogLayout.addWidget(sceneScroll, 1);
+  sceneContentLayout.addWidget(label('Salvar, carregar ou associar pads às cenas.', 'font-size: 12px; font-weight: 600; color: #344054;'));
+  scenePanelLayout.removeWidget(sceneName);
+  scenePanelLayout.removeWidget(sceneSaveLine);
+  scenePanelLayout.removeWidget(scenePadLabel);
+  scenePanelLayout.removeWidget(scenePadArea);
+  scenePanelLayout.removeWidget(sceneList);
+  scenePanelLayout.removeWidget(sceneLoadLine);
+  sceneName.setMinimumHeight(32);
+  sceneList.setMinimumHeight(32);
+  scenePadArea.setMinimumHeight(50);
+  scenePadArea.setMaximumHeight(76);
+  sceneContentLayout.addWidget(sceneName);
+  sceneContentLayout.addWidget(sceneSaveLine);
+  sceneContentLayout.addWidget(scenePadLabel);
+  sceneContentLayout.addWidget(scenePadArea);
+  sceneContentLayout.addWidget(sceneList);
+  sceneContentLayout.addWidget(sceneLoadLine);
+  const sceneCloseLine = new QWidget();
+  const sceneCloseLayout = new QBoxLayout(Direction.LeftToRight);
+  sceneCloseLine.setLayout(sceneCloseLayout);
+  sceneCloseLayout.setContentsMargins(0, 0, 0, 0);
+  const closeScenesButton = button('Fechar', () => sceneDialog.reject());
+  setButtonIcon(closeScenesButton, 'close', 14);
+  sceneCloseLayout.addStretch(1);
+  sceneCloseLayout.addWidget(closeScenesButton);
+  sceneDialogLayout.addWidget(sceneCloseLine);
+
+  const compactHeader = new QWidget();
+  const compactHeaderLayout = new QBoxLayout(Direction.LeftToRight);
+  compactHeader.setLayout(compactHeaderLayout);
+  compactHeaderLayout.setContentsMargins(4, 1, 4, 1);
+  compactHeaderLayout.setSpacing(4);
+  compactHeader.setFixedHeight(32);
+  compactHeader.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 7px;');
+  if (APP_LOGO_FILE) {
+    const compactLogo = new QLabel();
+    compactLogo.setFixedSize(23, 23);
+    compactLogo.setScaledContents(true);
+    compactLogo.setPixmap(new QIcon(APP_LOGO_FILE).pixmap(23, 23));
+    compactHeaderLayout.addWidget(compactLogo);
+  }
+  compactHeaderLayout.addWidget(label('SamNat', 'font-size: 12px; font-weight: 700; color: #1c1e21;'));
+  const compactStatus = label(status.text(), 'font-size: 9px; color: #165dba;');
+  compactStatus.setMaximumHeight(24);
+  compactHeaderLayout.addWidget(compactStatus, 1);
+  const scenesButton = button('Cenas', () => sceneDialog.exec());
+  setButtonIcon(scenesButton, 'play', 14);
+  scenesButton.setFixedHeight(28);
+  scenesButton.setToolTip('Abrir cenas e pads MIDI');
+  compactHeaderLayout.addWidget(scenesButton);
+  const connectionsButton = button('', openAudioTestDialog);
+  setButtonIcon(connectionsButton, 'settings', 17);
+  connectionsButton.setFixedSize(30, 28);
+  connectionsButton.setToolTip('Saída de áudio, buffer e conexão MIDI');
+  compactHeaderLayout.addWidget(connectionsButton);
+  let virtualKeyboardVisible = false;
+  const keyboardButton = button('Teclas', () => {
+    virtualKeyboardVisible = !virtualKeyboardVisible;
+    scroll.setVisible(!virtualKeyboardVisible);
+    keyboard.setVisible(virtualKeyboardVisible);
+    keyboardButton.setToolTip(virtualKeyboardVisible ? 'Mostrar partes' : 'Mostrar teclado virtual');
+  });
+  setButtonIcon(keyboardButton, 'note', 14);
+  keyboardButton.setFixedHeight(28);
+  keyboardButton.setToolTip('Mostrar teclado virtual de duas oitavas');
+  compactHeaderLayout.addWidget(keyboardButton);
+  const compactPowerButton = button('', () => shutdownButton.click());
+  setButtonIcon(compactPowerButton, 'power', 17);
+  compactPowerButton.setFixedSize(30, 28);
+  compactPowerButton.setToolTip('Desligar');
+  compactHeaderLayout.addWidget(compactPowerButton);
+
+  header.hide();
+  batteryWarningLabel.hide();
+  midiConnectionPanel.hide();
+  sidePanel.hide();
+  keyboard.hide();
+  workspaceLayout.setSpacing(0);
+  mixerLayout.setContentsMargins(0, 0, 0, 0);
+  mixerLayout.setSpacing(2);
+  layout.insertWidget(0, compactHeader);
+  compactStatusTimer = setInterval(() => {
+    const current = status.text().replace(/[\r\n]+/g, ' ').trim();
+    if (compactStatus.text() !== current) compactStatus.setText(current);
+  }, 700);
+}
+
 worker.on('message', message => {
+  if (message.type === 'audio-buffer-applied') {
+    const profile = AUDIO_BUFFER_PROFILES.find(item => item.periodSize === message.periodSize && item.periods === message.periods);
+    const summary = profile?.label || `${message.periodSize} × ${message.periods}`;
+    setAudioTestStatus(message.deferred
+      ? `Buffer ${summary} salvo; será usado quando uma saída de áudio abrir.`
+      : `Buffer ${summary} aplicado; FluidSynth e os timbres estão prontos.`);
+  }
   if (message.type === 'audio-test-paused' && pendingAudioTest?.requestId === message.requestId) {
     pendingAudioTest.wasRunning = Boolean(message.wasRunning);
     pendingAudioTest.phase = 'playing';
@@ -1784,6 +2196,7 @@ worker.on('exit', code => {
 refreshAudioDevices();
 ensureDefaultScene();
 refreshScenes(DEFAULT_SCENE_NAME);
+if (COMPACT_UI) installCompactUi();
 refreshMidi();
 midiHotplugTimer = setInterval(() => refreshMidi(true), 2000);
 app.addEventListener('aboutToQuit', () => {
@@ -1791,6 +2204,7 @@ app.addEventListener('aboutToQuit', () => {
   clearInterval(systemUsageTimer);
   clearInterval(batteryStatusTimer);
   clearInterval(midiHotplugTimer);
+  clearInterval(compactStatusTimer);
   if (audioTester) audioTester.kill('SIGTERM');
   closeAllMidiInputs();
   worker.postMessage({ type: 'close' });

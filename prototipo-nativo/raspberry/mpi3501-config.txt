@@ -1,0 +1,3 @@
+# Initial boot settings for the MPI3501 3.5-inch SPI display on Raspberry Pi 3B+.
+dtparam=spi=on
+dtoverlay=piscreen,drm,rotate=90

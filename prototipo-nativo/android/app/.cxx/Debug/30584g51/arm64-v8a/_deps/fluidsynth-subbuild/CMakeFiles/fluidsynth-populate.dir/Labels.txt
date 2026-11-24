@@ -1,0 +1,14 @@
+# Target labels
+ fluidsynth-populate
+# Source files and their labels
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate-complete.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-build.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-configure.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-download.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-install.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-mkdir.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-patch.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-test.rule
+/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-update.rule

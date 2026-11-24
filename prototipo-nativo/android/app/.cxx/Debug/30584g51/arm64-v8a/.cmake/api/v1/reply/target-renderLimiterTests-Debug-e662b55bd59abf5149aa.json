@@ -1,0 +1,206 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_dependencies",
+			"add_render_job"
+		],
+		"files" : 
+		[
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test/CMakeLists.txt",
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/cmake_admin/FluidUnitTest.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 513,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 520,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 524,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 4
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 528,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 532,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 8
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 536,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 10
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 540,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 12
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 544,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 14
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 548,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 149,
+				"parent" : 16
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "fluidsynth::@d1ae1e0c747fc3b738ca"
+		},
+		{
+			"id" : "create_out_dir::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "renderLimiterTests__7eefe3ae7178::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "renderLimiterTests__07b5ceb36d08::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "renderLimiterTests__e9f6d1522df1::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 9,
+			"id" : "renderLimiterTests__41357925d651::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 11,
+			"id" : "renderLimiterTests__8ccbd1ab8d50::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 13,
+			"id" : "renderLimiterTests__8150e5896526::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 15,
+			"id" : "renderLimiterTests__37abaa814846::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 17,
+			"id" : "renderLimiterTests__070b17598e1b::@70fbb3bf452441987620"
+		}
+	],
+	"id" : "renderLimiterTests::@70fbb3bf452441987620",
+	"name" : "renderLimiterTests",
+	"paths" : 
+	{
+		"build" : "_deps/fluidsynth-build/test",
+		"source" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/test/CMakeFiles/renderLimiterTests",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/test/CMakeFiles/renderLimiterTests.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

@@ -1,0 +1,1 @@
+console=tty1 root=PARTUUID=53414d4e-02 rootwait rootfstype=ext4 rw quiet loglevel=3 logo.nologo vt.global_cursor_default=0

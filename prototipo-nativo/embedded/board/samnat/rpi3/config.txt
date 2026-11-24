@@ -1,0 +1,13 @@
+# Raspberry Pi 3B+ 64-bit SamNat Synth boot configuration.
+arm_64bit=1
+kernel=Image
+disable_overscan=1
+disable_fw_kms_setup=1
+gpu_mem=16
+
+# MPI3501 480x320 ILI9486 panel and XPT2046 touch controller.
+dtparam=spi=on
+dtoverlay=piscreen,drm,rotate=90,speed=16000000
+
+# Built-in 3.5 mm audio output and HDMI audio.
+dtparam=audio=on

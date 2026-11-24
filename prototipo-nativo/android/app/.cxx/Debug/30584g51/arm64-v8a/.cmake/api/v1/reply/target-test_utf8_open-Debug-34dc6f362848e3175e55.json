@@ -1,0 +1,652 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/build/intermediates/cxx/Debug/30584g51/obj/arm64-v8a/test_utf8_open"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"ADD_FLUID_TEST",
+			"target_link_libraries",
+			"set_property",
+			"find_package",
+			"add_definitions",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/cmake_admin/FluidUnitTest.cmake",
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test/CMakeLists.txt",
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/CMakeLists.txt",
+			"/home/samuka/Android/Sdk/cmake/3.31.1/share/cmake-3.31/Modules/FindThreads.cmake",
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 33,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 3,
+				"parent" : 1
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 435,
+				"parent" : 3
+			},
+			{
+				"file" : 4
+			},
+			{
+				"command" : 4,
+				"file" : 4,
+				"line" : 380,
+				"parent" : 5
+			},
+			{
+				"file" : 3,
+				"parent" : 6
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 238,
+				"parent" : 7
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 17,
+				"parent" : 1
+			},
+			{
+				"command" : 5,
+				"file" : 4,
+				"line" : 503,
+				"parent" : 5
+			},
+			{
+				"command" : 6,
+				"file" : 0,
+				"line" : 20,
+				"parent" : 1
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -Wall -W -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wno-unused-parameter -Wdeclaration-after-statement -Werror=implicit-function-declaration -Werror=incompatible-pointer-types -Wbad-function-cast -Wcast-align -g -fno-limit-debug-info  -std=gnu90 -fPIE -fvisibility=hidden"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-pthread"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 10,
+					"define" : "DEBUG"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/include"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/drivers"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/synth"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/rvoice"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/midi"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/utils"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/sfloader"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/src/bindings"
+				},
+				{
+					"backtrace" : 11,
+					"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/gcem-extracted/gcem-012ae73c6d0a2cb09ffe86475f5c6fba3926e200/include"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "90"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			],
+			"sysroot" : 
+			{
+				"path" : "/home/samuka/Android/Sdk/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+			}
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 9,
+			"id" : "libfluidsynth-OBJ::@d1ae1e0c747fc3b738ca"
+		}
+	],
+	"id" : "test_utf8_open::@70fbb3bf452441987620",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -std=c++17 -Wall -W -Wpointer-arith -Wcast-qual -Wno-unused-parameter -Wcast-align -fno-limit-debug-info",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments   -Wl,--as-needed",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "-Xlinker --dependency-file -Xlinker _deps/fluidsynth-build/test/CMakeFiles/test_utf8_open.dir/link.d",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "-lm",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "-pthread",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "-llog",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-latomic -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX",
+		"sysroot" : 
+		{
+			"path" : "/home/samuka/Android/Sdk/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+		}
+	},
+	"name" : "test_utf8_open",
+	"nameOnDisk" : "test_utf8_open",
+	"paths" : 
+	{
+		"build" : "_deps/fluidsynth-build/test",
+		"source" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "Object Libraries",
+			"sourceIndexes" : 
+			[
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test/test_utf8_open.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_sys_cpp11.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_file.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_ct2hz.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_cb2amp.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_concave.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_convex.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_pan.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_interp_coeff.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_interp_coeff_linear.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/gentables/fluid_interp_coeff_sinc7.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_conv.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_hash.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_list.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_ringbuffer.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_settings.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/utils/fluid_sys.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/sfloader/fluid_defsfont.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/sfloader/fluid_sfont.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/sfloader/fluid_sffile.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/sfloader/fluid_samplecache.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_adsr_env.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_chorus.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_iir_filter_impl.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_iir_filter.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_lfo.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rvoice.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rvoice_dsp.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rvoice_event.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rvoice_mixer.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rev.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rev_fdn.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rev_freeverb.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rev_lexverb.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/rvoice/fluid_rev_dattorro.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_chan.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_event.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_gen.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_mod.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_synth.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_synth_monopoly.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_synth_write_int.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_tuning.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/synth/fluid_voice.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_midi.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_midi_router.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_seqbind.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_seqbind_notes.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_seq.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/midi/fluid_seq_queue.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/drivers/fluid_adriver.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/drivers/fluid_mdriver.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/drivers/fluid_audio_convert.cpp.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/bindings/fluid_cmd.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/bindings/fluid_filerenderer.c.o",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 9,
+			"isGenerated" : true,
+			"path" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-build/src/CMakeFiles/libfluidsynth-OBJ.dir/bindings/fluid_ladspa.c.o",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "EXECUTABLE"
+}

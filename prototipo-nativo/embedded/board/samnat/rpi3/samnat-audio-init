@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+LOG=/data/home/.samnat-synth/audio-hw.log
+mkdir -p "$(dirname "$LOG")"
+{
+	date -Is
+	echo "=== Raspberry Pi ALSA playback devices ==="
+	/usr/bin/aplay -l 2>&1 || true
+	echo "=== ALSA card 0 controls ==="
+	/usr/bin/amixer -c 0 scontents 2>&1 || true
+	/usr/local/bin/samnat-volume init 0 2>&1 || true
+	/usr/bin/amixer -c 0 scontents 2>&1 || true
+} >> "$LOG" 2>&1

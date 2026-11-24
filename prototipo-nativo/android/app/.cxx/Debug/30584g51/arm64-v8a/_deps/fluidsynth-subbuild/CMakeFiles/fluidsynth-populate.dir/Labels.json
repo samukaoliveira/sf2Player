@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/CMakeFiles/fluidsynth-populate-complete.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-build.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-configure.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-download.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-install.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-patch.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-test.rule"
+		},
+		{
+			"file" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-subbuild/fluidsynth-populate-prefix/src/fluidsynth-populate-stamp/fluidsynth-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"fluidsynth-populate"
+		],
+		"name" : "fluidsynth-populate"
+	}
+}

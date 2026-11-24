@@ -5,6 +5,10 @@ const { parentPort } = require('worker_threads');
 
 const CHANNELS = 8;
 const SAMPLE_RATE = 44100;
+let audioBufferSettings = {
+  periodSize: Number.parseInt(process.env.SAMNAT_AUDIO_PERIOD_SIZE, 10) || 256,
+  periods: Number.parseInt(process.env.SAMNAT_AUDIO_PERIODS, 10) || 4
+};
 // FluidSynth shares this voice pool across all loaded MIDI parts. The app's
 // default MIDI route layers each incoming note across those parts, so 128
 // voices were exhausted too easily with several SF2s loaded.
@@ -194,7 +198,7 @@ function audioDriverArgs(target) {
   };
 }
 
-async function startEngine(target) {
+async function startEngine(target, bufferSettings = audioBufferSettings) {
   const audio = audioDriverArgs(target);
   lastAudioError = '';
   parentPort.postMessage({ type: 'audio-stage', stage: `Abrindo FluidSynth nativo em ${target.label}...` });
@@ -209,6 +213,7 @@ async function startEngine(target) {
   const args = [
     ...audio.args,
     '-n', '-K', '16', '-r', String(SAMPLE_RATE), '-g', String(SYNTH_MASTER_GAIN), '-C', '0', '-R', '0',
+    '-z', String(bufferSettings.periodSize), '-c', String(bufferSettings.periods),
     '-o', `synth.polyphony=${SYNTH_POLYPHONY}`,
     '-o', 'synth.reverb.active=0',
     '-o', 'synth.chorus.active=0'
@@ -386,6 +391,43 @@ async function selectAudioDevice(target) {
   }
 }
 
+async function selectAudioBufferProfile(profile) {
+  const periodSize = Number(profile?.periodSize);
+  const periods = Number(profile?.periods);
+  if (![64, 128, 256, 512, 1024].includes(periodSize) || ![3, 4, 16].includes(periods)) {
+    throw new Error('Configuração de buffer de áudio inválida.');
+  }
+  if (periodSize === audioBufferSettings.periodSize && periods === audioBufferSettings.periods) return;
+
+  const previousSettings = audioBufferSettings;
+  const target = audioDevice;
+  const assignments = [...channelPresets.entries()].map(([channel, part]) => [channel, { ...part }]);
+  audioBufferSettings = { periodSize, periods };
+  if (!target || !fluidsynth || fluidsynth.exitCode !== null) {
+    parentPort.postMessage({ type: 'audio-buffer-applied', periodSize, periods, deferred: true });
+    return;
+  }
+
+  await stopEngine();
+  audioDevice = null;
+  soundFonts.clear();
+  channelPresets.clear();
+  try {
+    await startEngine(target, audioBufferSettings);
+    audioDevice = target;
+    for (const [channel, part] of assignments) {
+      await loadSoundFont(channel, part.file, part.bank, part.program);
+    }
+    parentPort.postMessage({ type: 'audio-buffer-applied', periodSize, periods });
+  } catch (error) {
+    lastAudioError = error.message;
+    audioBufferSettings = previousSettings;
+    audioDevice = null;
+    parentPort.postMessage({ type: 'audio-output-error', message: `Falha ao aplicar o buffer ${periodSize} × ${periods}: ${error.message}` });
+    await stopEngine();
+  }
+}
+
 async function handleMessage(message) {
   try {
     if (message.type === 'pause-audio-for-test') {
@@ -425,6 +467,10 @@ async function handleMessage(message) {
     }
     if (message.type === 'audio-device') {
       await selectAudioDevice(message.output);
+      return;
+    }
+    if (message.type === 'audio-buffer-profile') {
+      await selectAudioBufferProfile(message.profile);
       return;
     }
     if (message.type === 'load-soundfont') {

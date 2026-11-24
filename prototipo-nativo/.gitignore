@@ -3,4 +3,6 @@ build/
 dist/
 build-linux/
 release-linux/
+release-raspberry/
+raspberry/build/
 deploy/linux/build/

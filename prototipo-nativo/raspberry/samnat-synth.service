@@ -1,0 +1,26 @@
+[Unit]
+Description=SamNat Synth native ARM64 kiosk
+After=local-fs.target sound.target systemd-user-sessions.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+Environment=HOME=/home/samnat
+EnvironmentFile=-/etc/default/samnat-synth
+WorkingDirectory=/opt/samnat-synth
+ExecStart=/usr/local/bin/samnat-pi-session
+Restart=on-failure
+RestartSec=2
+User=root
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

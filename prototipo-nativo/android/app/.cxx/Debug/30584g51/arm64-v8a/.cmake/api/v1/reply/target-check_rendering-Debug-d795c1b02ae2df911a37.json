@@ -1,0 +1,289 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_dependencies"
+		],
+		"files" : 
+		[
+			"/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 110,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 673,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 674,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 675,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 676,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 691,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 677,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 678,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 679,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 680,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 681,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 682,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 683,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 684,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 685,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 686,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 687,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 688,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 689,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 693,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 694,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 695,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 696,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 701,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 692,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 699,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "render1415::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "render1417::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "render1424::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "render1427::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "render1481::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "renderAltitude::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 8,
+			"id" : "renderFilter::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 9,
+			"id" : "renderUplift::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 10,
+			"id" : "renderChrisNRPN::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 11,
+			"id" : "renderHybridCol::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 12,
+			"id" : "renderPortamento::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 13,
+			"id" : "renderSfSpecTest::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "render1455::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 15,
+			"id" : "renderDK64JJU::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 16,
+			"id" : "renderExcl::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 17,
+			"id" : "rendere1m1::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 18,
+			"id" : "renderdspInterp::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 19,
+			"id" : "render1484::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 20,
+			"id" : "renderGeneralUserDemo::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 21,
+			"id" : "renderBankSelect::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 22,
+			"id" : "renderDMOD::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 23,
+			"id" : "renderRPN::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 24,
+			"id" : "renderLimiterTests::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 25,
+			"id" : "renderStreetwise::@70fbb3bf452441987620"
+		},
+		{
+			"backtrace" : 26,
+			"id" : "renderMtsTests::@70fbb3bf452441987620"
+		}
+	],
+	"id" : "check_rendering::@70fbb3bf452441987620",
+	"name" : "check_rendering",
+	"paths" : 
+	{
+		"build" : "_deps/fluidsynth-build/test",
+		"source" : "/home/samuka/workspace/sf2Player/prototipo-nativo/android/app/.cxx/Debug/30584g51/arm64-v8a/_deps/fluidsynth-src/test"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

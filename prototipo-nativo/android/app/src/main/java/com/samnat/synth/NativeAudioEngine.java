@@ -19,10 +19,14 @@ final class NativeAudioEngine {
     void pitchBend(int channel, int value) { nativePitchBend(channel, value); }
     void testTone(boolean enabled) { nativeTestTone(enabled); }
     boolean selectOutput(int deviceId) { return nativeSelectOutput(deviceId); }
+    int setBufferBursts(int bursts) { return nativeSetBufferBursts(bursts); }
+    int framesPerBurst() { return nativeGetFramesPerBurst(); }
 
     private static int percentToMidi(int percent) { return Math.max(0, Math.min(127, Math.round(percent * 127f / 100f))); }
     private native boolean nativeStart();
     private native boolean nativeSelectOutput(int deviceId);
+    private native int nativeSetBufferBursts(int bursts);
+    private native int nativeGetFramesPerBurst();
     private native void nativeClose();
     private native String nativeLoadSoundFont(String path, int channel);
     private native void nativeSetProgram(int channel, int bank, int program);

@@ -19,7 +19,7 @@ import java.util.Map;
 final class AndroidMidiRouter {
     interface Listener {
         void onDevicesChanged(List<Device> devices);
-        void onMidiMessage(String deviceId, byte[] bytes, int offset, int count);
+        void onMidiMessage(String deviceId, int status, int data1, int data2, long timestamp);
     }
 
     static final class Device {
@@ -33,6 +33,51 @@ final class AndroidMidiRouter {
         final MidiDevice device;
         final List<MidiOutputPort> outputs = new ArrayList<>();
         OpenDevice(MidiDevice device) { this.device = device; }
+    }
+
+    private interface MessageSink {
+        void onMessage(int status, int data1, int data2);
+    }
+
+    /** Parses channel messages across callback boundaries without retaining/copying Android's byte array. */
+    private static final class MidiStreamParser {
+        private int runningStatus = -1;
+        private int messageStatus = -1;
+        private int dataNeeded;
+        private int dataCount;
+        private int firstData;
+
+        void accept(byte[] bytes, int offset, int count, MessageSink sink) {
+            int end = offset + count;
+            for (int i = offset; i < end; i++) {
+                int value = bytes[i] & 0xff;
+                if (value >= 0xf8) continue; // Real-time bytes may be interleaved anywhere.
+                if ((value & 0x80) != 0) {
+                    if (value >= 0xf0) {
+                        runningStatus = messageStatus = -1;
+                        dataNeeded = dataCount = 0;
+                        continue;
+                    }
+                    runningStatus = messageStatus = value;
+                    dataNeeded = ((value & 0xf0) == 0xc0 || (value & 0xf0) == 0xd0) ? 1 : 2;
+                    dataCount = 0;
+                    continue;
+                }
+                if (messageStatus < 0) {
+                    if (runningStatus < 0) continue;
+                    messageStatus = runningStatus;
+                    dataNeeded = ((messageStatus & 0xf0) == 0xc0 || (messageStatus & 0xf0) == 0xd0) ? 1 : 2;
+                    dataCount = 0;
+                }
+                if (dataCount == 0) firstData = value & 0x7f;
+                dataCount++;
+                if (dataCount >= dataNeeded) {
+                    sink.onMessage(messageStatus, firstData, dataNeeded == 2 ? value & 0x7f : 0);
+                    messageStatus = runningStatus;
+                    dataCount = 0;
+                }
+            }
+        }
     }
 
     private final MidiManager manager;
@@ -91,11 +136,11 @@ final class AndroidMidiRouter {
             for (int port = 0; port < info.getOutputPortCount(); port++) {
                 MidiOutputPort output = device.openOutputPort(port);
                 if (output == null) continue;
+                MidiStreamParser parser = new MidiStreamParser();
                 output.connect(new MidiReceiver() {
                     @Override public void onSend(byte[] data, int offset, int count, long timestamp) throws IOException {
-                        byte[] copy = new byte[count];
-                        System.arraycopy(data, offset, copy, 0, count);
-                        listener.onMidiMessage(id, copy, 0, copy.length);
+                        parser.accept(data, offset, count, (status, data1, data2) ->
+                            listener.onMidiMessage(id, status, data1, data2, timestamp));
                     }
                 });
                 connection.outputs.add(output);

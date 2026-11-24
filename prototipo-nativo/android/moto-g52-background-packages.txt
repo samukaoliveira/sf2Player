@@ -1,0 +1,31 @@
+# Aplicativos opcionais observados no Moto G52 (não desinstala dados/APKs).
+com.shopee.br
+com.amazon.mp3
+com.kwai.video
+com.oakever.arrows
+com.taxis99
+com.inmobi.weather
+com.zhiliaoapp.musically
+com.facebook.katana
+com.google.android.apps.fitness
+com.oakever.tiletrip
+com.puzzlegames.puzzlebrickslegend
+pdf.pdfreader.viewer.editor.free
+com.google.android.apps.docs.editors.sheets
+com.google.android.apps.docs.editors.docs
+com.android.chrome
+com.google.android.apps.magazines
+com.google.android.apps.walletnfcrel
+com.google.android.apps.docs.editors.slides
+com.vitastudio.mahjong
+com.block.juggle
+com.google.android.apps.chromecast.app
+all.documentreader.filereader.office.viewer
+com.linkedin.android
+
+# Serviços opcionais do fabricante e busca, não usados pelo SamNat.
+com.motorola.motocare
+com.motorola.motodisplay
+com.motorola.timeweatherwidget
+com.motorola.appforecast
+com.google.android.googlequicksearchbox

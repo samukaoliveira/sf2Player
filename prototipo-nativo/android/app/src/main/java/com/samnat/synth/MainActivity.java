@@ -33,6 +33,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -85,14 +86,19 @@ public final class MainActivity extends Activity {
     private int importSlot = -1;
     private boolean midiChannelRouting = false;
     private boolean engineReady = false;
+    private boolean virtualKeyboardVisible = false;
     private boolean lowBatteryWarningShown = false;
-    private long lastCpuTime = 0;
-    private long lastWallTime = 0;
     private double appCpuPercent = 0;
+    private double systemCpuPercent = 0;
+    private long previousSystemTotalTicks = -1;
+    private long previousSystemIdleTicks = -1;
+    private int audioBufferBursts = 1;
 
     private LinearLayout root;
     private LinearLayout slotList;
     private LinearLayout scenePadList;
+    private final Map<Integer, SeekBar> slotVolumeBars = new HashMap<>();
+    private final Map<Integer, TextView> slotVolumeLabels = new HashMap<>();
     private EditText sceneNameInput;
     private Spinner sceneSelector;
     private Spinner globalMidiSpinner;
@@ -130,19 +136,44 @@ public final class MainActivity extends Activity {
             long wall = SystemClock.elapsedRealtime();
             long cpu = android.os.Process.getElapsedCpuTime();
             if (lastCpuWallTime > 0 && wall > lastCpuWallTime) {
-                appCpuPercent = Math.max(0, Math.min(100, (cpu - lastCpuProcessTime) * 100.0 / (wall - lastCpuWallTime)));
+                int cores = Math.max(1, Runtime.getRuntime().availableProcessors());
+                appCpuPercent = Math.max(0, Math.min(100,
+                    (cpu - lastCpuProcessTime) * 100.0 / ((wall - lastCpuWallTime) * cores)));
             }
             lastCpuWallTime = wall;
             lastCpuProcessTime = cpu;
+            systemCpuPercent = readSystemCpuPercent();
             ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
             ((ActivityManager) getSystemService(ACTIVITY_SERVICE)).getMemoryInfo(memory);
-            long appMb = Debug.getPss() / 1024;
             long totalMb = memory.totalMem / (1024 * 1024);
             long freeMb = memory.availMem / (1024 * 1024);
-            if (systemView != null) systemView.setText(String.format(Locale.getDefault(), "CPU %.0f%%  ·  RAM %d%% (%d MB app)", appCpuPercent, totalMb == 0 ? 0 : (totalMb - freeMb) * 100 / totalMb, appMb));
+            if (systemView != null) systemView.setText(String.format(Locale.getDefault(),
+                "App %.0f%% · Sist. %.0f%% · RAM %d%%",
+                appCpuPercent, systemCpuPercent, totalMb == 0 ? 0 : (totalMb - freeMb) * 100 / totalMb));
             handler.postDelayed(this, 5000);
         }
     };
+
+    private double readSystemCpuPercent() {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader("/proc/stat"))) {
+            String line = reader.readLine();
+            if (line == null || !line.startsWith("cpu ")) return 0;
+            String[] fields = line.trim().split("\\s+");
+            long total = 0;
+            for (int i = 1; i < fields.length; i++) total += Long.parseLong(fields[i]);
+            long idle = Long.parseLong(fields[4]);
+            if (fields.length > 5) idle += Long.parseLong(fields[5]); // iowait
+            double percent = 0;
+            if (previousSystemTotalTicks >= 0 && total > previousSystemTotalTicks) {
+                long totalDelta = total - previousSystemTotalTicks;
+                long idleDelta = idle - previousSystemIdleTicks;
+                percent = Math.max(0, Math.min(100, (totalDelta - idleDelta) * 100.0 / totalDelta));
+            }
+            previousSystemTotalTicks = total;
+            previousSystemIdleTicks = idle;
+            return percent;
+        } catch (Exception ignored) { return systemCpuPercent; }
+    }
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -171,14 +202,12 @@ public final class MainActivity extends Activity {
                 refreshSlots();
                 updateMidiStatus();
             }
-            @Override public void onMidiMessage(String id, byte[] bytes, int offset, int count) {
-                handleMidi(id, bytes, offset, count);
+            @Override public void onMidiMessage(String id, int status, int data1, int data2, long timestamp) {
+                handleMidi(id, status, data1, data2);
             }
         });
         startMidiWithPermission();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        handler.post(monitorTask);
-
         // Respect the user's existing media volume after the first launch;
         // initialize to the requested 30% once, then leave their choice alone.
         if (!getPreferences(MODE_PRIVATE).getBoolean("initial-volume-set", false)) {
@@ -190,6 +219,8 @@ public final class MainActivity extends Activity {
             if (started) {
                 int preferredOutput = getPreferences(MODE_PRIVATE).getInt("audio-output-id", 0);
                 if (preferredOutput != 0) engine.selectOutput(preferredOutput);
+                audioBufferBursts = getPreferences(MODE_PRIVATE).getInt("audio-buffer-bursts", 1);
+                engine.setBufferBursts(audioBufferBursts);
             }
             runOnUiThread(() -> {
                 engineReady = started;
@@ -201,39 +232,41 @@ public final class MainActivity extends Activity {
 
     private void buildUi() {
         boolean landscape = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        // buildUi replaces the root view; don't keep a reference to a PianoView
+        // that is no longer on screen when the keyboard is hidden.
+        pianoView = null;
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
         root.setPadding(dp(10), dp(5), dp(10), dp(6));
         setContentView(root);
-        root.addView(buildHeader(), new LinearLayout.LayoutParams(-1, dp(landscape ? 46 : 62)));
-        root.addView(buildMidiBar(landscape), new LinearLayout.LayoutParams(-1, dp(landscape ? 46 : 82)));
+        root.addView(buildHeader(), new LinearLayout.LayoutParams(-1, dp(landscape ? 46 : 58)));
+        root.addView(buildMidiBar(landscape), new LinearLayout.LayoutParams(-1, dp(landscape ? 46 : 78)));
 
         LinearLayout workArea = new LinearLayout(this);
         workArea.setOrientation(landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         LinearLayout.LayoutParams workParams = new LinearLayout.LayoutParams(-1, 0, 1);
-        workParams.topMargin = dp(6);
-        workParams.bottomMargin = dp(6);
+        workParams.topMargin = dp(landscape ? 4 : 3);
+        workParams.bottomMargin = dp(landscape ? 4 : 3);
         root.addView(workArea, workParams);
 
         if (landscape) {
-            ScrollView slotScroll = scroll(buildSlotsPanel());
-            ScrollView sceneScroll = scroll(buildScenePanel());
-            workArea.addView(slotScroll, new LinearLayout.LayoutParams(0, -1, 1.45f));
+            workArea.addView(buildSlotsPanel(), new LinearLayout.LayoutParams(0, -1, 1.55f));
             LinearLayout.LayoutParams sceneParams = new LinearLayout.LayoutParams(0, -1, 1f);
             sceneParams.leftMargin = dp(7);
-            workArea.addView(sceneScroll, sceneParams);
-            root.addView(buildPianoPanel(), new LinearLayout.LayoutParams(-1, dp(145)));
+            workArea.addView(buildScenePanel(), sceneParams);
+            if (virtualKeyboardVisible) root.addView(buildPianoPanel(), new LinearLayout.LayoutParams(-1, dp(116)));
         } else {
             ScrollView mainScroll = new ScrollView(this);
             mainScroll.setFillViewport(false);
+            mainScroll.setVerticalScrollBarEnabled(false);
             LinearLayout contents = new LinearLayout(this);
             contents.setOrientation(LinearLayout.VERTICAL);
             contents.addView(buildScenePanel());
             contents.addView(buildSlotsPanel());
             mainScroll.addView(contents);
             workArea.addView(mainScroll, new LinearLayout.LayoutParams(-1, -1));
-            root.addView(buildPianoPanel(), new LinearLayout.LayoutParams(-1, dp(170)));
+            if (virtualKeyboardVisible) root.addView(buildPianoPanel(), new LinearLayout.LayoutParams(-1, dp(146)));
         }
         refreshSceneControls();
         refreshMidiControls();
@@ -244,6 +277,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
         super.onConfigurationChanged(configuration);
+        if (virtualKeyboardVisible) releaseVirtualKeyboardNotes();
         buildUi();
     }
 
@@ -308,16 +342,20 @@ public final class MainActivity extends Activity {
                 refreshSlots();
             }
         });
-        Button audioTest = button("♫", "Teste de áudio 440 Hz", this::runAudioTest);
-        Button output = button("⇧", "Selecionar saída de áudio Android", this::chooseAudioOutput);
+        Button audioTest = button("♫", "Saída, buffer e teste de áudio", this::showAudioSettings);
+        Button keyboardToggle = button(virtualKeyboardVisible ? "⌨✓" : "⌨", "Mostrar ou ocultar o teclado virtual", () -> {
+            if (virtualKeyboardVisible) releaseVirtualKeyboardNotes();
+            virtualKeyboardVisible = !virtualKeyboardVisible;
+            buildUi();
+        });
         midiStatusView = text("MIDI: buscando…", 10, 0xff667085, false);
         if (landscape) {
-            panel.addView(text("MIDI", 13, INK, true));
+        panel.addView(text("MIDI", 13, INK, true));
             addWeighted(panel, globalMidiSpinner, 1.25f, dp(40), dp(7));
             addWeighted(panel, routeSpinner, 1.05f, dp(40), dp(5));
             panel.addView(connect, new LinearLayout.LayoutParams(dp(42), dp(40)));
             addLeft(panel, audioTest, dp(4));
-            addLeft(panel, output, dp(4));
+            addLeft(panel, keyboardToggle, dp(4));
             midiStatusView.setMaxLines(1);
             midiStatusView.setEllipsize(android.text.TextUtils.TruncateAt.END);
             addWeighted(panel, midiStatusView, 0.9f, dp(40), dp(7));
@@ -332,7 +370,7 @@ public final class MainActivity extends Activity {
             row2.setGravity(Gravity.CENTER_VERTICAL);
             addWeighted(row2, routeSpinner, 1, dp(36), 0);
             addLeft(row2, audioTest, dp(4));
-            addLeft(row2, output, dp(4));
+            addLeft(row2, keyboardToggle, dp(4));
             addWeighted(row2, midiStatusView, 1.15f, dp(36), dp(5));
             panel.addView(row2, new LinearLayout.LayoutParams(-1, dp(36)));
         }
@@ -353,62 +391,60 @@ public final class MainActivity extends Activity {
 
     private View buildSlotsPanel() {
         LinearLayout panel = panel();
+        boolean landscape = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        panel.setPadding(dp(landscape ? 7 : 9), dp(landscape ? 5 : 7), dp(landscape ? 7 : 9), dp(landscape ? 5 : 7));
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
-        slotCountView = text("Instrumentos · 1/8", 15, INK, true);
+        slotCountView = text("Partes · 1/8", 14, INK, true);
         heading.addView(slotCountView, new LinearLayout.LayoutParams(0, -2, 1));
-        heading.addView(button("＋ Timbre", "Adicionar uma parte", this::addSlot));
+        heading.addView(button("＋ Timbre", "Adicionar uma parte", this::addSlot), new LinearLayout.LayoutParams(-2, dp(landscape ? 29 : 34)));
         panel.addView(heading);
         slotList = new LinearLayout(this);
         slotList.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(-1, -2);
-        listParams.topMargin = dp(7);
+        listParams.topMargin = dp(landscape ? 2 : 4);
         panel.addView(slotList, listParams);
         return panel;
     }
 
     private View buildScenePanel() {
         LinearLayout panel = panel();
-        panel.addView(text("Cenas", 15, INK, true));
+        panel.setPadding(dp(8), dp(6), dp(8), dp(6));
+        LinearLayout nameRow = new LinearLayout(this);
+        nameRow.setGravity(Gravity.CENTER_VERTICAL);
+        nameRow.addView(text("Cenas", 14, INK, true), new LinearLayout.LayoutParams(dp(48), dp(34)));
         sceneNameInput = new EditText(this);
         sceneNameInput.setSingleLine(true);
-        sceneNameInput.setTextSize(14);
+        sceneNameInput.setTextSize(12);
         sceneNameInput.setHint("Nome da cena");
         sceneNameInput.setText(currentSceneName);
-        LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, dp(44));
-        nameParams.topMargin = dp(6);
-        panel.addView(sceneNameInput, nameParams);
-        LinearLayout actions = new LinearLayout(this);
-        actions.addView(button("💾 Salvar", "Salvar cena", this::saveScene), new LinearLayout.LayoutParams(0, dp(42), 1));
-        LinearLayout.LayoutParams newParams = new LinearLayout.LayoutParams(0, dp(42), 1);
-        newParams.leftMargin = dp(6);
-        actions.addView(button("＋ Nova", "Criar cena vazia com um slot", this::newScene), newParams);
-        panel.addView(actions);
-        TextView padsTitle = text("Acesso rápido · MIDI Learn por cena", 12, 0xff475467, true);
-        LinearLayout.LayoutParams padsTitleParams = new LinearLayout.LayoutParams(-1, -2);
-        padsTitleParams.topMargin = dp(8);
-        panel.addView(padsTitle, padsTitleParams);
-        scenePadList = new LinearLayout(this);
-        scenePadList.setOrientation(LinearLayout.VERTICAL);
-        panel.addView(scenePadList);
+        nameRow.addView(sceneNameInput, new LinearLayout.LayoutParams(0, dp(34), 1));
+        nameRow.addView(button("💾", "Salvar cena", this::saveScene), new LinearLayout.LayoutParams(dp(40), dp(34)));
+        nameRow.addView(button("＋", "Criar cena vazia com um slot", this::newScene), new LinearLayout.LayoutParams(dp(38), dp(34)));
+        panel.addView(nameRow);
+
+        LinearLayout selectRow = new LinearLayout(this);
+        selectRow.setGravity(Gravity.CENTER_VERTICAL);
         sceneSelector = new Spinner(this);
-        LinearLayout.LayoutParams selectorParams = new LinearLayout.LayoutParams(-1, dp(42));
-        selectorParams.topMargin = dp(5);
-        panel.addView(sceneSelector, selectorParams);
-        LinearLayout sceneActions = new LinearLayout(this);
-        sceneActions.addView(button("▶ Carregar", "Carregar cena selecionada", () -> {
+        selectRow.addView(sceneSelector, new LinearLayout.LayoutParams(0, dp(34), 1));
+        selectRow.addView(button("▶", "Carregar cena selecionada", () -> {
             Object selected = sceneSelector.getSelectedItem();
             if (selected != null) loadScene(((SceneChoice) selected).name);
-        }), new LinearLayout.LayoutParams(0, dp(42), 1));
-        LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(0, dp(42), 1);
-        deleteParams.leftMargin = dp(6);
-        sceneActions.addView(button("⌫ Remover", "Remover cena selecionada", this::deleteSelectedScene), deleteParams);
-        panel.addView(sceneActions);
-        panel.addView(text("SoundFonts", 14, INK, true), topMargin(dp(10)));
-        TextView importHelp = text("Importe arquivos SF2 pelo seletor do Android. Os arquivos ficam no armazenamento do app.", 11, 0xff667085, false);
-        panel.addView(importHelp);
-        panel.addView(button("＋ Importar arquivo SF2", "Importar SoundFont do armazenamento do Android", () -> chooseSoundFont(-1)), topMargin(dp(5)));
-        panel.addView(button("☁ Baixar do catálogo", "Baixar SoundFont do catálogo do SamNat", this::openSoundFontCatalog), topMargin(dp(4)));
+        }), new LinearLayout.LayoutParams(dp(38), dp(34)));
+        selectRow.addView(button("⌫", "Remover cena selecionada", this::deleteSelectedScene), new LinearLayout.LayoutParams(dp(38), dp(34)));
+        LinearLayout.LayoutParams selectParams = new LinearLayout.LayoutParams(-1, dp(34));
+        selectParams.topMargin = dp(2);
+        panel.addView(selectRow, selectParams);
+
+        scenePadList = new LinearLayout(this);
+        scenePadList.setOrientation(LinearLayout.HORIZONTAL);
+        HorizontalScrollView padScroll = new HorizontalScrollView(this);
+        padScroll.setHorizontalScrollBarEnabled(false);
+        padScroll.setVerticalScrollBarEnabled(false);
+        padScroll.addView(scenePadList, new HorizontalScrollView.LayoutParams(-2, dp(36)));
+        LinearLayout.LayoutParams padsParams = new LinearLayout.LayoutParams(-1, dp(36));
+        padsParams.topMargin = dp(2);
+        panel.addView(padScroll, padsParams);
         return panel;
     }
 
@@ -462,38 +498,104 @@ public final class MainActivity extends Activity {
     private void refreshSlots() {
         if (slotList == null) return;
         slotList.removeAllViews();
-        if (slotCountView != null) slotCountView.setText("Instrumentos · " + slots.size() + "/" + MAX_SLOTS + " partes");
-        for (SlotState slot : slots) slotList.addView(buildSlotCard(slot), spacedParams(dp(6)));
+        slotVolumeBars.clear();
+        slotVolumeLabels.clear();
+        if (slotCountView != null) slotCountView.setText("Partes · " + slots.size() + "/" + MAX_SLOTS);
+        boolean landscape = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        for (SlotState slot : slots) {
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, dp(landscape ? 30 : 42));
+            if (slot.channel > 0) rowParams.topMargin = dp(landscape ? 1 : 2);
+            slotList.addView(buildSlotRow(slot, landscape), rowParams);
+        }
     }
 
-    private View buildSlotCard(SlotState slot) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(9), dp(7), dp(9), dp(8));
-        card.setBackground(round(Color.WHITE, 0xffe1e5eb, 9));
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.addView(text(categoryIcon(slot.soundFontName) + "  Parte " + (slot.channel + 1), 13, INK, true), new LinearLayout.LayoutParams(0, -2, 1));
-        header.addView(button("♫ Testar", "Tocar uma nota de teste nesta parte", () -> {
-            if (!slot.loaded) { chooseSoundFont(slot.channel); return; }
-            engine.noteOn(slot.channel, 60, 95);
-            handler.postDelayed(() -> engine.noteOff(slot.channel, 60), 700);
-        }));
-        if (slots.size() > 1) {
-            LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(dp(38), dp(36));
-            removeParams.leftMargin = dp(5);
-            header.addView(button("−", "Remover esta parte", () -> removeSlot(slot.channel)), removeParams);
-        }
-        card.addView(header);
+    private View buildSlotRow(SlotState slot, boolean landscape) {
+        LinearLayout row = horizontalPanel();
+        row.setBackground(round(Color.WHITE, 0xffe1e5eb, 7));
+        row.setPadding(dp(landscape ? 4 : 6), 0, dp(landscape ? 4 : 6), 0);
+        String name = slot.soundFontName == null || slot.soundFontName.isEmpty()
+            ? "Parte " + (slot.channel + 1) + " · sem timbre"
+            : slot.soundFontName.replaceFirst("(?i)\\.sf2$", "");
+        TextView title = text(categoryIcon(slot.soundFontName) + " " + name, landscape ? 10 : 11,
+            slot.loadError.isEmpty() ? INK : 0xffb42318, true);
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        row.addView(title, new LinearLayout.LayoutParams(0, -1, landscape ? 1.15f : 1.1f));
+        TextView volumeLabel = text(slot.volume + "%", 10, 0xff475467, true);
+        volumeLabel.setGravity(Gravity.CENTER);
+        slotVolumeLabels.put(slot.channel, volumeLabel);
+        row.addView(volumeLabel, new LinearLayout.LayoutParams(dp(36), -1));
+        SeekBar volume = new SeekBar(this);
+        volume.setMax(100);
+        volume.setProgress(slot.volume);
+        volume.setContentDescription("Volume da parte " + (slot.channel + 1));
+        slotVolumeBars.put(slot.channel, volume);
+        row.addView(volume, new LinearLayout.LayoutParams(0, dp(landscape ? 28 : 36), landscape ? 1.15f : 1f));
+        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                volumeLabel.setText(value + "%");
+                if (fromUser) {
+                    slot.volume = value;
+                    if (slot.loaded) engine.setVolume(slot.channel, value);
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+        Button learn = button("Learn", "Associar um controle MIDI ao volume", () -> {
+            pendingVolumeLearnChannel = slot.channel;
+            setStatus("MIDI Learn · mova o controle de volume da parte " + (slot.channel + 1));
+        });
+        learn.setTextSize(9);
+        row.addView(learn, new LinearLayout.LayoutParams(dp(landscape ? 48 : 52), dp(landscape ? 27 : 34)));
+        Button settings = button("⚙", "Configurações da parte " + (slot.channel + 1), () -> openSlotSettings(slot));
+        row.addView(settings, new LinearLayout.LayoutParams(dp(landscape ? 32 : 36), dp(landscape ? 27 : 34)));
+        return row;
+    }
 
-        LinearLayout fileLine = new LinearLayout(this);
-        fileLine.setGravity(Gravity.CENTER_VERTICAL);
-        TextView fileName = text(slot.loaded ? slot.soundFontName : (slot.soundFontName.isEmpty() ? "Sem SoundFont" : slot.soundFontName + " · não importado"), 12, slot.loaded ? 0xff344054 : 0xff667085, false);
-        fileLine.addView(fileName, new LinearLayout.LayoutParams(0, -2, 1));
-        fileLine.addView(button("Abrir SF2", "Selecionar SoundFont para esta parte", () -> chooseSoundFont(slot.channel)));
-        LinearLayout.LayoutParams fileParams = new LinearLayout.LayoutParams(-1, -2);
-        fileParams.topMargin = dp(4);
-        card.addView(fileLine, fileParams);
+    private void openSlotSettings(SlotState slot) {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(12), dp(4), dp(12), dp(4));
+        ScrollView scroll = new ScrollView(this);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.addView(content);
+
+        TextView soundFontStatus = text(slot.loading ? "Carregando timbre…" : slot.loaded ? slot.soundFontName :
+            (slot.soundFontName.isEmpty() ? "Nenhum SoundFont escolhido" : slot.soundFontName + " · não carregado"),
+            12, slot.loadError.isEmpty() ? 0xff475467 : 0xffb42318, false);
+        content.addView(soundFontStatus, new LinearLayout.LayoutParams(-1, dp(36)));
+        LinearLayout soundFontButtons = new LinearLayout(this);
+        soundFontButtons.addView(button("＋ Arquivo", "Importar arquivo SF2", () -> {
+            chooseSoundFont(slot.channel);
+        }), new LinearLayout.LayoutParams(0, dp(38), 1));
+        LinearLayout.LayoutParams catalogParams = new LinearLayout.LayoutParams(0, dp(38), 1);
+        catalogParams.leftMargin = dp(5);
+        soundFontButtons.addView(button("☁ Catálogo", "Baixar SoundFont do catálogo", () -> openSoundFontCatalog(slot.channel)), catalogParams);
+        content.addView(soundFontButtons);
+
+        Spinner librarySpinner = new Spinner(this);
+        List<SoundFontChoice> library = soundFontChoices();
+        ArrayAdapter<SoundFontChoice> libraryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, library);
+        libraryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        librarySpinner.setAdapter(libraryAdapter);
+        int librarySelection = 0;
+        for (int i = 1; i < library.size(); i++) if (library.get(i).file.getAbsolutePath().equals(slot.soundFontPath)) librarySelection = i;
+        librarySpinner.setSelection(librarySelection);
+        librarySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                if (position <= 0 || position >= library.size()) return;
+                SoundFontChoice selected = library.get(position);
+                if (selected.file.getAbsolutePath().equals(slot.soundFontPath)) return;
+                slot.soundFontPath = selected.file.getAbsolutePath();
+                slot.soundFontName = selected.file.getName();
+                slot.loadError = "";
+                if (engineReady) loadSoundFont(slot, true);
+                refreshSlots();
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(librarySpinner, topMargin(dp(3)));
 
         Spinner presetSpinner = new Spinner(this);
         presetSpinner.setEnabled(slot.loaded);
@@ -517,42 +619,13 @@ public final class MainActivity extends Activity {
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
         });
-        card.addView(presetSpinner, new LinearLayout.LayoutParams(-1, dp(40)));
+        content.addView(presetSpinner, topMargin(dp(2)));
 
-        Spinner librarySpinner = new Spinner(this);
-        List<SoundFontChoice> library = soundFontChoices();
-        ArrayAdapter<SoundFontChoice> libraryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, library);
-        libraryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        librarySpinner.setAdapter(libraryAdapter);
-        int librarySelection = 0;
-        for (int i = 1; i < library.size(); i++) if (library.get(i).file.getAbsolutePath().equals(slot.soundFontPath)) librarySelection = i;
-        librarySpinner.setSelection(librarySelection);
-        librarySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position <= 0 || position >= library.size()) return;
-                SoundFontChoice selected = library.get(position);
-                if (selected.file.getAbsolutePath().equals(slot.soundFontPath)) return;
-                slot.soundFontPath = selected.file.getAbsolutePath();
-                slot.soundFontName = selected.file.getName();
-                slot.loadError = "";
-                if (engineReady) loadSoundFont(slot, true);
-                refreshSlots();
-            }
-            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
-        });
-        LinearLayout.LayoutParams libraryParams = new LinearLayout.LayoutParams(-1, dp(38));
-        libraryParams.topMargin = dp(2);
-        card.addView(librarySpinner, libraryParams);
-
-        card.addView(controlRow("Volume " + slot.volume + "%", slot.volume, value -> {
-            slot.volume = value;
-            if (slot.loaded) engine.setVolume(slot.channel, value);
-        }));
-        card.addView(controlRow("Reverb " + slot.reverb + "%", slot.reverb, value -> {
+        content.addView(controlRow("Reverb " + slot.reverb + "%", slot.reverb, value -> {
             slot.reverb = value;
             if (slot.loaded) engine.setReverb(slot.channel, value);
         }));
-        card.addView(controlRow("Chorus " + slot.chorus + "%", slot.chorus, value -> {
+        content.addView(controlRow("Chorus " + slot.chorus + "%", slot.chorus, value -> {
             slot.chorus = value;
             if (slot.loaded) engine.setChorus(slot.channel, value);
         }));
@@ -587,16 +660,37 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams learnParams = new LinearLayout.LayoutParams(-2, dp(38));
         learnParams.leftMargin = dp(4);
         options.addView(learn, learnParams);
-        card.addView(options);
+        content.addView(options);
 
         TextView memory = text(slot.loading ? "Carregando timbre na memória…" : slot.loaded ? "Timbre na memória · 100% estimado" : slot.loadError.isEmpty() ? "Timbre na memória · 0%" : slot.loadError, 10, slot.loadError.isEmpty() ? 0xff667085 : 0xffb42318, false);
-        card.addView(memory);
+        content.addView(memory);
         if (slot.loading) {
             ProgressBar progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
             progress.setIndeterminate(true);
-            card.addView(progress, new LinearLayout.LayoutParams(-1, dp(3)));
+            content.addView(progress, new LinearLayout.LayoutParams(-1, dp(3)));
         }
-        return card;
+        LinearLayout actions = new LinearLayout(this);
+        Button test = button("♫ Testar", "Tocar uma nota curta desta parte", () -> {
+            if (!slot.loaded) { chooseSoundFont(slot.channel); return; }
+            engine.noteOn(slot.channel, 60, 95);
+            handler.postDelayed(() -> engine.noteOff(slot.channel, 60), 700);
+        });
+        actions.addView(test, new LinearLayout.LayoutParams(0, dp(38), 1));
+        if (slots.size() > 1) {
+            LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(0, dp(38), 1);
+            removeParams.leftMargin = dp(5);
+            actions.addView(button("− Remover parte", "Remover esta parte", () -> removeSlot(slot.channel)), removeParams);
+        }
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(38));
+        actionParams.topMargin = dp(4);
+        content.addView(actions, actionParams);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle("Parte " + (slot.channel + 1) + " · configurações")
+            .setView(scroll)
+            .setNegativeButton("Fechar", null)
+            .create();
+        dialog.show();
+        dialog.getWindow().setLayout(-1, Math.min(dp(620), (int) (getResources().getDisplayMetrics().heightPixels * 0.82f)));
     }
 
     private interface ValueChanged { void changed(int value); }
@@ -632,6 +726,7 @@ public final class MainActivity extends Activity {
         SynthScene scene = null;
         for (SynthScene item : sceneStore.read()) if (item.name.equals(name)) { scene = item; break; }
         if (scene == null) return;
+        releaseVirtualKeyboardNotes();
         for (int channel = 0; channel < MAX_SLOTS; channel++) engine.clearChannel(channel);
         heldMidiChannels.clear();
         slotPresets.clear();
@@ -657,6 +752,7 @@ public final class MainActivity extends Activity {
     }
 
     private void newScene() {
+        releaseVirtualKeyboardNotes();
         for (int channel = 0; channel < MAX_SLOTS; channel++) engine.clearChannel(channel);
         slotPresets.clear();
         slots.clear();
@@ -715,15 +811,19 @@ public final class MainActivity extends Activity {
             for (SynthScene scene : scenes) {
                 LinearLayout row = new LinearLayout(this);
                 Button launch = button("▶  " + scene.name, "Carregar cena " + scene.name, () -> loadScene(scene.name));
-                row.addView(launch, new LinearLayout.LayoutParams(0, dp(40), 1));
-                Button learn = button(scene.midiChannel == null ? "MIDI Learn" : "CH " + (scene.midiChannel + 1) + " · " + scene.midiNote, "Associar pad/controlador MIDI à cena", () -> {
+                launch.setSingleLine(true);
+                launch.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                row.addView(launch, new LinearLayout.LayoutParams(dp(126), dp(34)));
+                Button learn = button(scene.midiChannel == null ? "Learn" : "♪ " + scene.midiNote, "Associar pad/controlador MIDI à cena", () -> {
                     pendingSceneLearn = scene.name;
                     setStatus("MIDI Learn para “" + scene.name + "”: toque o pad que deseja associar.");
                 });
-                LinearLayout.LayoutParams learnParams = new LinearLayout.LayoutParams(dp(105), dp(40));
+                LinearLayout.LayoutParams learnParams = new LinearLayout.LayoutParams(dp(50), dp(34));
                 learnParams.leftMargin = dp(4);
                 row.addView(learn, learnParams);
-                scenePadList.addView(row, spacedParams(dp(4)));
+                LinearLayout.LayoutParams groupParams = new LinearLayout.LayoutParams(-2, dp(36));
+                if (scenePadList.getChildCount() > 0) groupParams.leftMargin = dp(5);
+                scenePadList.addView(row, groupParams);
             }
         }
     }
@@ -804,8 +904,8 @@ public final class MainActivity extends Activity {
         return name;
     }
 
-    private void openSoundFontCatalog() {
-        importSlot = -1;
+    private void openSoundFontCatalog(int channel) {
+        importSlot = channel;
         List<SoundFontCatalog.Item> items = SoundFontCatalog.read(this);
         if (items.isEmpty()) { setStatus("Catálogo de SoundFonts vazio."); return; }
         String[] labels = new String[items.size()];
@@ -1012,6 +1112,101 @@ public final class MainActivity extends Activity {
         }, 2000);
     }
 
+    private void showAudioSettings() {
+        AudioDeviceInfo[] available = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+        List<Integer> outputIds = new ArrayList<>();
+        List<String> outputNames = new ArrayList<>();
+        outputIds.add(0);
+        outputNames.add("Padrão Android · troca automática");
+        for (AudioDeviceInfo device : available) {
+            if (!device.isSink() || !isSelectableOutput(device.getType())) continue;
+            outputIds.add(device.getId());
+            outputNames.add(device.getProductName() + " · " + audioDeviceType(device.getType()));
+        }
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(4), dp(16), dp(4));
+        content.addView(text("Saída de áudio", 12, INK, true));
+        Spinner outputSpinner = new Spinner(this);
+        ArrayAdapter<String> outputAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, outputNames);
+        outputAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        outputSpinner.setAdapter(outputAdapter);
+        int savedOutput = getPreferences(MODE_PRIVATE).getInt("audio-output-id", 0);
+        int selectedOutput = outputIds.indexOf(savedOutput);
+        outputSpinner.setSelection(Math.max(0, selectedOutput));
+        content.addView(outputSpinner, topMargin(dp(2)));
+
+        content.addView(text("Buffer · menor reduz latência; maior tolera melhor variações do sistema", 11, 0xff475467, false), topMargin(dp(10)));
+        String[] bufferNames = {"1 · mínima latência", "2 · baixo", "3 · equilibrado", "4 · estável", "6 · mais estável"};
+        int[] bufferValues = {1, 2, 3, 4, 6};
+        Spinner bufferSpinner = new Spinner(this);
+        ArrayAdapter<String> bufferAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, bufferNames);
+        bufferAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        bufferSpinner.setAdapter(bufferAdapter);
+        int bufferIndex = 2;
+        for (int i = 0; i < bufferValues.length; i++) if (bufferValues[i] == audioBufferBursts) bufferIndex = i;
+        bufferSpinner.setSelection(bufferIndex);
+        content.addView(bufferSpinner, topMargin(dp(2)));
+
+        TextView bufferInfo = text("Buffer atual: consultando…", 10, 0xff667085, false);
+        content.addView(bufferInfo, topMargin(dp(3)));
+        Button apply = button("Aplicar saída e buffer", "Aplicar as configurações de áudio", () -> { });
+        LinearLayout.LayoutParams applyParams = new LinearLayout.LayoutParams(-1, dp(40));
+        applyParams.topMargin = dp(10);
+        content.addView(apply, applyParams);
+        Button test = button("♫ Testar som · 440 Hz", "Tocar um tom de teste por dois segundos", () -> { });
+        LinearLayout.LayoutParams testParams = new LinearLayout.LayoutParams(-1, dp(40));
+        testParams.topMargin = dp(5);
+        content.addView(test, testParams);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle("Áudio")
+            .setView(content)
+            .setNegativeButton("Fechar", null)
+            .create();
+        apply.setOnClickListener(view -> {
+            if (!engineReady) { setStatus("O motor de áudio ainda está iniciando."); return; }
+            int outputIndex = Math.max(0, outputSpinner.getSelectedItemPosition());
+            int outputId = outputIds.get(outputIndex);
+            String outputName = outputNames.get(outputIndex);
+            int bursts = bufferValues[Math.max(0, Math.min(bufferValues.length - 1, bufferSpinner.getSelectedItemPosition()))];
+            apply.setEnabled(false);
+            audioQueue.execute(() -> {
+                boolean outputChanged = engine.selectOutput(outputId);
+                int actualFrames = outputChanged ? engine.setBufferBursts(bursts) : -1;
+                int framesPerBurst = engine.framesPerBurst();
+                runOnUiThread(() -> {
+                    apply.setEnabled(true);
+                    if (outputChanged && actualFrames >= 0) {
+                        audioBufferBursts = bursts;
+                        getPreferences(MODE_PRIVATE).edit()
+                            .putInt("audio-output-id", outputId)
+                            .putInt("audio-buffer-bursts", bursts)
+                            .apply();
+                        float latencyMs = framesPerBurst > 0 ? actualFrames * 1000f / 48000f : 0;
+                        bufferInfo.setText("Buffer aplicado: " + actualFrames + " frames · ~" + String.format(Locale.getDefault(), "%.1f", latencyMs) + " ms");
+                        setStatus("Áudio: " + outputName + " · buffer " + bursts + " burst(s)");
+                    } else {
+                        bufferInfo.setText("Não foi possível aplicar; a rota anterior foi mantida.");
+                        setStatus("Falha ao aplicar a saída de áudio.");
+                    }
+                });
+            });
+        });
+        test.setOnClickListener(view -> runAudioTest());
+        dialog.show();
+        if (engineReady) {
+            audioQueue.execute(() -> {
+                int burst = engine.framesPerBurst();
+                int bufferFrames = burst > 0 ? burst * audioBufferBursts : 0;
+                runOnUiThread(() -> bufferInfo.setText(bufferFrames > 0
+                    ? "Atual: " + burst + " frames/burst × " + audioBufferBursts + " = " + bufferFrames + " frames"
+                    : "Buffer indisponível no momento."));
+            });
+        }
+    }
+
     private void chooseAudioOutput() {
         AudioDeviceInfo[] available = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
         List<AudioDeviceInfo> outputs = new ArrayList<>();
@@ -1079,14 +1274,17 @@ public final class MainActivity extends Activity {
         for (SlotState slot : slots) if (slot.loaded) engine.noteOn(slot.channel, note, velocity);
     }
 
-    private void handleMidi(String deviceId, byte[] bytes, int offset, int count) {
-        if (count < 2) return;
-        int status = bytes[offset] & 0xff;
+    private void releaseVirtualKeyboardNotes() {
+        for (Integer note : new HashSet<>(activeUiNotes)) {
+            for (SlotState slot : slots) if (slot.loaded) engine.noteOff(slot.channel, note);
+        }
+        activeUiNotes.clear();
+    }
+
+    private void handleMidi(String deviceId, int status, int data1, int data2) {
         if (status >= 0xf0) return;
         int command = status & 0xf0;
         int midiChannel = status & 0x0f;
-        int data1 = bytes[offset + 1] & 0x7f;
-        int data2 = count > 2 ? bytes[offset + 2] & 0x7f : 0;
         if ((command == 0x90 && data2 > 0) && !pendingSceneLearn.isEmpty()) {
             saveSceneMidiTrigger(pendingSceneLearn, midiChannel, data1);
             return;
@@ -1103,11 +1301,11 @@ public final class MainActivity extends Activity {
             Set<Integer> channels = new HashSet<>();
             for (SlotState slot : targets) if (slot.loaded) { engine.noteOn(slot.channel, data1, data2); channels.add(slot.channel); }
             heldMidiChannels.put(key, channels);
-            runOnUiThread(() -> { if (pianoView != null) pianoView.setNoteActive(data1, true); });
+            if (virtualKeyboardVisible && pianoView != null) runOnUiThread(() -> { if (pianoView != null) pianoView.setNoteActive(data1, true); });
         } else if (command == 0x80 || command == 0x90) {
             Set<Integer> channels = heldMidiChannels.remove(key);
             if (channels != null) for (Integer channel : channels) engine.noteOff(channel, data1);
-            runOnUiThread(() -> { if (pianoView != null) pianoView.setNoteActive(data1, false); });
+            if (virtualKeyboardVisible && pianoView != null) runOnUiThread(() -> { if (pianoView != null) pianoView.setNoteActive(data1, false); });
         } else if (command == 0xb0) {
             if (pendingVolumeLearnChannel >= 0 && targetForLearn(deviceId, pendingVolumeLearnChannel)) {
                 SlotState slot = slots.get(pendingVolumeLearnChannel);
@@ -1121,13 +1319,20 @@ public final class MainActivity extends Activity {
                 if (slot.volumeCc != null && slot.volumeCc == data1) {
                     slot.volume = Math.round(data2 * 100f / 127f);
                     engine.setVolume(slot.channel, slot.volume);
-                    runOnUiThread(this::refreshSlots);
+                    runOnUiThread(() -> updateSlotVolumeUi(slot));
                 }
             }
         } else if (command == 0xe0) {
             int bend = data1 | (data2 << 7);
             for (SlotState slot : targets) if (slot.loaded) engine.pitchBend(slot.channel, bend);
         }
+    }
+
+    private void updateSlotVolumeUi(SlotState slot) {
+        SeekBar volume = slotVolumeBars.get(slot.channel);
+        TextView label = slotVolumeLabels.get(slot.channel);
+        if (volume != null && volume.getProgress() != slot.volume) volume.setProgress(slot.volume);
+        if (label != null) label.setText(slot.volume + "%");
     }
 
     private boolean targetForLearn(String deviceId, int channel) {
@@ -1271,6 +1476,8 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        handler.removeCallbacks(monitorTask);
+        handler.post(monitorTask);
         try {
             DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(DEVICE_POLICY_SERVICE);
             if (dpm.isDeviceOwnerApp(getPackageName())) {

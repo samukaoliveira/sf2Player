@@ -12,7 +12,7 @@ let audioBufferSettings = {
 // FluidSynth shares this voice pool across all loaded MIDI parts. The app's
 // default MIDI route layers each incoming note across those parts, so 128
 // voices were exhausted too easily with several SF2s loaded.
-const SYNTH_POLYPHONY = 256;
+const SYNTH_POLYPHONY = 512;
 // Keep the master gain at unity to preserve headroom when MIDI parts are layered.
 const SYNTH_MASTER_GAIN = 0.4;
 const soundFonts = new Map();
@@ -219,14 +219,36 @@ async function startEngine(target, bufferSettings = audioBufferSettings) {
     '-o', 'synth.chorus.active=0'
   ];
   const childEnv = { ...process.env, ...audio.env };
+  const meterLibrary = childEnv.SAMNAT_AUDIO_LIB_DIR && path.join(childEnv.SAMNAT_AUDIO_LIB_DIR, 'libsamnat-peak-meter.so');
+  const meterEnabled = audio.driver === 'alsa' && meterLibrary && fs.existsSync(meterLibrary);
+  if (meterEnabled) {
+    args.push('-o', 'audio.sample-format=16bits');
+    childEnv.LD_PRELOAD = [meterLibrary, childEnv.LD_PRELOAD].filter(Boolean).join(':');
+    childEnv.SAMNAT_METER_FD = '3';
+  }
+  parentPort.postMessage({ type: 'audio-peak', available: false });
   if (childEnv.SAMNAT_AUDIO_LIB_DIR) {
     childEnv.LD_LIBRARY_PATH = [childEnv.SAMNAT_AUDIO_LIB_DIR, childEnv.LD_LIBRARY_PATH].filter(Boolean).join(path.delimiter);
   }
   const child = spawn('fluidsynth', args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
+    stdio: meterEnabled ? ['pipe', 'pipe', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'],
     env: childEnv
   });
   fluidsynth = child;
+  if (meterEnabled) {
+    let meterBuffer = '';
+    child.stdio[3].on('data', chunk => {
+      meterBuffer = (meterBuffer + chunk.toString()).slice(-4096);
+      let newline;
+      while ((newline = meterBuffer.indexOf('\n')) !== -1) {
+        const line = meterBuffer.slice(0, newline);
+        meterBuffer = meterBuffer.slice(newline + 1);
+        const match = line.match(/^(\d+) (\d+)$/);
+        if (match) parentPort.postMessage({ type: 'audio-peak', available: true, peak: Number(match[1]), clipped: Number(match[2]) });
+      }
+    });
+    child.stdio[3].on('error', () => parentPort.postMessage({ type: 'audio-peak', available: false }));
+  }
   parentPort.postMessage({
     type: 'audio-stage',
     stage: `FluidSynth iniciado (PID ${child.pid || 'pendente'}); esperando abrir ${audio.driver} em ${target.label}...`
@@ -262,6 +284,7 @@ async function startEngine(target, bufferSettings = audioBufferSettings) {
     }
     if (fluidsynth === child) {
       fluidsynth = null;
+      parentPort.postMessage({ type: 'audio-peak', available: false });
       if (!closing) parentPort.postMessage({ type: 'audio-output-error', message: error.message });
     }
   });
@@ -394,7 +417,8 @@ async function selectAudioDevice(target) {
 async function selectAudioBufferProfile(profile) {
   const periodSize = Number(profile?.periodSize);
   const periods = Number(profile?.periods);
-  if (![64, 128, 256, 512, 1024].includes(periodSize) || ![3, 4, 16].includes(periods)) {
+  const allowedSizes = [64, 96, 128, 160, 192, 224, 256, 320, 384, 448, 512, 640, 768, 896, 1024];
+  if (!allowedSizes.includes(periodSize) || ![2, 3, 4, 6, 16].includes(periods)) {
     throw new Error('Configuração de buffer de áudio inválida.');
   }
   if (periodSize === audioBufferSettings.periodSize && periods === audioBufferSettings.periods) return;
@@ -420,16 +444,44 @@ async function selectAudioBufferProfile(profile) {
     }
     parentPort.postMessage({ type: 'audio-buffer-applied', periodSize, periods });
   } catch (error) {
-    lastAudioError = error.message;
+    const failedMessage = error.message;
     audioBufferSettings = previousSettings;
     audioDevice = null;
-    parentPort.postMessage({ type: 'audio-output-error', message: `Falha ao aplicar o buffer ${periodSize} × ${periods}: ${error.message}` });
     await stopEngine();
+    soundFonts.clear();
+    channelPresets.clear();
+    try {
+      await startEngine(target, previousSettings);
+      audioDevice = target;
+      for (const [channel, part] of assignments) {
+        await loadSoundFont(channel, part.file, part.bank, part.program);
+      }
+      parentPort.postMessage({ type: 'audio-buffer-reverted', ...previousSettings,
+        message: `Buffer ${periodSize} × ${periods} recusado: ${failedMessage}. Configuração anterior restaurada.` });
+    } catch (restoreError) {
+      lastAudioError = restoreError.message;
+      await stopEngine();
+      parentPort.postMessage({ type: 'audio-output-error', message: `Falha ao aplicar o buffer ${periodSize} × ${periods}: ${failedMessage}. Falha ao restaurar: ${restoreError.message}` });
+    }
   }
 }
 
 async function handleMessage(message) {
   try {
+    if (message.type === 'voice-count') {
+      if (!fluidsynth || !shellIsReady) {
+        parentPort.postMessage({ type: 'voice-count', count: null, limit: SYNTH_POLYPHONY });
+        return;
+      }
+      try {
+        const output = await command('voice_count', 3000);
+        const match = output.match(/voice_count:\s*(\d+)/i);
+        parentPort.postMessage({ type: 'voice-count', count: match ? Number(match[1]) : null, limit: SYNTH_POLYPHONY });
+      } catch (_) {
+        parentPort.postMessage({ type: 'voice-count', count: null, limit: SYNTH_POLYPHONY });
+      }
+      return;
+    }
     if (message.type === 'pause-audio-for-test') {
       const wasRunning = Boolean(fluidsynth && fluidsynth.exitCode === null);
       audioTestAssignments = wasRunning
@@ -619,8 +671,13 @@ async function handleMessage(message) {
   }
 }
 
+let voiceCountQueued = false;
 parentPort.on('message', message => {
+  if (message.type === 'voice-count') {
+    if (voiceCountQueued) return;
+    voiceCountQueued = true;
+  }
   messageQueue = messageQueue.then(() => handleMessage(message)).catch(error => {
     parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, requestId: message.requestId, message: error.message });
-  });
+  }).finally(() => { if (message.type === 'voice-count') voiceCountQueued = false; });
 });

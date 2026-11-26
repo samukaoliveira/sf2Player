@@ -4,8 +4,11 @@ set -eu
 APPDIR=${1:?AppDir path required}
 ROOTFS=${2:?Output rootfs staging path required}
 APP="$ROOTFS/opt/samnat-synth"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 mkdir -p "$APP/bin" "$APP/lib/audio" "$APP/share/alsa" "$APP/share/fonts/truetype/dejavu"
+gcc -std=c11 -O2 -Wall -Wextra -fPIC -shared -pthread \
+  "$SCRIPT_DIR/samnat-peak-meter.c" -o "$APP/lib/audio/libsamnat-peak-meter.so" -ldl
 cp -a "$APPDIR/." "$APP/"
 for command in fluidsynth aplay amixer aseqdump; do
 	command_path=$(command -v "$command" || true)

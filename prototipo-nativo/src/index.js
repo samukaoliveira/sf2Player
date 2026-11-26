@@ -26,7 +26,12 @@ const AUDIO_BUFFER_PROFILES = [
   { id: 'low', label: 'Baixa latência · 128 × 3', periodSize: 128, periods: 3 },
   { id: 'balanced', label: 'Equilibrado · 256 × 4', periodSize: 256, periods: 4 },
   { id: 'stable', label: 'Estável · 512 × 4', periodSize: 512, periods: 4 },
-  { id: 'safe', label: 'Muito estável · 1024 × 4', periodSize: 1024, periods: 4 }
+  { id: 'safe', label: 'Muito estável · 1024 × 4', periodSize: 1024, periods: 4 },
+  ...[64, 96, 128, 160, 192, 224, 256, 320, 384, 448, 512, 640, 768, 896, 1024]
+    .flatMap(periodSize => [2, 3, 4, 6].map(periods => ({
+      id: `${periodSize}x${periods}`, label: `${periodSize} × ${periods}`,
+      periodSize, periods
+    })))
 ];
 fs.mkdirSync(SF_DIR, { recursive: true });
 
@@ -68,6 +73,21 @@ function label(text, style) {
   widget.setText(text);
   if (style) widget.setInlineStyle(style);
   return widget;
+}
+const openDialogs = new Set();
+function showDialog(dialog) {
+  openDialogs.add(dialog);
+  dialog.open();
+  dialog.raise();
+  dialog.update();
+  dialog.repaint();
+}
+function keepDialogUntilFinished(dialog) {
+  dialog.addEventListener('finished', () => {
+    openDialogs.delete(dialog);
+    window.update();
+    window.repaint();
+  });
 }
 function button(text, handler) {
   const widget = new QPushButton();
@@ -150,6 +170,35 @@ status.setWordWrap(true);
 status.setMinimumWidth(120);
 status.setMinimumHeight(42);
 const systemUsageLabel = label('CPU --%\nRAM --', 'font-size: 13px; font-weight: 600; color: #344054; padding: 8px 10px; background: #f2f4f7; border: 1px solid #e1e5eb; border-radius: 8px;');
+const peakLabel = label('Pico\n--', 'font-size: 10px; font-weight: 700; color: #667085;');
+peakLabel.setToolTip('Pico digital antes do volume da saída; LIMITE indica amostras no limite do sinal de 16 bits.');
+let compactPeakLabel = null;
+let lastPeakStyle = '';
+let peakLimitUntil = 0;
+function showAudioPeak(message) {
+  const peak = Math.max(0, Math.min(32768, Number(message.peak) || 0));
+  if (message.available && Number(message.clipped) > 0) peakLimitUntil = Date.now() + 2000;
+  if (!message.available) peakLimitUntil = 0;
+  const isLimit = message.available && Date.now() < peakLimitUntil;
+  const db = peak > 0 ? 20 * Math.log10(peak / 32768) : -Infinity;
+  const color = isLimit ? '#b42318' : message.available && db >= -3 ? '#b54708' : message.available ? '#067647' : '#667085';
+  const text = !message.available ? 'Pico\n--' : isLimit ? 'Pico\nLIMITE' : `Pico\n${Number.isFinite(db) ? `${db.toFixed(0)} dB` : 'silêncio'}`;
+  for (const widget of [peakLabel, compactPeakLabel]) {
+    if (!widget) continue;
+    widget.setText(text);
+    if (lastPeakStyle !== color) widget.setInlineStyle(`font-size: ${widget === compactPeakLabel ? 8 : 10}px; font-weight: 700; color: ${color};`);
+  }
+  lastPeakStyle = color;
+}
+let compactUsageLabel = null;
+let voiceCount = null;
+let voiceLimit = 512;
+let compactUsageText = 'CPU --%  RAM --%';
+let systemUsageText = 'CPU --%\nRAM --';
+function updateCompactUsage() {
+  systemUsageLabel.setText(`${systemUsageText}\nVozes ${voiceCount === null ? '--' : voiceCount}/${voiceLimit}`);
+  if (compactUsageLabel) compactUsageLabel.setText(`${compactUsageText}\nVozes ${voiceCount === null ? '--' : voiceCount}/${voiceLimit}`);
+}
 let previousCpuTimes = null;
 function updateSystemUsage() {
   try {
@@ -170,12 +219,16 @@ function updateSystemUsage() {
     const usedMb = Math.max(0, Math.round((totalKb - availableKb) / 1024));
     const totalMb = Math.round(totalKb / 1024);
     const ramPercent = totalKb > 0 ? Math.round((totalKb - availableKb) * 100 / totalKb) : 0;
-    systemUsageLabel.setText(`CPU ${cpuText}%\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`);
+    systemUsageText = `CPU ${cpuText}%\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`;
+    compactUsageText = `CPU ${cpuText}%  RAM ${ramPercent}%`;
+    updateCompactUsage();
   } catch (_) {
     const totalMb = Math.round(os.totalmem() / 1048576);
     const usedMb = Math.round((os.totalmem() - os.freemem()) / 1048576);
     const ramPercent = totalMb > 0 ? Math.round(usedMb * 100 / totalMb) : 0;
-    systemUsageLabel.setText(`CPU --%\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`);
+    systemUsageText = `CPU --%\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`;
+    compactUsageText = `CPU --%  RAM ${ramPercent}%`;
+    updateCompactUsage();
   }
 }
 updateSystemUsage();
@@ -190,6 +243,7 @@ if (APP_LOGO_FILE) {
 headerLayout.addWidget(titleBlock);
 headerLayout.addWidget(status, 1);
 headerLayout.addWidget(systemUsageLabel);
+headerLayout.addWidget(peakLabel);
 const batteryStatusLabel = label('▰ --%', 'font-size: 15px; font-weight: 700; color: #344054; padding: 8px 10px; background: #f2f4f7; border: 1px solid #e1e5eb; border-radius: 8px;');
 const batteryWarningLabel = label('Bateria abaixo de 20% · conecte o carregador.', 'font-size: 13px; font-weight: 700; color: #a12622; padding: 9px 12px; background: #fff1f0; border: 1px solid #fecdca; border-radius: 8px;');
 batteryWarningLabel.setVisible(false);
@@ -383,8 +437,14 @@ audioDeviceList.setMinimumHeight(COMPACT_UI ? 32 : 38);
 audioDeviceList.setMinimumWidth(COMPACT_UI ? 120 : 300);
 let audioDevices = [];
 let refreshingAudioDevices = false;
-const audioDialog = new QDialog(window);
+// LinuxFB has no window manager; use an in-window panel on the compact
+// appliance so a hidden modal window cannot block the rest of the interface.
+const audioDialog = COMPACT_UI ? new QWidget(central) : new QDialog(window);
 audioDialog.setWindowTitle('Áudio e MIDI');
+if (COMPACT_UI) {
+  audioDialog.setInlineStyle('background: #ffffff; color: #1c1e21; border: 1px solid #d8dee8; border-radius: 8px;');
+  audioDialog.hide();
+}
 audioDialog.setMinimumWidth(COMPACT_UI ? 440 : 560);
 if (COMPACT_UI) {
   audioDialog.resize(470, 300);
@@ -457,14 +517,30 @@ const audioDialogActionsLayout = new QBoxLayout(Direction.LeftToRight);
 audioDialogActions.setLayout(audioDialogActionsLayout);
 audioDialogActionsLayout.setContentsMargins(0, 0, 0, 0);
 audioDialogActionsLayout.setSpacing(8);
-const closeAudioDialogButton = button('Fechar', () => audioDialog.reject());
+const closeAudioDialogButton = button('Fechar', () => {
+  if (COMPACT_UI) {
+    audioDialog.hide();
+    window.update();
+  } else audioDialog.reject();
+});
 setButtonIcon(closeAudioDialogButton, 'close', 16);
 audioDialogActionsLayout.addStretch(1);
 audioDialogActionsLayout.addWidget(closeAudioDialogButton);
 audioDialogLayout.addWidget(audioDialogActions);
 function openAudioTestDialog() {
-  audioDialog.exec();
+  if (!COMPACT_UI) {
+    showDialog(audioDialog);
+    return;
+  }
+  const width = Math.min(480, Math.max(440, central.width()));
+  const height = Math.min(310, Math.max(260, central.height()));
+  audioDialog.setGeometry(Math.max(0, Math.floor((central.width() - width) / 2)),
+    Math.max(0, Math.floor((central.height() - height) / 2)), width, height);
+  audioDialog.show();
+  audioDialog.raise();
+  audioDialog.update();
 }
+if (!COMPACT_UI) keepDialogUntilFinished(audioDialog);
 function setAudioTestStatus(message) {
   status.setText(message);
   audioDialogStatus.setText(message);
@@ -821,9 +897,9 @@ function chooseSoundFont(channel) {
   const dialog = new QFileDialog(window, `SoundFont do canal ${channel + 1}`, SF_DIR, 'SoundFonts (*.sf2)');
   dialog.setFileMode(FileMode.ExistingFile);
   dialog.setNameFilter('SoundFonts (*.sf2)');
-  dialog.exec();
+  dialog.addEventListener('accepted', () => {
   const selected = dialog.selectedFiles();
-  if (!selected.length) return;
+  if (!selected.length || !slots[channel] || !rows[channel]) return;
   const file = selected[0];
   slots[channel].loaded = false;
   rows[channel].test.setEnabled(false);
@@ -841,6 +917,9 @@ function chooseSoundFont(channel) {
   status.setText(audioReady
     ? `Carregando ${path.basename(file)} no canal ${channel + 1}...`
     : `SF2 selecionado; aguardando áudio. Estado: ${audioStartupStage}`);
+  });
+  keepDialogUntilFinished(dialog);
+  showDialog(dialog);
 }
 
 function beginSoundFontProgress(channel) {
@@ -1042,8 +1121,9 @@ function makeCompactSlot(slot) {
 
   function openSlotSettings() {
     detailName.setText(name.text());
-    dialog.exec();
+    showDialog(dialog);
   }
+  keepDialogUntilFinished(dialog);
   rows[slot.channel] = {
     container: row, name, detailName, instrumentIcon, midiDevice, bank, program, test,
     soundFontProgress, volumeControl, volumeLabel, reverb, chorus, midiLearn,
@@ -1450,7 +1530,7 @@ function openSlotMidiDialog(slot) {
   actionsLayout.addWidget(cancel, 1);
   actionsLayout.addWidget(apply, 1);
   dialogLayout.addWidget(actions);
-  if (dialog.exec() !== DialogCode.Accepted) return;
+  dialog.addEventListener('accepted', () => {
   const choice = choices[selector.currentIndex()] || choices[0];
   slot.controllerId = choice.id;
   slot.controllerName = choice.id ? choice.name : '';
@@ -1458,6 +1538,9 @@ function openSlotMidiDialog(slot) {
   status.setText(choice.id
     ? `Parte ${slot.channel + 1} controlada por “${choice.name}”.`
     : `Parte ${slot.channel + 1} seguirá o controlador padrão.`);
+  });
+  keepDialogUntilFinished(dialog);
+  showDialog(dialog);
 }
 function refreshMidi(silent = false) {
   try {
@@ -1888,6 +1971,7 @@ function installCompactUi() {
 
   picoreStartupLog('interface compacta: preparando cenas');
   const sceneDialog = new QDialog(window);
+  keepDialogUntilFinished(sceneDialog);
   sceneDialog.setWindowTitle('Cenas e pads MIDI');
   sceneDialog.setMinimumWidth(420);
   sceneDialog.resize(460, 300);
@@ -1952,7 +2036,7 @@ function installCompactUi() {
   const compactStatus = label(status.text(), 'font-size: 9px; color: #165dba;');
   compactStatus.setMaximumHeight(24);
   compactHeaderLayout.addWidget(compactStatus, 1);
-  const scenesButton = button('Cenas', () => sceneDialog.exec());
+  const scenesButton = button('Cenas', () => showDialog(sceneDialog));
   setButtonIcon(scenesButton, 'play', 14);
   scenesButton.setFixedHeight(28);
   scenesButton.setToolTip('Abrir cenas e pads MIDI');
@@ -1973,6 +2057,12 @@ function installCompactUi() {
   keyboardButton.setFixedHeight(28);
   keyboardButton.setToolTip('Mostrar teclado virtual de duas oitavas');
   compactHeaderLayout.addWidget(keyboardButton);
+  compactUsageLabel = label('', 'font-size: 8px; font-weight: 600; color: #344054;');
+  updateCompactUsage();
+  compactHeaderLayout.addWidget(compactUsageLabel);
+  compactPeakLabel = label('Pico\n--', 'font-size: 8px; font-weight: 700; color: #667085;');
+  compactPeakLabel.setToolTip('Pico digital antes do volume da saída; LIMITE indica amostras no limite de 16 bits.');
+  compactHeaderLayout.addWidget(compactPeakLabel);
   const compactPowerButton = button('', () => shutdownButton.click());
   setButtonIcon(compactPowerButton, 'power', 17);
   compactPowerButton.setFixedSize(30, 28);
@@ -1996,6 +2086,26 @@ function installCompactUi() {
 }
 
 worker.on('message', message => {
+  if (message.type === 'audio-peak') {
+    showAudioPeak(message);
+    return;
+  }
+  if (message.type === 'voice-count') {
+    voiceCount = message.count;
+    voiceLimit = message.limit || voiceLimit;
+    updateCompactUsage();
+    return;
+  }
+  if (message.type === 'audio-buffer-reverted') {
+    const index = AUDIO_BUFFER_PROFILES.findIndex(profile => profile.periodSize === message.periodSize && profile.periods === message.periods);
+    if (index >= 0) {
+      audioBufferProfileId = AUDIO_BUFFER_PROFILES[index].id;
+      audioBufferList.setCurrentIndex(index);
+      saveSettings();
+    }
+    setAudioTestStatus(message.message);
+    return;
+  }
   if (message.type === 'audio-buffer-applied') {
     const profile = AUDIO_BUFFER_PROFILES.find(item => item.periodSize === message.periodSize && item.periods === message.periods);
     const summary = profile?.label || `${message.periodSize} × ${message.periods}`;
@@ -2215,11 +2325,13 @@ picoreStartupLog('detectando controladores MIDI');
 refreshMidi();
 picoreStartupLog('abrindo janela');
 midiHotplugTimer = setInterval(() => refreshMidi(true), 2000);
+const voiceCountTimer = setInterval(() => worker.postMessage({ type: 'voice-count' }), 5000);
 app.addEventListener('aboutToQuit', () => {
   appClosing = true;
   clearInterval(systemUsageTimer);
   clearInterval(batteryStatusTimer);
   clearInterval(midiHotplugTimer);
+  clearInterval(voiceCountTimer);
   clearInterval(compactStatusTimer);
   if (audioTester) audioTester.kill('SIGTERM');
   closeAllMidiInputs();

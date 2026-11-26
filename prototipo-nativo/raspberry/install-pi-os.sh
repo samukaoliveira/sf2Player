@@ -116,16 +116,17 @@ npm install --omit=dev --ignore-scripts --no-audit --no-fund
 
 QODE_BIN="$APP_ROOT/node_modules/@nodegui/qode/binaries/qode"
 if [ ! -x "$QODE_BIN" ]; then
-	if ! "$NODE_BIN/node" "$APP_ROOT/node_modules/@nodegui/qode/install.js"; then
-		# Keep the source checkout and build output for repair/rebuild attempts.
-		if [ ! -d "$QODE_SOURCE/.git" ]; then
-			git clone --branch "$QODE_TAG" --depth 1 --recurse-submodules \
-				https://github.com/nodegui/qodejs.git "$QODE_SOURCE"
-		fi
-		if [ -f "$QODE_SOURCE/qode/build.js" ]; then
-			# Qode's build script defaults to every visible CPU. Under QEMU that
-			# can overcommit memory badly; honor the persistent builder's job cap.
-			python3 - "$QODE_SOURCE/qode/build.js" <<'PY'
+	# The pinned Qode ARM64 release URL is not published (the installer returns
+	# 404), so compile the pinned source directly and reuse its persistent tree.
+	echo "Qode ARM64 prebuilt is unavailable; building Qode $QODE_TAG from the cached source..."
+	if [ ! -d "$QODE_SOURCE/.git" ]; then
+		git clone --branch "$QODE_TAG" --depth 1 --recurse-submodules \
+			https://github.com/nodegui/qodejs.git "$QODE_SOURCE"
+	fi
+	if [ -f "$QODE_SOURCE/qode/build.js" ]; then
+		# Qode's build script defaults to every visible CPU. Under QEMU that
+		# can overcommit memory badly; honor the persistent builder's job cap.
+		python3 - "$QODE_SOURCE/qode/build.js" <<'PY'
 from pathlib import Path
 import sys
 
@@ -138,30 +139,29 @@ if new not in source:
         raise SystemExit(f"Unrecognized Qode build.js make command: {build_script}")
     build_script.write_text(source.replace(old, new))
 PY
-			(cd "$QODE_SOURCE" && "$NODE_BIN/node" ./qode/build.js)
-		elif [ -x "$QODE_SOURCE/configure" ]; then
-			(cd "$QODE_SOURCE" && ./configure --without-npm && make -j1)
-		else
-			echo "Qode ARM64 prebuilt and source build entry point are both unavailable." >&2
-			exit 1
-		fi
-		QODE_BUILT=
-		for candidate in \
-			"$QODE_SOURCE/node/out/Release/qode" \
-			"$QODE_SOURCE/out/Release/qode" \
-			"$QODE_SOURCE/qode/out/Release/qode"; do
-			if [ -x "$candidate" ]; then QODE_BUILT=$candidate; break; fi
-		done
-		if [ -z "$QODE_BUILT" ]; then
-			QODE_BUILT=$(find "$QODE_SOURCE" -type f -name qode -executable -print -quit)
-		fi
-		if [ -z "$QODE_BUILT" ]; then
-			echo "Qode source build finished without a qode executable; source/output were kept in $QODE_SOURCE." >&2
-			exit 1
-		fi
-		mkdir -p "$(dirname "$QODE_BIN")"
-		cp -p "$QODE_BUILT" "$QODE_BIN"
+		(cd "$QODE_SOURCE" && "$NODE_BIN/node" ./qode/build.js)
+	elif [ -x "$QODE_SOURCE/configure" ]; then
+		(cd "$QODE_SOURCE" && ./configure --without-npm && make -j1)
+	else
+		echo "Qode source build entry point is unavailable." >&2
+		exit 1
 	fi
+	QODE_BUILT=
+	for candidate in \
+		"$QODE_SOURCE/node/out/Release/qode" \
+		"$QODE_SOURCE/out/Release/qode" \
+		"$QODE_SOURCE/qode/out/Release/qode"; do
+		if [ -x "$candidate" ]; then QODE_BUILT=$candidate; break; fi
+	done
+	if [ -z "$QODE_BUILT" ]; then
+		QODE_BUILT=$(find "$QODE_SOURCE" -type f -name qode -executable -print -quit)
+	fi
+	if [ -z "$QODE_BUILT" ]; then
+		echo "Qode source build finished without a qode executable; source/output were kept in $QODE_SOURCE." >&2
+		exit 1
+	fi
+	mkdir -p "$(dirname "$QODE_BIN")"
+	cp -p "$QODE_BUILT" "$QODE_BIN"
 fi
 
 # Build NodeGui against the ARM64 Qt packages installed above. The source addon

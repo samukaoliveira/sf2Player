@@ -1,0 +1,22 @@
+#!/bin/sh
+set -u
+
+echo "=== piCore / arquitetura ==="
+uname -a
+echo "=== framebuffer ==="
+for entry in /sys/class/graphics/fb*; do
+	[ -e "$entry" ] || continue
+	printf '%s ' "/dev/${entry##*/}"
+	cat "$entry/name" 2>/dev/null || true
+	cat "$entry/virtual_size" 2>/dev/null || true
+done
+ls -l /dev/fb* 2>/dev/null || true
+echo "=== touch e input ==="
+cat /proc/bus/input/devices 2>/dev/null | grep -Ei 'Name=|Handlers=|ADS7846|XPT2046|mouse' || true
+echo "=== áudio ALSA ==="
+/opt/samnat-synth/bin/aplay -l 2>&1 || true
+ls -l /dev/snd 2>/dev/null || true
+echo "=== MIDI ALSA ==="
+/opt/samnat-synth/bin/aseqdump -l 2>&1 || true
+echo "=== FluidSynth empacotado ==="
+/opt/samnat-synth/bin/fluidsynth --version 2>&1 || true

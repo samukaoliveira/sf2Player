@@ -127,6 +127,7 @@ function horizontal(parent) {
   lineLayout.setContentsMargins(0, 0, 0, 0);
   lineLayout.setSpacing(9);
   parent.addWidget(line);
+  lineLayout.containerWidget = line;
   return lineLayout;
 }
 
@@ -1298,7 +1299,6 @@ if (COMPACT_UI) {
 }
 slotsToolbar.addWidget(addSlotButton);
 updateSlotToolbar();
-if (COMPACT_UI) slotsToolbar.setFixedHeight(26);
 scroll.setMinimumHeight(COMPACT_UI ? 0 : 240);
 mixerLayout.addWidget(scroll, 1);
 mixerLayout.addWidget(keyboard);
@@ -1654,11 +1654,15 @@ function makeDefaultScene() {
     ['General_Montage_Bells.sf2', 0, 6],
     ['Bells e FX/General_Montage_FX.sf2', 0, 96]
   ];
+  const availableDefinitions = definitions.filter(([relativePath]) =>
+    fs.existsSync(resolveBundledSoundFont(relativePath))
+  );
+  const sceneDefinitions = availableDefinitions.length ? availableDefinitions : definitions;
   return {
     name: DEFAULT_SCENE_NAME,
     midiTrigger: null,
-    slotCount: CHANNELS,
-    slots: definitions.map(([relativePath, bank, program], channel) => ({
+    slotCount: sceneDefinitions.length,
+    slots: sceneDefinitions.map(([relativePath, bank, program], channel) => ({
       channel,
       file: resolveBundledSoundFont(relativePath),
       bank,
@@ -1851,6 +1855,7 @@ function deleteScene() {
 
 let compactStatusTimer = null;
 function installCompactUi() {
+  picoreStartupLog('interface compacta: preparando MIDI');
   const midiTitle = label('Controlador MIDI', 'font-size: 12px; font-weight: 700; color: #344054;');
   const midiActions = new QWidget();
   const midiActionsLayout = new QBoxLayout(Direction.LeftToRight);
@@ -1881,6 +1886,7 @@ function installCompactUi() {
   midiConnectionPanel.hide();
   audioDialog.setWindowTitle('Áudio e MIDI');
 
+  picoreStartupLog('interface compacta: preparando cenas');
   const sceneDialog = new QDialog(window);
   sceneDialog.setWindowTitle('Cenas e pads MIDI');
   sceneDialog.setMinimumWidth(420);
@@ -1902,21 +1908,21 @@ function installCompactUi() {
   sceneDialogLayout.addWidget(sceneScroll, 1);
   sceneContentLayout.addWidget(label('Salvar, carregar ou associar pads às cenas.', 'font-size: 12px; font-weight: 600; color: #344054;'));
   scenePanelLayout.removeWidget(sceneName);
-  scenePanelLayout.removeWidget(sceneSaveLine);
+  scenePanelLayout.removeWidget(sceneSaveLine.containerWidget);
   scenePanelLayout.removeWidget(scenePadLabel);
   scenePanelLayout.removeWidget(scenePadArea);
   scenePanelLayout.removeWidget(sceneList);
-  scenePanelLayout.removeWidget(sceneLoadLine);
+  scenePanelLayout.removeWidget(sceneLoadLine.containerWidget);
   sceneName.setMinimumHeight(32);
   sceneList.setMinimumHeight(32);
   scenePadArea.setMinimumHeight(50);
   scenePadArea.setMaximumHeight(76);
   sceneContentLayout.addWidget(sceneName);
-  sceneContentLayout.addWidget(sceneSaveLine);
+  sceneContentLayout.addWidget(sceneSaveLine.containerWidget);
   sceneContentLayout.addWidget(scenePadLabel);
   sceneContentLayout.addWidget(scenePadArea);
   sceneContentLayout.addWidget(sceneList);
-  sceneContentLayout.addWidget(sceneLoadLine);
+  sceneContentLayout.addWidget(sceneLoadLine.containerWidget);
   const sceneCloseLine = new QWidget();
   const sceneCloseLayout = new QBoxLayout(Direction.LeftToRight);
   sceneCloseLine.setLayout(sceneCloseLayout);
@@ -1927,6 +1933,7 @@ function installCompactUi() {
   sceneCloseLayout.addWidget(closeScenesButton);
   sceneDialogLayout.addWidget(sceneCloseLine);
 
+  picoreStartupLog('interface compacta: preparando cabeçalho');
   const compactHeader = new QWidget();
   const compactHeaderLayout = new QBoxLayout(Direction.LeftToRight);
   compactHeader.setLayout(compactHeaderLayout);
@@ -1981,6 +1988,7 @@ function installCompactUi() {
   mixerLayout.setContentsMargins(0, 0, 0, 0);
   mixerLayout.setSpacing(2);
   layout.insertWidget(0, compactHeader);
+  picoreStartupLog('interface compacta: pronta');
   compactStatusTimer = setInterval(() => {
     const current = status.text().replace(/[\r\n]+/g, ' ').trim();
     if (compactStatus.text() !== current) compactStatus.setText(current);
@@ -2193,11 +2201,19 @@ worker.on('exit', code => {
     status.setText(`${audioStartupStage}. Detalhes: ${logFile}`);
   }
 });
+function picoreStartupLog(stage) {
+  if (process.env.SAMNAT_PICORE === '1') console.log(`SamNat: ${stage}`);
+}
+picoreStartupLog('detectando saídas de áudio');
 refreshAudioDevices();
+picoreStartupLog('preparando cena inicial');
 ensureDefaultScene();
 refreshScenes(DEFAULT_SCENE_NAME);
+picoreStartupLog('preparando interface compacta');
 if (COMPACT_UI) installCompactUi();
+picoreStartupLog('detectando controladores MIDI');
 refreshMidi();
+picoreStartupLog('abrindo janela');
 midiHotplugTimer = setInterval(() => refreshMidi(true), 2000);
 app.addEventListener('aboutToQuit', () => {
   appClosing = true;
@@ -2217,6 +2233,7 @@ if (process.env.SAMNAT_KIOSK === '1') {
     splash.on('error', () => undefined);
   }, 600);
 } else window.show();
+picoreStartupLog('janela exibida; aguardando eventos');
 // Qode injects Qt's event loop into Node's loop. Calling app.exec() here
 // starts a blocking Qt-only loop, which starves Node timers, Worker messages,
 // and child-process events (including FluidSynth and the direct audio test).

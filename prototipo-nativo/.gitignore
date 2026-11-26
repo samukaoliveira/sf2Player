@@ -5,4 +5,8 @@ build-linux/
 release-linux/
 release-raspberry/
 raspberry/build/
+/.cache/rpi3-arm64-work/
+/.cache/picore-arm64-work/
+raspicore/build/
+raspicore/release-picore/
 deploy/linux/build/

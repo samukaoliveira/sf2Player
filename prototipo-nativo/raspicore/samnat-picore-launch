@@ -1,0 +1,87 @@
+#!/bin/sh
+set -eu
+
+APP_ROOT=/opt/samnat-synth
+TCE_DIR=$(readlink -f /etc/sysconfig/tcedir 2>/dev/null || true)
+if [ -z "$TCE_DIR" ] || [ ! -d "$TCE_DIR" ]; then
+	for candidate in /mnt/mmcblk0p2/tce /mnt/sda2/tce /mnt/sdb2/tce; do
+		if [ -d "$candidate" ]; then TCE_DIR=$candidate; break; fi
+	done
+fi
+if [ -z "$TCE_DIR" ] || [ ! -d "$TCE_DIR" ]; then
+	echo "Não encontrei a pasta persistente tce do piCore." >&2
+	exit 1
+fi
+
+DATA_ROOT="$TCE_DIR/samnat-synth-data"
+export HOME="$DATA_ROOT/home"
+export SAMNAT_KIOSK=1
+export SAMNAT_PICORE=1
+export SAMNAT_DISPLAY_PROFILE=mpi3501
+export QT_QPA_PLATFORM=linuxfb
+export QT_QPA_FONTDIR="$APP_ROOT/share/fonts/truetype/dejavu"
+export QT_AUTO_SCREEN_SCALE_FACTOR=0
+export QT_SCALE_FACTOR=1
+export QT_ENABLE_HIGHDPI_SCALING=0
+export QT_DEVICE_PIXEL_RATIO=1
+export XKB_CONFIG_ROOT="$APP_ROOT/share/X11/xkb"
+export FONTCONFIG_FILE="$APP_ROOT/share/fontconfig/fonts.conf"
+export ALSA_CONFIG_PATH="$APP_ROOT/share/alsa/alsa.conf"
+export SAMNAT_AUDIO_LIB_DIR="$APP_ROOT/lib/audio"
+export LD_LIBRARY_PATH="$APP_ROOT/lib/audio:$APP_ROOT/lib:${LD_LIBRARY_PATH:-}"
+export PATH="$APP_ROOT/bin:/usr/local/bin:/usr/bin:/bin:/sbin"
+
+for module in snd_bcm2835 snd_seq snd_seq_midi snd_usb_audio; do
+	modprobe "$module" 2>/dev/null || true
+done
+
+SF_DIR="$HOME/.samnat-synth/soundfonts"
+mkdir -p "$DATA_ROOT/soundfonts" "$HOME/.samnat-synth" "$SF_DIR"
+if [ ! -L "$SF_DIR" ] && [ -z "$(find "$SF_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
+	rmdir "$SF_DIR" 2>/dev/null || true
+	ln -s "$DATA_ROOT/soundfonts" "$SF_DIR"
+fi
+if [ -f "$DATA_ROOT/soundfonts/Pianos/k-pc88.sf2" ]; then
+	mkdir -p /usr/share/soundfonts
+	ln -sfn "$DATA_ROOT/soundfonts/Pianos/k-pc88.sf2" /usr/share/soundfonts/default.sf2
+fi
+
+FRAMEBUFFER=${SAMNAT_FRAMEBUFFER:-}
+for entry in /sys/class/graphics/fb*; do
+	[ -r "$entry/name" ] || continue
+	name=$(cat "$entry/name")
+	case "$name" in
+		*ili9486*|*ILI9486*|*piscreen*) FRAMEBUFFER="/dev/${entry##*/}"; break ;;
+	esac
+done
+if [ -z "$FRAMEBUFFER" ]; then
+	for entry in /sys/class/graphics/fb*; do
+		[ -r "$entry/virtual_size" ] || continue
+		size=$(cat "$entry/virtual_size")
+		case "$size" in 480,320|320,480) FRAMEBUFFER="/dev/${entry##*/}"; break ;; esac
+	done
+fi
+[ -n "$FRAMEBUFFER" ] || FRAMEBUFFER=/dev/fb0
+[ -c "$FRAMEBUFFER" ] || {
+	echo "Framebuffer $FRAMEBUFFER não encontrado. Confira o overlay MPI3501 e /dev/fb*." >&2
+	exit 1
+}
+export QT_QPA_PLATFORM="linuxfb:fb=$FRAMEBUFFER:tty=/dev/tty2"
+echo "SamNat: framebuffer=$FRAMEBUFFER, terminal=/dev/tty2"
+if ! chvt 2; then
+	echo 'SamNat: não foi possível mudar para o terminal gráfico tty2.' >&2
+	exit 1
+fi
+
+for entry in /sys/class/input/event*; do
+	[ -r "$entry/device/name" ] || continue
+	name=$(cat "$entry/device/name")
+	case "$name" in
+		*ADS7846*|*ads7846*|*XPT2046*|*xpt2046*)
+			export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="/dev/${entry##*/}${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+			break
+			;;
+	esac
+done
+
+exec "$APP_ROOT/AppRun"

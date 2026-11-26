@@ -1,0 +1,37 @@
+#!/bin/sh
+set -eu
+
+ACTION=${1:-}
+TARGET=${2:-}
+APP_ROOT=/opt/samnat-synth
+AMIXER="$APP_ROOT/bin/amixer"
+APLAY="$APP_ROOT/bin/aplay"
+STEP=5
+
+case "$ACTION" in
+	up|down|mute|init) ;;
+	*) echo "Uso: samnat-volume {up|down|mute|init} [dispositivo ALSA]" >&2; exit 2 ;;
+esac
+
+CARD=
+case "$TARGET" in
+	plughw:*|hw:*) CARD=${TARGET#*:}; CARD=${CARD%%,*} ;;
+esac
+if [ -z "$CARD" ]; then
+	CARD=$($APLAY -l 2>/dev/null | awk '/card [0-9]+:/ { card=$2; sub(/:$/, "", card); print card; exit }')
+fi
+[ -n "$CARD" ] || CARD=0
+
+for CONTROL in Master PCM Headphone Speaker Playback; do
+	"$AMIXER" -c "$CARD" sget "$CONTROL" >/dev/null 2>&1 || continue
+	case "$ACTION" in
+		init) "$AMIXER" -c "$CARD" sset "$CONTROL" 30% unmute ;;
+		up) "$AMIXER" -c "$CARD" sset "$CONTROL" "$STEP"%+ unmute ;;
+		down) "$AMIXER" -c "$CARD" sset "$CONTROL" "$STEP"%- unmute ;;
+		mute) "$AMIXER" -c "$CARD" sset "$CONTROL" toggle ;;
+	esac
+	exit 0
+done
+
+echo "A placa ALSA $CARD não informou um controle de volume; ajuste o volume no FluidSynth ou no hardware." >&2
+exit 1

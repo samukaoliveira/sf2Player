@@ -78,6 +78,32 @@ cross-compilação Linux ARM64; por isso, essa etapa compila dentro do userspace
 ARM64 emulado no Ubuntu. A saída é um AppDir ARM64 real, e o Raspberry não
 participa da compilação.
 
+O build do AppDir usa o container persistente `samnat-rpi3-arm64-builder`.
+Na primeira execução, instala nele as dependências do compilador; as próximas
+execuções reaproveitam o mesmo container, incluindo o estado do `dpkg`, além
+dos caches em `.cache/rpi3-arm64-work`. O container não é removido ao final.
+Se já houver um container de build em andamento usando a imagem Debian ARM64,
+é possível preservá-lo como imagem após a instalação dos pacotes terminar,
+antes de o build atual encerrar:
+
+```sh
+sudo docker ps --filter ancestor=python:3.10-slim-bookworm \
+  --format 'table {{.ID}}\t{{.Names}}\t{{.Command}}'
+# Escolha o ID do container que está executando o build (não o uname -m).
+CID=<ID_DO_CONTAINER_DO_BUILD>
+sudo docker exec "$CID" touch /var/local/samnat-arm64-build-deps-ready
+sudo docker commit "$CID" samnat/rpi3-arm64-builder:bookworm
+```
+
+Depois, o script pode criar o container persistente já com as dependências
+instaladas, sem repetir o unpack do APT:
+
+```sh
+DOCKER_COMMAND='sudo docker' \
+SAMNAT_RPI_ARM64_IMAGE=samnat/rpi3-arm64-builder:bookworm \
+  ./raspberry/build-appdir-rpi3.sh
+```
+
 ### 1. Preparar o Ubuntu uma vez
 
 Instale e inicie o Docker Engine. O usuário precisa ter acesso ao daemon (por
@@ -118,7 +144,7 @@ Para gerar/regerar somente o AppDir, sem compilar a imagem do sistema:
 ```
 
 As fontes, dependências npm, cache APT e saída intermediária ficam preservados
-em `/tmp/samnat-rpi3-arm64-work`. O
+em `prototipo-nativo/.cache/rpi3-arm64-work`. O
 Buildroot mantém uma árvore separada do alvo x86, em
 `/tmp/samnat-rpi3-buildroot-source` e
 `/tmp/samnat-rpi3-buildroot-output`, com cache de downloads persistente em

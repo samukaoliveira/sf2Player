@@ -72,7 +72,8 @@ function onFluidStdout(child, chunk) {
   const text = chunk.toString();
   if (pendingCommand && pendingCommand.child === child) {
     pendingCommand.output += text;
-    if (isPrompt(pendingCommand.output)) {
+    const prompts = (pendingCommand.output.match(/(?:^|\r?\n)> /g) || []).length;
+    if (isPrompt(pendingCommand.output) && prompts >= pendingCommand.expectedPrompts) {
       const command = pendingCommand;
       pendingCommand = null;
       clearTimeout(command.timer);
@@ -88,7 +89,7 @@ function onFluidStdout(child, chunk) {
   }
 }
 
-function command(text, timeoutMs = 10000) {
+function command(text, timeoutMs = 10000, expectedPrompts = 1) {
   const child = fluidsynth;
   if (!child || !child.stdin || child.stdin.destroyed || child.exitCode !== null) {
     return Promise.reject(new Error('FluidSynth nativo não está em execução.'));
@@ -101,6 +102,7 @@ function command(text, timeoutMs = 10000) {
     const pending = {
       child,
       output: '',
+      expectedPrompts,
       resolve,
       reject,
       timer: setTimeout(() => {
@@ -215,6 +217,7 @@ async function startEngine(target, bufferSettings = audioBufferSettings) {
     '-n', '-K', '16', '-r', String(SAMPLE_RATE), '-g', String(SYNTH_MASTER_GAIN), '-C', '0', '-R', '0',
     '-z', String(bufferSettings.periodSize), '-c', String(bufferSettings.periods),
     '-o', `synth.polyphony=${SYNTH_POLYPHONY}`,
+    '-o', 'synth.cpu-cores=3',
     '-o', 'synth.reverb.active=0',
     '-o', 'synth.chorus.active=0'
   ];
@@ -383,6 +386,11 @@ async function sendMidi(commandName, channel, ...args) {
   return command(`${commandName} ${channel} ${args.join(' ')}`);
 }
 
+async function sendMidiBatch(commands) {
+  if (!commands.length) return;
+  return command(commands.join('\n'), 10000, commands.length);
+}
+
 async function selectAudioDevice(target) {
   if (!target || typeof target.device !== 'string' || !target.device.trim() || target.device.includes('\0')) return;
   if (sameOutput(target, audioDevice)) {
@@ -530,45 +538,45 @@ async function handleMessage(message) {
       await loadSoundFont(message.channel, message.file, message.bank, message.program);
       return;
     }
-    if (message.type === 'note-on' && fluidsynth) {
-      const isLayered = message.source === 'keyboard' || (message.source === 'midi' && message.route === 'all');
-      const selectedChannels = Array.isArray(message.channels)
-        ? [...new Set(message.channels.filter(channel => Number.isInteger(channel) && channel >= 0 && channel < CHANNELS))]
-        : null;
-      const channels = selectedChannels || (isLayered ? channelsFor() : channelsFor(message.channel));
-      if (!selectedChannels && !isLayered && Number.isInteger(message.channel) && !channelPresets.has(message.channel)) channels.push(message.channel);
-      for (const channel of channels) await sendMidi('noteon', channel, message.note, message.velocity || 100);
-      if (message.source === 'keyboard') activeKeyboardNotes.set(message.note, channels);
-      if (message.source === 'midi') activeMidiNotes.set(`${message.inputId || 'default'}:${message.channel}:${message.note}`, channels);
-      parentPort.postMessage({
-        type: 'note-dispatched', action: 'on', note: message.note, channels,
-        hasSoundFont: channels.some(channel => channelPresets.has(channel))
-      });
-      return;
-    }
-    if (message.type === 'note-off' && fluidsynth) {
-      const midiKey = `${message.inputId || 'default'}:${message.channel}:${message.note}`;
-      const channels = message.source === 'keyboard' && activeKeyboardNotes.has(message.note)
-        ? activeKeyboardNotes.get(message.note)
-        : message.source === 'midi' && activeMidiNotes.has(midiKey)
-          ? activeMidiNotes.get(midiKey)
-          : channelsFor(message.channel);
-      for (const channel of channels) await sendMidi('noteoff', channel, message.note);
-      if (message.source === 'keyboard') activeKeyboardNotes.delete(message.note);
-      if (message.source === 'midi') activeMidiNotes.delete(midiKey);
-      parentPort.postMessage({ type: 'note-dispatched', action: 'off', note: message.note, channels });
+    if (message.type === 'midi-notes-batch' && fluidsynth) {
+      const commands = [];
+      const dispatched = [];
+      for (const noteMessage of message.events) {
+        const midiKey = `${noteMessage.inputId || 'default'}:${noteMessage.channel}:${noteMessage.note}`;
+        if (noteMessage.type === 'note-on') {
+          const isLayered = noteMessage.source === 'keyboard' || (noteMessage.source === 'midi' && noteMessage.route === 'all');
+          const selected = Array.isArray(noteMessage.channels)
+            ? [...new Set(noteMessage.channels.filter(channel => Number.isInteger(channel) && channel >= 0 && channel < CHANNELS))] : null;
+          const channels = selected || (isLayered ? channelsFor() : channelsFor(noteMessage.channel));
+          if (!selected && !isLayered && Number.isInteger(noteMessage.channel) && noteMessage.channel >= 0 && noteMessage.channel < CHANNELS && !channelPresets.has(noteMessage.channel)) channels.push(noteMessage.channel);
+          channels.forEach(channel => commands.push(`noteon ${channel} ${noteMessage.note} ${noteMessage.velocity || 100}`));
+          if (noteMessage.source === 'keyboard') activeKeyboardNotes.set(noteMessage.note, channels);
+          if (noteMessage.source === 'midi') activeMidiNotes.set(midiKey, channels);
+          dispatched.push({ type: 'note-dispatched', action: 'on', note: noteMessage.note, channels, hasSoundFont: channels.some(channel => channelPresets.has(channel)) });
+        } else {
+          const channels = noteMessage.source === 'keyboard' && activeKeyboardNotes.has(noteMessage.note)
+            ? activeKeyboardNotes.get(noteMessage.note)
+            : noteMessage.source === 'midi' && activeMidiNotes.has(midiKey) ? activeMidiNotes.get(midiKey) : channelsFor(noteMessage.channel);
+          channels.forEach(channel => commands.push(`noteoff ${channel} ${noteMessage.note}`));
+          if (noteMessage.source === 'keyboard') activeKeyboardNotes.delete(noteMessage.note);
+          if (noteMessage.source === 'midi') activeMidiNotes.delete(midiKey);
+          dispatched.push({ type: 'note-dispatched', action: 'off', note: noteMessage.note, channels });
+        }
+      }
+      await sendMidiBatch(commands);
+      dispatched.forEach(event => parentPort.postMessage(event));
       return;
     }
     if (message.type === 'all-notes-off' && fluidsynth) {
-      for (const channel of channelsFor(message.channel)) await sendMidi('cc', channel, 123, 0);
+      await sendMidiBatch(channelsFor(message.channel).map(channel => `cc ${channel} 123 0`));
       return;
     }
     if (message.type === 'control' && fluidsynth) {
-      if (message.controller === 1) {
-        if (!channelModulationEnabled.get(message.channel)) return;
-        channelModulationValues.set(message.channel, message.value);
-      }
-      await sendMidi('cc', message.channel, message.controller, message.value);
+      const channels = Array.isArray(message.channels) ? message.channels : [message.channel];
+      const routed = channels.filter(channel => Number.isInteger(channel) && channel >= 0 && channel < CHANNELS &&
+        (message.controller !== 1 || channelModulationEnabled.get(channel)));
+      if (message.controller === 1) routed.forEach(channel => channelModulationValues.set(channel, message.value));
+      await sendMidiBatch(routed.map(channel => `cc ${channel} ${message.controller} ${message.value}`));
       return;
     }
     if (message.type === 'modulation-enabled') {
@@ -586,7 +594,9 @@ async function handleMessage(message) {
     }
     if (message.type === 'pitch-bend' && fluidsynth) {
       const value = Math.max(0, Math.min(16383, Math.round(Number(message.value))));
-      await sendMidi('pitch_bend', message.channel, value);
+      const channels = Array.isArray(message.channels) ? message.channels : [message.channel];
+      await sendMidiBatch(channels.filter(channel => Number.isInteger(channel) && channel >= 0 && channel < CHANNELS)
+        .map(channel => `pitch_bend ${channel} ${value}`));
       return;
     }
     if (message.type === 'volume') {
@@ -672,7 +682,9 @@ async function handleMessage(message) {
 }
 
 let voiceCountQueued = false;
-parentPort.on('message', message => {
+let pendingNotes = [];
+let noteFlushScheduled = false;
+function enqueueMessage(message) {
   if (message.type === 'voice-count') {
     if (voiceCountQueued) return;
     voiceCountQueued = true;
@@ -680,4 +692,23 @@ parentPort.on('message', message => {
   messageQueue = messageQueue.then(() => handleMessage(message)).catch(error => {
     parentPort.postMessage({ type: 'error', operation: message.type, channel: message.channel, requestId: message.requestId, message: error.message });
   }).finally(() => { if (message.type === 'voice-count') voiceCountQueued = false; });
+}
+function flushPendingNotes() {
+  noteFlushScheduled = false;
+  if (!pendingNotes.length) return;
+  const events = pendingNotes;
+  pendingNotes = [];
+  enqueueMessage({ type: 'midi-notes-batch', events });
+}
+parentPort.on('message', message => {
+  if (message.type === 'note-on' || message.type === 'note-off') {
+    pendingNotes.push(message);
+    if (!noteFlushScheduled) {
+      noteFlushScheduled = true;
+      setImmediate(flushPendingNotes);
+    }
+    return;
+  }
+  flushPendingNotes();
+  enqueueMessage(message);
 });

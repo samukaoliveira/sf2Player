@@ -75,6 +75,43 @@ function label(text, style) {
   return widget;
 }
 const openDialogs = new Set();
+const compactPanels = [];
+function showCompactPanel(panel) {
+  const existing = compactPanels.indexOf(panel);
+  if (existing !== -1) compactPanels.splice(existing, 1);
+  const previous = compactPanels[compactPanels.length - 1];
+  if (previous) previous.hide();
+  compactPanels.push(panel);
+  const width = Math.min(480, Math.max(1, central.width()));
+  const height = Math.min(310, Math.max(1, central.height()));
+  panel.setGeometry(Math.max(0, Math.floor((central.width() - width) / 2)),
+    Math.max(0, Math.floor((central.height() - height) / 2)), width, height);
+  panel.show();
+  panel.raise();
+  panel.update();
+}
+function closeCompactPanel(panel) {
+  panel.hide();
+  const index = compactPanels.indexOf(panel);
+  if (index !== -1) compactPanels.splice(index, 1);
+  const previous = compactPanels[compactPanels.length - 1];
+  if (previous) { previous.show(); previous.raise(); previous.update(); }
+  else window.update();
+  if (panel.samnatDisposable) panel.deleteLater();
+}
+function addCompactClose(parentLayout, panel) {
+  if (!COMPACT_UI) return;
+  const row = new QWidget();
+  const rowLayout = new QBoxLayout(Direction.LeftToRight);
+  row.setLayout(rowLayout);
+  rowLayout.setContentsMargins(0, 0, 0, 0);
+  const close = button('×', () => closeCompactPanel(panel));
+  close.setFixedSize(34, 26);
+  close.setToolTip('Fechar');
+  rowLayout.addStretch(1);
+  rowLayout.addWidget(close);
+  parentLayout.addWidget(row);
+}
 function showDialog(dialog) {
   openDialogs.add(dialog);
   dialog.open();
@@ -84,9 +121,11 @@ function showDialog(dialog) {
 }
 function keepDialogUntilFinished(dialog) {
   dialog.addEventListener('finished', () => {
+    dialog.hide();
     openDialogs.delete(dialog);
     window.update();
-    window.repaint();
+    const panel = compactPanels[compactPanels.length - 1];
+    if (panel) { panel.raise(); panel.update(); }
   });
 }
 function button(text, handler) {
@@ -193,34 +232,40 @@ function showAudioPeak(message) {
 let compactUsageLabel = null;
 let voiceCount = null;
 let voiceLimit = 512;
-let compactUsageText = 'CPU --%  RAM --%';
+let compactUsageText = 'CPU --% RAM --%\nNúcleos --';
 let systemUsageText = 'CPU --%\nRAM --';
 function updateCompactUsage() {
   systemUsageLabel.setText(`${systemUsageText}\nVozes ${voiceCount === null ? '--' : voiceCount}/${voiceLimit}`);
-  if (compactUsageLabel) compactUsageLabel.setText(`${compactUsageText}\nVozes ${voiceCount === null ? '--' : voiceCount}/${voiceLimit}`);
+  if (compactUsageLabel) compactUsageLabel.setText(`${compactUsageText}  V:${voiceCount === null ? '--' : voiceCount}/${voiceLimit}`);
 }
-let previousCpuTimes = null;
+let previousCpuTimes = new Map();
 function updateSystemUsage() {
   try {
-    const cpuLine = fs.readFileSync('/proc/stat', 'utf8').split('\n', 1)[0].trim().split(/\s+/);
-    const times = cpuLine.slice(1).map(Number);
-    const total = times.reduce((sum, value) => sum + value, 0);
-    const idle = (times[3] || 0) + (times[4] || 0);
-    let cpuText = '--';
-    if (previousCpuTimes) {
-      const totalDelta = total - previousCpuTimes.total;
-      const idleDelta = idle - previousCpuTimes.idle;
-      if (totalDelta > 0) cpuText = String(Math.round((1 - idleDelta / totalDelta) * 100));
+    const lines = fs.readFileSync('/proc/stat', 'utf8').split('\n').filter(line => /^cpu(?:\d+)?\s/.test(line));
+    const nextCpuTimes = new Map();
+    const usage = new Map();
+    for (const line of lines) {
+      const [name, ...values] = line.trim().split(/\s+/);
+      const times = values.slice(0, 8).map(Number);
+      const total = times.reduce((sum, value) => sum + value, 0);
+      const idle = (times[3] || 0) + (times[4] || 0);
+      const previous = previousCpuTimes.get(name);
+      const totalDelta = previous ? total - previous.total : 0;
+      usage.set(name, totalDelta > 0 ? String(Math.max(0, Math.min(100, Math.round((1 - (idle - previous.idle) / totalDelta) * 100)))) : '--');
+      nextCpuTimes.set(name, { total, idle });
     }
-    previousCpuTimes = { total, idle };
+    previousCpuTimes = nextCpuTimes;
+    const cpuText = usage.get('cpu') || '--';
+    const coreText = [...usage.entries()].filter(([name]) => name !== 'cpu')
+      .map(([name, value]) => `${name.slice(3)}:${value}%`).join(' ');
     const memory = fs.readFileSync('/proc/meminfo', 'utf8');
     const totalKb = Number(memory.match(/^MemTotal:\s+(\d+)/m)?.[1] || 0);
     const availableKb = Number(memory.match(/^MemAvailable:\s+(\d+)/m)?.[1] || 0);
     const usedMb = Math.max(0, Math.round((totalKb - availableKb) / 1024));
     const totalMb = Math.round(totalKb / 1024);
     const ramPercent = totalKb > 0 ? Math.round((totalKb - availableKb) * 100 / totalKb) : 0;
-    systemUsageText = `CPU ${cpuText}%\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`;
-    compactUsageText = `CPU ${cpuText}%  RAM ${ramPercent}%`;
+    systemUsageText = `CPU ${cpuText}% · ${coreText}\nRAM ${usedMb}/${totalMb} MiB · ${ramPercent}%`;
+    compactUsageText = `CPU ${cpuText}% RAM ${ramPercent}%\n${coreText || 'Núcleos --'}`;
     updateCompactUsage();
   } catch (_) {
     const totalMb = Math.round(os.totalmem() / 1048576);
@@ -454,6 +499,7 @@ const audioDialogLayout = new QBoxLayout(Direction.TopToBottom);
 audioDialogLayout.setContentsMargins(COMPACT_UI ? 7 : 18, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 18, COMPACT_UI ? 7 : 16);
 audioDialogLayout.setSpacing(COMPACT_UI ? 5 : 12);
 audioDialog.setLayout(audioDialogLayout);
+addCompactClose(audioDialogLayout, audioDialog);
 const audioDialogContent = new QWidget();
 const audioDialogContentLayout = new QBoxLayout(Direction.TopToBottom);
 audioDialogContent.setLayout(audioDialogContentLayout);
@@ -519,8 +565,7 @@ audioDialogActionsLayout.setContentsMargins(0, 0, 0, 0);
 audioDialogActionsLayout.setSpacing(8);
 const closeAudioDialogButton = button('Fechar', () => {
   if (COMPACT_UI) {
-    audioDialog.hide();
-    window.update();
+    closeCompactPanel(audioDialog);
   } else audioDialog.reject();
 });
 setButtonIcon(closeAudioDialogButton, 'close', 16);
@@ -532,13 +577,7 @@ function openAudioTestDialog() {
     showDialog(audioDialog);
     return;
   }
-  const width = Math.min(480, Math.max(440, central.width()));
-  const height = Math.min(310, Math.max(260, central.height()));
-  audioDialog.setGeometry(Math.max(0, Math.floor((central.width() - width) / 2)),
-    Math.max(0, Math.floor((central.height() - height) / 2)), width, height);
-  audioDialog.show();
-  audioDialog.raise();
-  audioDialog.update();
+  showCompactPanel(audioDialog);
 }
 if (!COMPACT_UI) keepDialogUntilFinished(audioDialog);
 function setAudioTestStatus(message) {
@@ -997,7 +1036,11 @@ function makeCompactSlot(slot) {
   rowLine.addWidget(settingsButton);
   rowLayout.addWidget(row);
 
-  const dialog = new QDialog(window);
+  const dialog = COMPACT_UI ? new QWidget(central) : new QDialog(window);
+  if (COMPACT_UI) {
+    dialog.setInlineStyle('background: #ffffff; color: #1c1e21; border: 1px solid #d8dee8;');
+    dialog.hide();
+  }
   dialog.setWindowTitle(`Parte ${slot.channel + 1} · configurações`);
   dialog.setMinimumWidth(420);
   if (COMPACT_UI) {
@@ -1008,6 +1051,7 @@ function makeCompactSlot(slot) {
   dialogLayout.setContentsMargins(COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16, COMPACT_UI ? 7 : 16);
   dialogLayout.setSpacing(5);
   dialog.setLayout(dialogLayout);
+  addCompactClose(dialogLayout, dialog);
   const detailContent = new QWidget();
   const detailLayout = new QBoxLayout(Direction.TopToBottom);
   detailContent.setLayout(detailLayout);
@@ -1113,7 +1157,7 @@ function makeCompactSlot(slot) {
   const closeLayout = new QBoxLayout(Direction.LeftToRight);
   closeLine.setLayout(closeLayout);
   closeLayout.setContentsMargins(0, 0, 0, 0);
-  const closeButton = button('Fechar', () => dialog.reject());
+  const closeButton = button('Fechar', () => COMPACT_UI ? closeCompactPanel(dialog) : dialog.reject());
   setButtonIcon(closeButton, 'close', 14);
   closeLayout.addStretch(1);
   closeLayout.addWidget(closeButton);
@@ -1121,9 +1165,9 @@ function makeCompactSlot(slot) {
 
   function openSlotSettings() {
     detailName.setText(name.text());
-    showDialog(dialog);
+    if (COMPACT_UI) showCompactPanel(dialog); else showDialog(dialog);
   }
-  keepDialogUntilFinished(dialog);
+  if (!COMPACT_UI) keepDialogUntilFinished(dialog);
   rows[slot.channel] = {
     container: row, name, detailName, instrumentIcon, midiDevice, bank, program, test,
     soundFontProgress, volumeControl, volumeLabel, reverb, chorus, midiLearn,
@@ -1502,13 +1546,19 @@ function updateSlotMidiButtons() {
   });
 }
 function openSlotMidiDialog(slot) {
-  const dialog = new QDialog(window);
+  const dialog = COMPACT_UI ? new QWidget(central) : new QDialog(window);
+  if (COMPACT_UI) {
+    dialog.setInlineStyle('background: #ffffff; color: #1c1e21; border: 1px solid #d8dee8;');
+    dialog.samnatDisposable = true;
+    dialog.hide();
+  }
   dialog.setWindowTitle(`Controlador MIDI · parte ${slot.channel + 1}`);
   dialog.setMinimumWidth(390);
   const dialogLayout = new QBoxLayout(Direction.TopToBottom);
   dialogLayout.setContentsMargins(18, 16, 18, 16);
   dialogLayout.setSpacing(12);
   dialog.setLayout(dialogLayout);
+  addCompactClose(dialogLayout, dialog);
   dialogLayout.addWidget(label('Escolha qual controlador toca este slot.', 'font-size: 14px; font-weight: 600; color: #344054;'));
   const choices = [{ id: null, name: 'Padrão · primeiro controlador conectado' }, ...midiPorts
     .filter(port => midiInputs.has(port.id))
@@ -1523,14 +1573,17 @@ function openSlotMidiDialog(slot) {
   actionsLayout.setContentsMargins(0, 0, 0, 0);
   actionsLayout.setSpacing(8);
   actions.setLayout(actionsLayout);
-  const cancel = button('Cancelar', () => dialog.reject());
-  const apply = button('Aplicar', () => dialog.accept());
+  const cancel = button('Cancelar', () => COMPACT_UI ? closeCompactPanel(dialog) : dialog.reject());
+  const apply = button('Aplicar', () => {
+    if (COMPACT_UI) { applyChoice(); closeCompactPanel(dialog); }
+    else dialog.accept();
+  });
   setButtonIcon(cancel, 'close', 16);
   setButtonIcon(apply, 'check', 16);
   actionsLayout.addWidget(cancel, 1);
   actionsLayout.addWidget(apply, 1);
   dialogLayout.addWidget(actions);
-  dialog.addEventListener('accepted', () => {
+  function applyChoice() {
   const choice = choices[selector.currentIndex()] || choices[0];
   slot.controllerId = choice.id;
   slot.controllerName = choice.id ? choice.name : '';
@@ -1538,9 +1591,13 @@ function openSlotMidiDialog(slot) {
   status.setText(choice.id
     ? `Parte ${slot.channel + 1} controlada por “${choice.name}”.`
     : `Parte ${slot.channel + 1} seguirá o controlador padrão.`);
-  });
-  keepDialogUntilFinished(dialog);
-  showDialog(dialog);
+  }
+  if (COMPACT_UI) showCompactPanel(dialog);
+  else {
+    dialog.addEventListener('accepted', applyChoice);
+    keepDialogUntilFinished(dialog);
+    showDialog(dialog);
+  }
 }
 function refreshMidi(silent = false) {
   try {
@@ -1685,8 +1742,9 @@ function handleMidiMessage(inputId, bytes) {
     worker.postMessage({ type: 'note-off', source: 'midi', inputId, channel, note });
   } else if (command === 0xb0) {
     if (bytes[1] === 64 || bytes[1] === 1) {
-      targetSlots.filter(slot => bytes[1] !== 1 || (slot.loaded && slot.modulationEnabled))
-        .forEach(slot => worker.postMessage({ type: 'control', channel: slot.channel, controller: bytes[1], value }));
+      const controlChannels = targetSlots.filter(slot => bytes[1] !== 1 || (slot.loaded && slot.modulationEnabled))
+        .map(slot => slot.channel);
+      if (controlChannels.length) worker.postMessage({ type: 'control', channels: controlChannels, controller: bytes[1], value });
     }
     const learningSlot = midiLearnChannel === null ? null : slots[midiLearnChannel];
     if (learningSlot && slotMidiInputId(learningSlot) === inputId) {
@@ -1702,7 +1760,7 @@ function handleMidiMessage(inputId, bytes) {
     }
   } else if (command === 0xe0) {
     const bend = bytes[1] | (value << 7);
-    targetSlots.forEach(slot => worker.postMessage({ type: 'pitch-bend', channel: slot.channel, value: bend }));
+    if (channels.length) worker.postMessage({ type: 'pitch-bend', channels, value: bend });
   }
 }
 function connectMidi(silent = false) {
@@ -1970,8 +2028,11 @@ function installCompactUi() {
   audioDialog.setWindowTitle('Áudio e MIDI');
 
   picoreStartupLog('interface compacta: preparando cenas');
-  const sceneDialog = new QDialog(window);
-  keepDialogUntilFinished(sceneDialog);
+  const sceneDialog = COMPACT_UI ? new QWidget(central) : new QDialog(window);
+  if (COMPACT_UI) {
+    sceneDialog.setInlineStyle('background: #ffffff; color: #1c1e21; border: 1px solid #d8dee8;');
+    sceneDialog.hide();
+  } else keepDialogUntilFinished(sceneDialog);
   sceneDialog.setWindowTitle('Cenas e pads MIDI');
   sceneDialog.setMinimumWidth(420);
   sceneDialog.resize(460, 300);
@@ -1980,6 +2041,7 @@ function installCompactUi() {
   sceneDialogLayout.setContentsMargins(7, 7, 7, 7);
   sceneDialogLayout.setSpacing(4);
   sceneDialog.setLayout(sceneDialogLayout);
+  addCompactClose(sceneDialogLayout, sceneDialog);
   const sceneContent = new QWidget();
   const sceneContentLayout = new QBoxLayout(Direction.TopToBottom);
   sceneContent.setLayout(sceneContentLayout);
@@ -2011,7 +2073,7 @@ function installCompactUi() {
   const sceneCloseLayout = new QBoxLayout(Direction.LeftToRight);
   sceneCloseLine.setLayout(sceneCloseLayout);
   sceneCloseLayout.setContentsMargins(0, 0, 0, 0);
-  const closeScenesButton = button('Fechar', () => sceneDialog.reject());
+  const closeScenesButton = button('Fechar', () => COMPACT_UI ? closeCompactPanel(sceneDialog) : sceneDialog.reject());
   setButtonIcon(closeScenesButton, 'close', 14);
   sceneCloseLayout.addStretch(1);
   sceneCloseLayout.addWidget(closeScenesButton);
@@ -2036,7 +2098,7 @@ function installCompactUi() {
   const compactStatus = label(status.text(), 'font-size: 9px; color: #165dba;');
   compactStatus.setMaximumHeight(24);
   compactHeaderLayout.addWidget(compactStatus, 1);
-  const scenesButton = button('Cenas', () => showDialog(sceneDialog));
+  const scenesButton = button('Cenas', () => COMPACT_UI ? showCompactPanel(sceneDialog) : showDialog(sceneDialog));
   setButtonIcon(scenesButton, 'play', 14);
   scenesButton.setFixedHeight(28);
   scenesButton.setToolTip('Abrir cenas e pads MIDI');

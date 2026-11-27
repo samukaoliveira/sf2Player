@@ -73,15 +73,36 @@ if ! chvt 2; then
 	exit 1
 fi
 
-for entry in /sys/class/input/event*; do
-	[ -r "$entry/device/name" ] || continue
-	name=$(cat "$entry/device/name")
-	case "$name" in
-		*ADS7846*|*ads7846*|*XPT2046*|*xpt2046*)
-			export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="/dev/${entry##*/}${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
-			break
-			;;
-	esac
+# The XPT2046 is driven by ads7846. The device node is under /dev/input,
+# while /sys/class/input only contains its sysfs metadata.
+modprobe ads7846 2>/dev/null || true
+TOUCH_DEVICE=
+for attempt in 1 2 3 4 5; do
+	for entry in /sys/class/input/event*; do
+		[ -r "$entry/device/name" ] || continue
+		name=$(cat "$entry/device/name")
+		case "$name" in
+			*ADS7846*|*ads7846*|*XPT2046*|*xpt2046*)
+				candidate="/dev/input/${entry##*/}"
+				if [ -c "$candidate" ]; then TOUCH_DEVICE=$candidate; break; fi
+				;;
+		esac
+	done
+	[ -n "$TOUCH_DEVICE" ] && break
+	[ "$attempt" = 5 ] || sleep 0.5
 done
+if [ -n "$TOUCH_DEVICE" ]; then
+	# LinuxFB otherwise prefers libinput and ignores the evdev parameters.
+	export QT_QPA_FB_NO_LIBINPUT=1
+	export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="$TOUCH_DEVICE${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+	echo "SamNat: touchscreen=$TOUCH_DEVICE ($name), handler=evdev"
+else
+	echo 'SamNat: touchscreen ADS7846/XPT2046 não encontrado; dispositivos detectados:'
+	for entry in /sys/class/input/event*; do
+		[ -r "$entry/device/name" ] || continue
+		printf '  /dev/input/%s: %s\n' "${entry##*/}" "$(cat "$entry/device/name")"
+	done
+	dmesg 2>/dev/null | grep -iE 'ads7846|xpt2046|spi0' | tail -20 || true
+fi
 
 exec "$APP_ROOT/AppRun"

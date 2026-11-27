@@ -1,0 +1,32 @@
+#!/bin/sh
+# Executado depois da montagem de /proc e /sys, antes do tc-config do piCore.
+exec >>/tmp/samnat-lcd-early.log 2>&1
+echo 'SamNat: iniciando LCD e toque antecipadamente'
+cat /proc/uptime
+uname -r
+/sbin/modprobe spi_bcm2835 || echo 'SPI: modprobe falhou'
+for module in backlight fb_sys_fops sysimgblt sysfillrect syscopyarea fbtft fb_ili9486 ads7846; do
+    if [ ! -d "/sys/module/$module" ]; then
+        /sbin/insmod "/opt/samnat-lcd-early/$module.ko" || echo "Falha ao carregar $module"
+    fi
+done
+for entry in /sys/class/graphics/fb*; do
+    [ -r "$entry/name" ] || continue
+    echo "$entry: $(cat "$entry/name")"
+    case "$(cat "$entry/name")" in
+        *ili9486*|*ILI9486*|*tft35a*)
+            fb=${entry##*fb}
+            if [ ! -e "/dev/fb$fb" ] && [ -r "$entry/dev" ]; then
+                dev=$(cat "$entry/dev")
+                mknod "/dev/fb$fb" c "${dev%:*}" "${dev#*:}" || true
+            fi
+            /usr/local/bin/samnat-lcd-console "$fb" || true
+            echo "SamNat: LCD /dev/fb$fb pronto" > /dev/tty1 2>/dev/null || true
+            break
+            ;;
+    esac
+done
+echo 'SamNat: mensagens do kernel relacionadas ao LCD'
+dmesg | grep -iE 'spi|fbtft|ili9486|ads7846|framebuffer' | tail -80 || true
+cat /proc/uptime
+exit 0

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Salva em mídia persistente quando o tc-config terminou de montar o TCE.
+for root in /mnt/*/tce; do
+    [ -d "$root/samnat-synth-data/logs" ] || continue
+    {
+        echo '=== Diagnóstico do LCD no boot ==='
+        cat /tmp/samnat-lcd-early.log 2>/dev/null || echo 'Registro antecipado ausente.'
+        echo '=== Estado após tc-config ==='
+        cat /proc/uptime
+        for entry in /sys/class/graphics/fb*; do
+            [ -r "$entry/name" ] && echo "$entry: $(cat "$entry/name")"
+        done
+        dmesg | grep -iE 'spi|fbtft|ili9486|ads7846|framebuffer' | tail -100
+    } > "$root/samnat-synth-data/logs/lcd-boot.log" 2>&1
+    break
+done
+exit 0

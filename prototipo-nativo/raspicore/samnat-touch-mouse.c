@@ -36,13 +36,33 @@ int main(int argc, char **argv) {
     dev.absmax[ABS_X] = dev.absmax[ABS_Y] = 4095;
     if (write(out, &dev, sizeof(dev)) != sizeof(dev) || ioctl(out, UI_DEV_CREATE)) { perror("touch bridge create"); return 1; }
     fprintf(stderr, "SamNat: touch bridge pronto; ABS X=%d..%d Y=%d..%d\n", x.minimum, x.maximum, y.minimum, y.maximum);
+    int rawx = x.minimum, rawy = y.minimum, down = 0, reportPress = 0, changed = 0;
+    double a=1, b=0, c=0, d=0, e=1, f=0;
+    const char *matrix = getenv("SAMNAT_TOUCH_MATRIX");
+    if (matrix && sscanf(matrix, "%lf,%lf,%lf,%lf,%lf,%lf", &a,&b,&c,&d,&e,&f) != 6) {
+        fprintf(stderr, "SamNat: matriz de calibração inválida; usando padrão\n");
+        a=1; b=0; c=0; d=0; e=1; f=0;
+    }
     struct input_event ev;
     while (read(in, &ev, sizeof(ev)) == sizeof(ev)) {
         if (ev.type == EV_ABS && (ev.code == ABS_X || ev.code == ABS_Y)) {
-            int pos = normalize(ev.value, ev.code == ABS_X ? &x : &y);
-            if (pos >= 0) emit(out, EV_ABS, ev.code, pos);
-        } else if (ev.type == EV_KEY && ev.code == BTN_TOUCH) emit(out, EV_KEY, BTN_LEFT, ev.value != 0);
-        else if (ev.type == EV_SYN && ev.code == SYN_REPORT) emit(out, EV_SYN, SYN_REPORT, 0);
+            if (ev.code == ABS_X) rawx = ev.value; else rawy = ev.value;
+            changed = 1;
+        } else if (ev.type == EV_KEY && ev.code == BTN_TOUCH) {
+            down = ev.value != 0;
+            reportPress = 1;
+            changed = 1;
+        } else if (ev.type == EV_SYN && ev.code == SYN_REPORT && changed) {
+            int nx = normalize(rawx, &x), ny = normalize(rawy, &y);
+            double ox = a * nx + b * ny + c, oy = d * nx + e * ny + f;
+            int px = ox < 0 ? 0 : ox > 4095 ? 4095 : (int)ox;
+            int py = oy < 0 ? 0 : oy > 4095 ? 4095 : (int)oy;
+            emit(out, EV_ABS, ABS_X, px); emit(out, EV_ABS, ABS_Y, py);
+            emit(out, EV_KEY, BTN_LEFT, down);
+            emit(out, EV_SYN, SYN_REPORT, 0);
+            if (reportPress) { fprintf(stderr, "SamNat: touch raw x=%d y=%d\n", rawx, rawy); reportPress = 0; }
+            changed = 0;
+        }
     }
     ioctl(out, UI_DEV_DESTROY); close(out); close(in);
     return 0;

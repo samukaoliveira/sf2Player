@@ -66,7 +66,7 @@ const layout = new QBoxLayout(Direction.TopToBottom);
 central.setLayout(layout);
 layout.setContentsMargins(COMPACT_UI ? 3 : 18, COMPACT_UI ? 3 : 14, COMPACT_UI ? 3 : 18, COMPACT_UI ? 3 : 14);
 layout.setSpacing(COMPACT_UI ? 3 : 12);
-central.setInlineStyle('background-color: #f7f8fa; color: #1c1e21;');
+central.setInlineStyle(`background-color: ${COMPACT_UI ? '#aeb9c8' : '#f7f8fa'}; color: #1c1e21;`);
 window.setCentralWidget(central);
 
 function label(text, style) {
@@ -297,33 +297,29 @@ headerLayout.addWidget(batteryStatusLabel);
 const shutdownButton = button('Desligar');
 setButtonIcon(shutdownButton, 'power');
 shutdownButton.setInlineStyle('padding: 8px 16px; border: 1px solid #d92d20; border-radius: 8px; background: #fff5f4; color: #a12622; font-weight: 700;');
-let shutdownArmed = false;
-let shutdownTimer = null;
-shutdownButton.addEventListener('clicked', () => {
-  if (!shutdownArmed) {
-    shutdownArmed = true;
-    shutdownButton.setText('Confirmar desligamento');
-    status.setText('Toque novamente em até 4 segundos para desligar o SamNat com segurança.');
-    clearTimeout(shutdownTimer);
-    shutdownTimer = setTimeout(() => {
-      shutdownArmed = false;
-      shutdownButton.setText('Desligar');
-    }, 4000);
-    return;
-  }
-  clearTimeout(shutdownTimer);
-  shutdownArmed = false;
-  shutdownButton.setEnabled(false);
-  shutdownButton.setText('Desligando…');
-  status.setText('Encerrando o sistema…');
-  const poweroff = spawn('/sbin/poweroff', [], { detached: true, stdio: 'ignore' });
-  poweroff.once('error', error => {
-    shutdownButton.setEnabled(true);
-    shutdownButton.setText('Desligar');
-    status.setText(`Não foi possível desligar: ${error.message}`);
-  });
-  poweroff.unref();
-});
+const powerDialog = COMPACT_UI ? new QWidget(central) : new QDialog(window);
+powerDialog.setWindowTitle('Energia');
+powerDialog.setInlineStyle('background: #ffffff; color: #1c1e21; border: 1px solid #d8dee8;');
+if (COMPACT_UI) powerDialog.hide();
+const powerLayout = new QBoxLayout(Direction.TopToBottom);
+powerDialog.setLayout(powerLayout);
+powerLayout.setContentsMargins(18, 16, 18, 16);
+powerLayout.setSpacing(10);
+powerLayout.addWidget(label('O que deseja fazer?', 'font-size: 16px; font-weight: 700; color: #344054;'));
+function powerAction(action) {
+  status.setText(action === 'reboot' ? 'Reiniciando o sistema…' : 'Desligando o sistema…');
+  const child = spawn(`/sbin/${action}`, [], { detached: true, stdio: 'ignore' });
+  child.once('error', error => status.setText(`Falha ao ${action === 'reboot' ? 'reiniciar' : 'desligar'}: ${error.message}`));
+  child.unref();
+}
+const powerOffChoice = button('Desligar', () => powerAction('poweroff'));
+setButtonIcon(powerOffChoice, 'power');
+powerLayout.addWidget(powerOffChoice);
+const restartChoice = button('Reiniciar', () => powerAction('reboot'));
+powerLayout.addWidget(restartChoice);
+powerLayout.addWidget(button('Cancelar', () => COMPACT_UI ? closeCompactPanel(powerDialog) : powerDialog.reject()));
+if (!COMPACT_UI) keepDialogUntilFinished(powerDialog);
+shutdownButton.addEventListener('clicked', () => COMPACT_UI ? showCompactPanel(powerDialog) : showDialog(powerDialog));
 headerLayout.addWidget(shutdownButton);
 layout.addWidget(header);
 layout.addWidget(batteryWarningLabel);
@@ -883,11 +879,11 @@ const rowLayout = new QBoxLayout(Direction.TopToBottom);
 rowHost.setLayout(rowLayout);
 rowLayout.setContentsMargins(COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8, COMPACT_UI ? 2 : 8);
 rowLayout.setSpacing(COMPACT_UI ? 1 : 8);
-rowHost.setInlineStyle('background: #f7f8fa;');
+rowHost.setInlineStyle(`background: ${COMPACT_UI ? '#aeb9c8' : '#f7f8fa'};`);
 const scroll = new QScrollArea();
 scroll.setWidget(rowHost);
 scroll.setWidgetResizable(true);
-scroll.setInlineStyle(COMPACT_UI ? 'border: 0; background: #f7f8fa;' : 'border: 1px solid #e1e5eb; border-radius: 10px; background: #f7f8fa;');
+scroll.setInlineStyle(COMPACT_UI ? 'border: 0; background: #aeb9c8;' : 'border: 1px solid #e1e5eb; border-radius: 10px; background: #f7f8fa;');
 
 function defaultSlotVolumeCC(channel) {
   return channel >= 0 && channel < 4 ? 16 + channel : null;

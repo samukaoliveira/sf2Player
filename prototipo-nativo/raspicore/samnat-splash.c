@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
     if (fd < 0) { perror(argv[1]); return 1; }
     if (ioctl(fd, FBIOGET_VSCREENINFO, &v) || ioctl(fd, FBIOGET_FSCREENINFO, &f)) { perror("framebuffer ioctl"); return 1; }
     if (v.bits_per_pixel != 16 && v.bits_per_pixel != 24 && v.bits_per_pixel != 32) { fprintf(stderr, "splash: profundidade não suportada: %u\n", v.bits_per_pixel); return 1; }
-    screen = mmap(NULL, f.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (screen == MAP_FAILED) { perror("framebuffer mmap"); return 1; }
+    screen = calloc(1, f.smem_len);
+    if (!screen) { perror("framebuffer buffer"); return 1; }
     for (unsigned y = 0; y < v.yres; y++) for (unsigned x = 0; x < v.xres; x++) pixel(x,y,14,23,38);
     FILE *logo = fopen(argv[2], "rb");
     if (logo) {
@@ -64,7 +64,15 @@ done_logo:
         for (unsigned x = 0; x < width; x++)
             if (x < width * (unsigned)progress / 100) pixel(x0+x,y,45,145,245);
             else pixel(x0+x,y,55,68,84);
-    munmap(screen, f.smem_len);
+    size_t used = (size_t)(v.yoffset + v.yres) * f.line_length;
+    if (used > f.smem_len) used = f.smem_len;
+    size_t written = 0;
+    while (written < used) {
+        ssize_t n = write(fd, screen + written, used - written);
+        if (n <= 0) { perror("framebuffer write"); free(screen); close(fd); return 1; }
+        written += (size_t)n;
+    }
+    free(screen);
     close(fd);
     return 0;
 }

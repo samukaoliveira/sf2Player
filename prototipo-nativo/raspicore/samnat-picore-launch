@@ -31,6 +31,22 @@ export SAMNAT_AUDIO_LIB_DIR="$APP_ROOT/lib/audio"
 export LD_LIBRARY_PATH="$APP_ROOT/lib/audio:$APP_ROOT/lib:${LD_LIBRARY_PATH:-}"
 export PATH="$APP_ROOT/bin:/usr/local/bin:/usr/bin:/bin:/sbin"
 
+backlight_found=0
+for backlight in /sys/class/backlight/*; do
+	[ -r "$backlight/max_brightness" ] && [ -w "$backlight/brightness" ] || continue
+	maximum=$(cat "$backlight/max_brightness")
+	case "$maximum" in ''|*[!0-9]*) continue ;; esac
+	[ "$maximum" -gt 0 ] || continue
+	value=$(( (maximum * 50 + 50) / 100 ))
+	[ "$value" -gt 0 ] || value=1
+	if printf '%s\n' "$value" > "$backlight/brightness"; then
+		echo "SamNat: brilho em 50% ($backlight)"
+		backlight_found=1
+		break
+	fi
+done
+[ "$backlight_found" = 1 ] || echo 'SamNat: controle de brilho do LCD não disponível em /sys/class/backlight.'
+
 for module in snd_bcm2835 snd_seq snd_seq_midi snd_usb_audio; do
 	modprobe "$module" 2>/dev/null || true
 done
@@ -93,6 +109,10 @@ for attempt in 1 2 3 4 5; do
 	[ "$attempt" = 5 ] || sleep 0.5
 done
 if [ -n "$TOUCH_DEVICE" ]; then
+	if [ -r "$DATA_ROOT/touch-calibration" ]; then
+		SAMNAT_TOUCH_MATRIX=$(cat "$DATA_ROOT/touch-calibration")
+		export SAMNAT_TOUCH_MATRIX
+	fi
 	export QT_QPA_FB_NO_LIBINPUT=1
 	modprobe uinput 2>/dev/null || true
 	if [ ! -c /dev/uinput ] && [ -r /sys/class/misc/uinput/dev ]; then

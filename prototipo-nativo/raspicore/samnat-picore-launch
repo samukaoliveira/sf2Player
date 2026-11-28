@@ -72,6 +72,7 @@ if ! chvt 2; then
 	echo 'SamNat: não foi possível mudar para o terminal gráfico tty2.' >&2
 	exit 1
 fi
+/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 60 2>/dev/null || true
 
 # The XPT2046 is driven by ads7846. The device node is under /dev/input,
 # while /sys/class/input only contains its sysfs metadata.
@@ -95,6 +96,8 @@ if [ -n "$TOUCH_DEVICE" ]; then
 	# LinuxFB otherwise prefers libinput and ignores the evdev parameters.
 	export QT_QPA_FB_NO_LIBINPUT=1
 	export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="$TOUCH_DEVICE${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+	# Input diagnostics go to the persistent startup log through the launcher.
+	export QT_LOGGING_RULES="${QT_LOGGING_RULES:+$QT_LOGGING_RULES;}qt.qpa.input=true"
 	echo "SamNat: touchscreen=$TOUCH_DEVICE ($name), handler=evdev"
 else
 	echo 'SamNat: touchscreen ADS7846/XPT2046 não encontrado; dispositivos detectados:'
@@ -105,4 +108,5 @@ else
 	dmesg 2>/dev/null | grep -iE 'ads7846|xpt2046|spi0' | tail -20 || true
 fi
 
+/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 90 2>/dev/null || true
 exec "$APP_ROOT/AppRun"

@@ -7,9 +7,10 @@ APP_ROOT=/opt/samnat-synth
 AMIXER="$APP_ROOT/bin/amixer"
 APLAY="$APP_ROOT/bin/aplay"
 STEP=5
+VALUE=${4:-}
 
 case "$ACTION" in
-	up|down|mute|init) ;;
+	up|down|mute|init|set) ;;
 	*) echo "Uso: samnat-volume {up|down|mute|init} [dispositivo ALSA]" >&2; exit 2 ;;
 esac
 
@@ -25,7 +26,10 @@ fi
 for CONTROL in Master PCM Headphone Speaker Playback; do
 	"$AMIXER" -c "$CARD" sget "$CONTROL" >/dev/null 2>&1 || continue
 	case "$ACTION" in
-		init) "$AMIXER" -c "$CARD" sset "$CONTROL" 30% unmute ;;
+		init) "$AMIXER" -c "$CARD" sset "$CONTROL" 0% unmute ;;
+		set) case "$VALUE" in ''|*[!0-9]*) exit 2 ;; esac
+		     [ "$VALUE" -le 100 ] || exit 2
+		     "$AMIXER" -c "$CARD" sset "$CONTROL" "$VALUE%" unmute ;;
 		up) "$AMIXER" -c "$CARD" sset "$CONTROL" "$STEP"%+ unmute ;;
 		down) "$AMIXER" -c "$CARD" sset "$CONTROL" "$STEP"%- unmute ;;
 		mute) "$AMIXER" -c "$CARD" sset "$CONTROL" toggle ;;

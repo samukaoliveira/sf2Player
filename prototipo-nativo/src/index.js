@@ -781,17 +781,31 @@ function adjustSystemVolume(action) {
 }
 let midiVolumeTimer = null;
 let pendingMidiVolume = 0;
+let midiVolumeRunning = false;
 function setMidiSystemVolume(value) {
   pendingMidiVolume = Math.round(Math.max(0, Math.min(127, value)) * 100 / 127);
-  if (midiVolumeTimer) return;
+  if (midiVolumeTimer || midiVolumeRunning) return;
   midiVolumeTimer = setTimeout(() => {
     midiVolumeTimer = null;
     const output = audioDevices[audioDeviceList.currentIndex()];
     const helper = '/usr/local/bin/samnat-volume';
     if (!fs.existsSync(helper)) return;
-    const child = spawn(helper, ['set', output?.sink ? 'pulse' : output?.device || '', output?.sink || '', String(pendingMidiVolume)],
-      { env: audioProcessEnv(), stdio: 'ignore' });
+    const sentVolume = pendingMidiVolume;
+    midiVolumeRunning = true;
+    const child = spawn(helper, ['set', output?.sink ? 'pulse' : output?.device || '', output?.sink || '', String(sentVolume)],
+      { env: audioProcessEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
+    let detail = '';
+    child.stdout.on('data', chunk => { detail = (detail + chunk).slice(-1000); });
+    child.stderr.on('data', chunk => { detail = (detail + chunk).slice(-1000); });
     child.on('error', error => status.setText(`Falha no volume MIDI: ${error.message}`));
+    child.on('close', code => {
+      midiVolumeRunning = false;
+      if (code !== 0) {
+        writeAudioWorkerLog(`CC7 ALSA error ${code}: ${detail.trim()}`);
+        status.setText(`Falha no CC7: ${detail.trim() || `código ${code}`}`);
+      } else status.setText(`Volume geral MIDI: ${sentVolume}%.`);
+      if (pendingMidiVolume !== sentVolume) setMidiSystemVolume(Math.round(pendingMidiVolume * 127 / 100));
+    });
   }, 50);
 }
 const volumeShortcuts = [];
@@ -1020,22 +1034,34 @@ function setProgramOptions(slot, presets, selectedBank, selectedProgram, emptyLa
 
 function makeCompactSlot(slot) {
   const row = new QWidget();
+  const rowStack = new QBoxLayout(Direction.TopToBottom);
+  row.setLayout(rowStack);
+  rowStack.setContentsMargins(5, 2, 5, 2);
+  rowStack.setSpacing(1);
+  const titleLine = new QWidget();
+  const titleLayout = new QBoxLayout(Direction.LeftToRight);
+  titleLine.setLayout(titleLayout);
+  titleLayout.setContentsMargins(0, 0, 0, 0);
+  titleLayout.setSpacing(4);
+  const controlsLine = new QWidget();
   const rowLine = new QBoxLayout(Direction.LeftToRight);
-  row.setLayout(rowLine);
-  rowLine.setContentsMargins(5, 1, 5, 1);
+  controlsLine.setLayout(rowLine);
+  rowLine.setContentsMargins(0, 0, 0, 0);
   rowLine.setSpacing(4);
-  row.setFixedHeight(34);
+  row.setFixedHeight(57);
+  rowStack.addWidget(titleLine);
+  rowStack.addWidget(controlsLine);
   row.setInlineStyle('background: #ffffff; border: 1px solid #e1e5eb; border-radius: 6px;');
 
   const channelLabel = label(String(slot.channel + 1), 'min-width: 13px; color: #0866ff; font-size: 12px; font-weight: 700;');
   channelLabel.setFixedWidth(13);
-  rowLine.addWidget(channelLabel);
+  titleLayout.addWidget(channelLabel);
   const instrumentIcon = new QLabel();
   instrumentIcon.setFixedSize(20, 20);
   instrumentIcon.setScaledContents(true);
-  rowLine.addWidget(instrumentIcon);
+  titleLayout.addWidget(instrumentIcon);
   const name = label('Sem SF2', 'font-size: 12px; color: #344054;');
-  rowLine.addWidget(name, 1);
+  titleLayout.addWidget(name, 1);
   const volumeLabel = label(`${slot.volume}%`, 'min-width: 30px; color: #344054; font-size: 12px; font-weight: 700;');
   volumeLabel.setFixedWidth(30);
   rowLine.addWidget(volumeLabel);
@@ -1046,9 +1072,9 @@ function makeCompactSlot(slot) {
     worker.postMessage({ type: 'volume', channel: slot.channel, value });
   });
   volumeControl.setMinimumWidth(50);
-  volumeControl.setMaximumWidth(112);
+  volumeControl.setMaximumWidth(240);
   volumeControl.setFixedHeight(22);
-  rowLine.addWidget(volumeControl);
+  rowLine.addWidget(volumeControl, 1);
   const midiLearn = button('Learn', () => {
     midiLearnChannel = slot.channel;
     status.setText(`MIDI Learn: mova um controle para associar ao volume da parte ${slot.channel + 1}.`);

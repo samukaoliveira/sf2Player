@@ -86,6 +86,7 @@ echo "Montando extensão piCore a partir do AppDir ARM64..."
 	[[ -f "$logo" ]] || { echo "Logo ausente: $logo" >&2; exit 1; }
 	{ printf 'P6\n220 100\n255\n'; convert "$logo" -resize 220x100 -background '#0e1726' -alpha remove -alpha off -gravity center -extent 220x100 -depth 8 rgb:-; } > "$ROOTFS/opt/samnat-synth/share/samnat/boot-logo.ppm"
 	"${DOCKER_CMD[@]}" exec -e STAGE_NAME="$(basename -- "$STAGE")" "$BUILDER_NAME" /bin/sh -ec 'gcc -static -O2 -o "/work/app-root/$STAGE_NAME/root/usr/local/bin/samnat-splash" /src/raspicore/samnat-splash.c'
+	"${DOCKER_CMD[@]}" exec -e STAGE_NAME="$(basename -- "$STAGE")" "$BUILDER_NAME" /bin/sh -ec 'gcc -static -O2 -o "/work/app-root/$STAGE_NAME/root/usr/local/bin/samnat-touch-mouse" /src/raspicore/samnat-touch-mouse.c'
 
 	install -D -m 0755 "$RASPICORE_DIR/samnat-picore-launch" "$ROOTFS/usr/local/bin/samnat-picore-launch"
 	install -D -m 0755 "$RASPICORE_DIR/samnat-picore-volume" "$ROOTFS/usr/local/bin/samnat-volume"
@@ -107,7 +108,8 @@ mkdir -p "$(dirname "$LOG")"
 		case "$(cat "$entry/name")" in
 			*ili9486*|*ILI9486*|*piscreen*)
 				chvt 2 2>/dev/null || true
-				/usr/local/bin/samnat-splash "/dev/${entry##*/}" /opt/samnat-synth/share/samnat/boot-logo.ppm 20 || true
+				printf 'SamNat: splash inicial em /dev/%s\n' "${entry##*/}" >>"$LOG"
+				/usr/local/bin/samnat-splash "/dev/${entry##*/}" /opt/samnat-synth/share/samnat/boot-logo.ppm 20 >>"$LOG" 2>&1 || printf 'SamNat: splash inicial falhou\n' >>"$LOG"
 				break ;;
 		esac
 	done

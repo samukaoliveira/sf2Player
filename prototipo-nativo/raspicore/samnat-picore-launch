@@ -72,7 +72,7 @@ if ! chvt 2; then
 	echo 'SamNat: não foi possível mudar para o terminal gráfico tty2.' >&2
 	exit 1
 fi
-/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 60 2>/dev/null || true
+/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 60 || echo 'SamNat: falha ao mostrar logo (60%).'
 
 # The XPT2046 is driven by ads7846. The device node is under /dev/input,
 # while /sys/class/input only contains its sysfs metadata.
@@ -93,12 +93,33 @@ for attempt in 1 2 3 4 5; do
 	[ "$attempt" = 5 ] || sleep 0.5
 done
 if [ -n "$TOUCH_DEVICE" ]; then
-	# LinuxFB otherwise prefers libinput and ignores the evdev parameters.
 	export QT_QPA_FB_NO_LIBINPUT=1
-	export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="$TOUCH_DEVICE${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+	modprobe uinput 2>/dev/null || true
+	if [ ! -c /dev/uinput ] && [ -r /sys/class/misc/uinput/dev ]; then
+		dev=$(cat /sys/class/misc/uinput/dev)
+		mknod /dev/uinput c "${dev%:*}" "${dev#*:}" 2>/dev/null || true
+	fi
+	if [ -x /usr/local/bin/samnat-touch-mouse ] && [ -c /dev/uinput ]; then
+		/usr/local/bin/samnat-touch-mouse "$TOUCH_DEVICE" &
+		touch_bridge_pid=$!
+		sleep 1
+		if kill -0 "$touch_bridge_pid" 2>/dev/null; then
+			# Pin the touch manager to a nonexistent input, while the mouse
+			# manager discovers our single-touch-to-mouse bridge and USB mice.
+			export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS=/dev/input/samnat-disabled
+			export QT_QPA_EVDEV_MOUSE_PARAMETERS=abs
+			echo "SamNat: touchscreen=$TOUCH_DEVICE via bridge de mouse (PID $touch_bridge_pid)"
+		else
+			export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="$TOUCH_DEVICE${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+			echo 'SamNat: bridge de touch não iniciou; usando evdevtouch.'
+		fi
+	else
+		export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="$TOUCH_DEVICE${SAMNAT_TOUCH_PARAMETERS:+:$SAMNAT_TOUCH_PARAMETERS}"
+		echo 'SamNat: uinput ou bridge ausente; usando evdevtouch.'
+	fi
 	# Input diagnostics go to the persistent startup log through the launcher.
 	export QT_LOGGING_RULES="${QT_LOGGING_RULES:+$QT_LOGGING_RULES;}qt.qpa.input=true"
-	echo "SamNat: touchscreen=$TOUCH_DEVICE ($name), handler=evdev"
+	echo "SamNat: touchscreen=$TOUCH_DEVICE ($name)"
 else
 	echo 'SamNat: touchscreen ADS7846/XPT2046 não encontrado; dispositivos detectados:'
 	for entry in /sys/class/input/event*; do
@@ -108,5 +129,8 @@ else
 	dmesg 2>/dev/null | grep -iE 'ads7846|xpt2046|spi0' | tail -20 || true
 fi
 
-/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 90 2>/dev/null || true
-exec "$APP_ROOT/AppRun"
+/usr/local/bin/samnat-splash "$FRAMEBUFFER" "$APP_ROOT/share/samnat/boot-logo.ppm" 90 || echo 'SamNat: falha ao mostrar logo (90%).'
+if [ -n "${touch_bridge_pid:-}" ]; then
+	trap 'kill "$touch_bridge_pid" 2>/dev/null || true' EXIT
+fi
+"$APP_ROOT/AppRun"

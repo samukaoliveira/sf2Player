@@ -16,7 +16,7 @@ esac
 
 CARD=
 case "$TARGET" in
-	plughw:*|hw:*) CARD=${TARGET#*:}; CARD=${CARD%%,*} ;;
+	plughw:*|hw:*) CARD=${TARGET#*:}; CARD=${CARD%%,*}; CARD=${CARD#CARD=} ;;
 esac
 if [ -z "$CARD" ]; then
 	CARD=$($APLAY -l 2>/dev/null | awk '/card [0-9]+:/ { card=$2; sub(/:$/, "", card); print card; exit }')

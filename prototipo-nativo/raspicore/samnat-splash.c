@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/fb.h>
+#include <linux/kd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,11 +30,17 @@ int main(int argc, char **argv) {
     int progress = atoi(argv[3]);
     if (progress < 0) progress = 0;
     if (progress > 100) progress = 100;
+    int tty = open("/dev/tty2", O_RDWR);
+    if (tty >= 0) {
+        if (ioctl(tty, KDSETMODE, KD_GRAPHICS) < 0) perror("splash KD_GRAPHICS");
+        close(tty);
+    }
     int fd = open(argv[1], O_RDWR);
-    if (fd < 0 || ioctl(fd, FBIOGET_VSCREENINFO, &v) || ioctl(fd, FBIOGET_FSCREENINFO, &f)) return 1;
-    if (v.bits_per_pixel != 16 && v.bits_per_pixel != 24 && v.bits_per_pixel != 32) return 1;
+    if (fd < 0) { perror(argv[1]); return 1; }
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &v) || ioctl(fd, FBIOGET_FSCREENINFO, &f)) { perror("framebuffer ioctl"); return 1; }
+    if (v.bits_per_pixel != 16 && v.bits_per_pixel != 24 && v.bits_per_pixel != 32) { fprintf(stderr, "splash: profundidade não suportada: %u\n", v.bits_per_pixel); return 1; }
     screen = mmap(NULL, f.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (screen == MAP_FAILED) return 1;
+    if (screen == MAP_FAILED) { perror("framebuffer mmap"); return 1; }
     for (unsigned y = 0; y < v.yres; y++) for (unsigned x = 0; x < v.xres; x++) pixel(x,y,14,23,38);
     FILE *logo = fopen(argv[2], "rb");
     if (logo) {
